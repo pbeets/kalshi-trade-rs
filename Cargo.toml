@@ -1,0 +1,63 @@
+[package]
+name = "kalshi-trade-rs"
+version = "0.1.0"
+edition = "2024"
+authors = ["pbeets"]
+description = "Rust client for the Kalshi trading API and WebSocket streams"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pbeets/kalshi-trade-rs"
+keywords = ["kalshi", "trading", "api", "websocket", "async"]
+categories = ["api-bindings", "asynchronous"]
+rust-version = "1.92"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# WebSocket
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Cryptography (RSA-PSS signing for authentication)
+rsa = "0.9"
+sha2 = { version = "0.10", features = ["oid"] }
+base64 = "0.22"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+
+# URL handling
+url = "2"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+
+[features]
+default = []
+
+[[example]]
+name = "basic_connection"
+path = "examples/basic_connection.rs"
+
+[[example]]
+name = "market_data"
+path = "examples/market_data.rs"
+
+[[example]]
+name = "websocket_stream"
+path = "examples/websocket_stream.rs"
