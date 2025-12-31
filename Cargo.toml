@@ -26,8 +26,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Cryptography (RSA-PSS signing for authentication)
-rsa = "0.9"
+rsa = { version = "0.9", features = ["sha2"] }
 sha2 = { version = "0.10", features = ["oid"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
 base64 = "0.22"
 
 # Time handling
@@ -49,15 +50,3 @@ dotenvy = "0.15"
 
 [features]
 default = []
-
-[[example]]
-name = "basic_connection"
-path = "examples/basic_connection.rs"
-
-[[example]]
-name = "market_data"
-path = "examples/market_data.rs"
-
-[[example]]
-name = "websocket_stream"
-path = "examples/websocket_stream.rs"

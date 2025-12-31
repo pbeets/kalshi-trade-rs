@@ -16,6 +16,18 @@ pub enum Error {
 
     #[error("API error: {0}")]
     Api(String),
+
+    #[error("Invalid private key: {0}")]
+    InvalidPrivateKey(String),
+
+    #[error("Missing environment variable: {0}")]
+    MissingEnvVar(String),
+
+    #[error("Failed to read private key file '{0}': {1}")]
+    PrivateKeyFileError(String, String),
+
+    #[error("Invalid header value: {0}")]
+    InvalidHeaderValue(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
