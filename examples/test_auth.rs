@@ -2,14 +2,7 @@
 //!
 //! Run with: cargo run --example test_auth
 
-use kalshi_trade_rs::{auth::KalshiConfig, client::HttpClient};
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-struct BalanceResponse {
-    balance: i64,
-    payout: Option<i64>,
-}
+use kalshi_trade_rs::{KalshiClient, KalshiConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -22,11 +15,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Environment: {:?}", config.environment);
     println!("API Key ID: {}", config.api_key_id);
 
-    println!("\nCreating HTTP client...");
-    let client = HttpClient::new(config)?;
+    println!("\nCreating Kalshi client...");
+    let client = KalshiClient::new(config)?;
 
     println!("Fetching portfolio balance...");
-    let balance: BalanceResponse = client.get("/portfolio/balance").await?;
+    let balance = client.get_balance().await?;
 
     println!("\n=== Success! ===");
     println!(
@@ -34,9 +27,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         balance.balance,
         balance.balance as f64 / 100.0
     );
+    println!(
+        "Portfolio Value: {} cents (${:.2})",
+        balance.portfolio_value,
+        balance.portfolio_value as f64 / 100.0
+    );
 
-    if let Some(payout) = balance.payout {
-        println!("Payout: {} cents (${:.2})", payout, payout as f64 / 100.0);
+    // Also test fetching positions
+    println!("\nFetching positions...");
+    let positions = client.get_positions().await?;
+    println!(
+        "Found {} market positions, {} event positions",
+        positions.market_positions.len(),
+        positions.event_positions.len()
+    );
+
+    for pos in &positions.market_positions {
+        println!(
+            "  {}: {} contracts, exposure: {} cents",
+            pos.ticker, pos.position, pos.market_exposure
+        );
     }
 
     Ok(())

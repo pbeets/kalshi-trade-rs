@@ -1,3 +1,8 @@
+//! API endpoint modules.
+//!
+//! These modules contain endpoint-specific logic. The public API is exposed
+//! through flat methods on [`KalshiClient`](crate::KalshiClient).
+
 mod events;
 mod exchange;
 mod markets;

@@ -47,8 +47,13 @@ impl HttpClient {
     fn auth_headers(&self, method: &Method, path: &str) -> Result<HeaderMap> {
         let timestamp_ms = Self::current_timestamp_ms();
 
-        // The path for signing includes the API prefix
-        let sign_path = format!("{}{}", self.config.environment.api_path_prefix(), path);
+        // The path for signing includes the API prefix but NOT query parameters
+        let path_without_query = path.split('?').next().unwrap_or(path);
+        let sign_path = format!(
+            "{}{}",
+            self.config.environment.api_path_prefix(),
+            path_without_query
+        );
 
         let signature = self
             .config
