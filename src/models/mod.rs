@@ -24,7 +24,7 @@ pub use fill::{Fill, FillsResponse, GetFillsParams};
 pub use market::{
     GetMarketsParams, GetOrderbookParams, GetTradesParams, Market, MarketFilterStatus,
     MarketResponse, MarketResult, MarketStatus, MarketType, MarketsResponse, MveFilter, Orderbook,
-    OrderbookResponse, PriceRange, StrikeType, TakerSide, Trade, TradesResponse,
+    OrderbookResponse, PriceLevelDollars, PriceRange, StrikeType, TakerSide, Trade, TradesResponse,
 };
 pub use order::{GetOrdersParams, Order, OrdersResponse};
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};

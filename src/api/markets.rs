@@ -3,6 +3,8 @@
 //! This module provides functions for interacting with the Kalshi Markets API,
 //! including listing markets, getting market details, orderbooks, and trades.
 
+use url::form_urlencoded;
+
 use crate::{
     client::HttpClient,
     error::Result,
@@ -11,6 +13,11 @@ use crate::{
         OrderbookResponse, TradesResponse,
     },
 };
+
+/// URL-encode a ticker for use in path segments.
+fn encode_ticker(ticker: &str) -> String {
+    form_urlencoded::byte_serialize(ticker.as_bytes()).collect()
+}
 
 /// Get a list of markets with optional filtering.
 ///
@@ -22,7 +29,7 @@ pub async fn get_markets(http: &HttpClient, params: GetMarketsParams) -> Result<
 
 /// Get details for a specific market by ticker.
 pub async fn get_market(http: &HttpClient, ticker: &str) -> Result<MarketResponse> {
-    let path = format!("/markets/{}", ticker);
+    let path = format!("/markets/{}", encode_ticker(ticker));
     http.get(&path).await
 }
 
@@ -34,7 +41,11 @@ pub async fn get_orderbook(
     ticker: &str,
     params: GetOrderbookParams,
 ) -> Result<OrderbookResponse> {
-    let path = format!("/markets/{}/orderbook{}", ticker, params.to_query_string());
+    let path = format!(
+        "/markets/{}/orderbook{}",
+        encode_ticker(ticker),
+        params.to_query_string()
+    );
     http.get(&path).await
 }
 

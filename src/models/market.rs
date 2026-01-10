@@ -9,14 +9,19 @@ use super::query::QueryBuilder;
 /// Market type (binary or scalar).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum MarketType {
     Binary,
     Scalar,
+    /// Unknown market type returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Market status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum MarketStatus {
     Initialized,
     Inactive,
@@ -26,6 +31,9 @@ pub enum MarketStatus {
     Disputed,
     Amended,
     Finalized,
+    /// Unknown status returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 impl MarketStatus {
@@ -40,6 +48,7 @@ impl MarketStatus {
             MarketStatus::Disputed => "disputed",
             MarketStatus::Amended => "amended",
             MarketStatus::Finalized => "finalized",
+            MarketStatus::Unknown => "unknown",
         }
     }
 }
@@ -47,11 +56,15 @@ impl MarketStatus {
 /// Market result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum MarketResult {
     Yes,
     No,
     #[serde(rename = "")]
     None,
+    /// Unknown result returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Filter status for list markets query.
@@ -99,6 +112,7 @@ impl MveFilter {
 /// Strike type for a market.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum StrikeType {
     Greater,
     GreaterOrEqual,
@@ -108,6 +122,9 @@ pub enum StrikeType {
     Functional,
     Custom,
     Structured,
+    /// Unknown strike type returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Price range configuration.
@@ -291,17 +308,10 @@ impl GetMarketsParams {
 
     /// Set the maximum number of results to return.
     ///
-    /// # Panics
-    ///
-    /// Panics in debug builds if `limit` is not in the range 1..=1000.
+    /// The value is clamped to the valid range of 1..=1000.
     #[must_use]
     pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 1000,
-            "limit must be between 1 and 1000, got {}",
-            limit
-        );
-        self.limit = Some(limit);
+        self.limit = Some(limit.clamp(1, 1000));
         self
     }
 
@@ -399,6 +409,73 @@ impl GetMarketsParams {
     }
 }
 
+/// A price level in the orderbook with dollar pricing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceLevelDollars {
+    /// Price in dollars (e.g., "0.50").
+    pub price: String,
+    /// Quantity at this price level.
+    pub quantity: i64,
+}
+
+/// Custom deserializer for price level arrays from the API.
+mod price_level_serde {
+    use super::PriceLevelDollars;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Vec<PriceLevelDollars>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<Vec<Vec<serde_json::Value>>> = Option::deserialize(deserializer)?;
+        match opt {
+            None => Ok(None),
+            Some(levels) => {
+                let mut result = Vec::with_capacity(levels.len());
+                for level in levels {
+                    if level.len() >= 2 {
+                        let price = match &level[0] {
+                            serde_json::Value::String(s) => s.clone(),
+                            serde_json::Value::Number(n) => n.to_string(),
+                            _ => continue,
+                        };
+                        let quantity = match &level[1] {
+                            serde_json::Value::Number(n) => n.as_i64().unwrap_or(0),
+                            _ => continue,
+                        };
+                        result.push(PriceLevelDollars { price, quantity });
+                    }
+                }
+                Ok(Some(result))
+            }
+        }
+    }
+
+    pub fn serialize<S>(
+        value: &Option<Vec<PriceLevelDollars>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            None => serializer.serialize_none(),
+            Some(levels) => {
+                let arrays: Vec<Vec<serde_json::Value>> = levels
+                    .iter()
+                    .map(|pl| {
+                        vec![
+                            serde_json::Value::String(pl.price.clone()),
+                            serde_json::Value::Number(pl.quantity.into()),
+                        ]
+                    })
+                    .collect();
+                arrays.serialize(serializer)
+            }
+        }
+    }
+}
+
 /// An orderbook for a market.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Orderbook {
@@ -408,12 +485,12 @@ pub struct Orderbook {
     /// NO price levels as [price_cents, quantity] pairs.
     #[serde(default)]
     pub no: Vec<Vec<i64>>,
-    /// YES price levels as [price_dollars, quantity] pairs.
-    #[serde(default)]
-    pub yes_dollars: Option<Vec<Vec<serde_json::Value>>>,
-    /// NO price levels as [price_dollars, quantity] pairs.
-    #[serde(default)]
-    pub no_dollars: Option<Vec<Vec<serde_json::Value>>>,
+    /// YES price levels with dollar pricing.
+    #[serde(default, with = "price_level_serde")]
+    pub yes_dollars: Option<Vec<PriceLevelDollars>>,
+    /// NO price levels with dollar pricing.
+    #[serde(default, with = "price_level_serde")]
+    pub no_dollars: Option<Vec<PriceLevelDollars>>,
 }
 
 /// Response from GET /markets/{ticker}/orderbook.
@@ -456,9 +533,13 @@ impl GetOrderbookParams {
 /// Taker side of a trade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum TakerSide {
     Yes,
     No,
+    /// Unknown taker side returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 /// A trade on the exchange.
@@ -516,17 +597,10 @@ impl GetTradesParams {
 
     /// Set the maximum number of results to return.
     ///
-    /// # Panics
-    ///
-    /// Panics in debug builds if `limit` is not in the range 1..=1000.
+    /// The value is clamped to the valid range of 1..=1000.
     #[must_use]
     pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 1000,
-            "limit must be between 1 and 1000, got {}",
-            limit
-        );
-        self.limit = Some(limit);
+        self.limit = Some(limit.clamp(1, 1000));
         self
     }
 
@@ -584,5 +658,144 @@ mod tests {
         let params = GetTradesParams::new().ticker("BTC-USD").limit(100);
         assert!(params.to_query_string().contains("ticker=BTC-USD"));
         assert!(params.to_query_string().contains("limit=100"));
+    }
+
+    #[test]
+    fn test_limit_clamping() {
+        // Test clamping to minimum
+        let params = GetMarketsParams::new().limit(0);
+        assert_eq!(params.limit, Some(1));
+
+        let params = GetMarketsParams::new().limit(-10);
+        assert_eq!(params.limit, Some(1));
+
+        // Test clamping to maximum
+        let params = GetMarketsParams::new().limit(2000);
+        assert_eq!(params.limit, Some(1000));
+
+        // Test value in range is unchanged
+        let params = GetMarketsParams::new().limit(500);
+        assert_eq!(params.limit, Some(500));
+
+        // Same for GetTradesParams
+        let params = GetTradesParams::new().limit(0);
+        assert_eq!(params.limit, Some(1));
+
+        let params = GetTradesParams::new().limit(9999);
+        assert_eq!(params.limit, Some(1000));
+    }
+
+    #[test]
+    fn test_market_type_deserialize_unknown() {
+        let json = r#""some_future_type""#;
+        let market_type: MarketType = serde_json::from_str(json).unwrap();
+        assert_eq!(market_type, MarketType::Unknown);
+    }
+
+    #[test]
+    fn test_market_status_deserialize_unknown() {
+        let json = r#""pending_review""#;
+        let status: MarketStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status, MarketStatus::Unknown);
+    }
+
+    #[test]
+    fn test_market_result_deserialize_unknown() {
+        let json = r#""void""#;
+        let result: MarketResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result, MarketResult::Unknown);
+    }
+
+    #[test]
+    fn test_taker_side_deserialize_unknown() {
+        let json = r#""both""#;
+        let side: TakerSide = serde_json::from_str(json).unwrap();
+        assert_eq!(side, TakerSide::Unknown);
+    }
+
+    #[test]
+    fn test_strike_type_deserialize_unknown() {
+        let json = r#""exotic""#;
+        let strike: StrikeType = serde_json::from_str(json).unwrap();
+        assert_eq!(strike, StrikeType::Unknown);
+    }
+
+    #[test]
+    fn test_market_deserialize() {
+        let json = r#"{
+            "ticker": "KXBTC-25JAN10-B50000",
+            "event_ticker": "KXBTC-25JAN10",
+            "market_type": "binary",
+            "status": "active",
+            "title": "Will Bitcoin reach $50,000?",
+            "volume": 1000,
+            "open_interest": 500
+        }"#;
+        let market: Market = serde_json::from_str(json).unwrap();
+        assert_eq!(market.ticker, "KXBTC-25JAN10-B50000");
+        assert_eq!(market.market_type, MarketType::Binary);
+        assert_eq!(market.status, MarketStatus::Active);
+        assert_eq!(market.volume, Some(1000));
+    }
+
+    #[test]
+    fn test_orderbook_deserialize() {
+        let json = r#"{
+            "yes": [[50, 100], [55, 200]],
+            "no": [[45, 150]],
+            "yes_dollars": [["0.50", 100], ["0.55", 200]],
+            "no_dollars": [["0.45", 150]]
+        }"#;
+        let orderbook: Orderbook = serde_json::from_str(json).unwrap();
+        assert_eq!(orderbook.yes.len(), 2);
+        assert_eq!(orderbook.yes[0], vec![50, 100]);
+        assert_eq!(orderbook.no.len(), 1);
+
+        let yes_dollars = orderbook.yes_dollars.unwrap();
+        assert_eq!(yes_dollars.len(), 2);
+        assert_eq!(yes_dollars[0].price, "0.50");
+        assert_eq!(yes_dollars[0].quantity, 100);
+    }
+
+    #[test]
+    fn test_orderbook_deserialize_empty() {
+        let json = r#"{"yes": [], "no": []}"#;
+        let orderbook: Orderbook = serde_json::from_str(json).unwrap();
+        assert!(orderbook.yes.is_empty());
+        assert!(orderbook.no.is_empty());
+        assert!(orderbook.yes_dollars.is_none());
+    }
+
+    #[test]
+    fn test_trade_deserialize() {
+        let json = r#"{
+            "trade_id": "abc123",
+            "ticker": "KXBTC-25JAN10-B50000",
+            "count": 10,
+            "yes_price": 50,
+            "no_price": 50,
+            "taker_side": "yes",
+            "created_time": "2025-01-10T12:00:00Z"
+        }"#;
+        let trade: Trade = serde_json::from_str(json).unwrap();
+        assert_eq!(trade.trade_id, "abc123");
+        assert_eq!(trade.count, 10);
+        assert_eq!(trade.taker_side, TakerSide::Yes);
+    }
+
+    #[test]
+    fn test_markets_response_deserialize() {
+        let json = r#"{
+            "markets": [{
+                "ticker": "TEST-001",
+                "event_ticker": "TEST",
+                "market_type": "binary",
+                "status": "active"
+            }],
+            "cursor": "next_page_token"
+        }"#;
+        let response: MarketsResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.markets.len(), 1);
+        assert_eq!(response.cursor, Some("next_page_token".to_string()));
     }
 }
