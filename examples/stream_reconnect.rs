@@ -105,15 +105,14 @@ async fn run_stream(config: &KalshiConfig) -> Result<String, Box<dyn std::error:
         match handle.update_receiver.recv().await {
             Ok(update) => {
                 match &update.msg {
-                    // Handle disconnection event
-                    StreamMessage::Disconnected { reason, was_clean } => {
-                        if *was_clean {
-                            // Clean disconnect - return Ok to exit
-                            return Ok(reason.clone());
-                        } else {
-                            // Unclean disconnect - return Err to trigger reconnection
-                            return Err(format!("Disconnected: {}", reason).into());
-                        }
+                    // Handle clean close - don't reconnect
+                    StreamMessage::Closed { reason } => {
+                        return Ok(reason.clone());
+                    }
+
+                    // Handle connection loss - trigger reconnection
+                    StreamMessage::ConnectionLost { reason } => {
+                        return Err(format!("Connection lost: {}", reason).into());
                     }
 
                     // Handle ticker updates

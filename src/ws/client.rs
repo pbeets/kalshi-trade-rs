@@ -203,8 +203,12 @@ impl KalshiStreamClient {
 ///     // Process updates - handle disconnection
 ///     while let Ok(update) = handle.update_receiver.recv().await {
 ///         match &update.msg {
-///             StreamMessage::Disconnected { reason, was_clean } => {
-///                 eprintln!("Disconnected: {} (clean: {})", reason, was_clean);
+///             StreamMessage::Closed { reason } => {
+///                 println!("Connection closed: {}", reason);
+///                 break;
+///             }
+///             StreamMessage::ConnectionLost { reason } => {
+///                 eprintln!("Connection lost: {}", reason);
 ///                 break; // Implement reconnection logic here
 ///             }
 ///             _ => println!("Got update: {:?}", update),

@@ -57,16 +57,25 @@ pub enum StreamMessage {
     MarketLifecycle(MarketLifecycleData),
     /// RFQ or quote communication.
     Communication(CommunicationData),
-    /// Connection was lost or closed.
+    /// Connection was closed cleanly.
     ///
     /// This is a local event, not received from the server.
-    /// When you receive this, you should reconnect.
+    /// Indicates an expected close (user-requested or server sent close frame).
     #[serde(skip)]
-    Disconnected {
-        /// Human-readable reason for disconnection.
+    Closed {
+        /// Human-readable reason for the close.
         reason: String,
-        /// Whether this was a clean close (server sent close frame).
-        was_clean: bool,
+    },
+
+    /// Connection was lost unexpectedly.
+    ///
+    /// This is a local event, not received from the server.
+    /// Indicates an unexpected disconnection (error, timeout, network failure).
+    /// You should reconnect with backoff when receiving this.
+    #[serde(skip)]
+    ConnectionLost {
+        /// Human-readable reason for the connection loss.
+        reason: String,
     },
 }
 
