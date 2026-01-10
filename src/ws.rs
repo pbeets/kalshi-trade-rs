@@ -85,29 +85,43 @@ pub enum ConnectStrategy {
 /// # Kalshi WebSocket Behavior
 ///
 /// Kalshi sends Ping frames every 10 seconds with body "heartbeat".
-/// The client automatically responds with Pong frames (handled by tokio-tungstenite).
+/// The client responds with Pong frames. The client also sends its own
+/// Ping frames to verify the connection is alive in both directions.
 ///
-/// This configuration controls *client-initiated* pings, which serve as a backup
-/// health check. The defaults are conservative since Kalshi already pings frequently.
+/// # Two-Way Health Monitoring
+///
+/// 1. **Client → Server**: Client sends pings at `ping_interval`, expects pong
+///    within `ping_timeout`.
+/// 2. **Server → Client**: Client expects Kalshi pings at ~10s intervals. If no
+///    ping received within `server_ping_timeout`, connection is considered dead.
 #[derive(Debug, Clone)]
 pub struct HealthConfig {
     /// Interval between client-initiated WebSocket ping frames.
     ///
-    /// Default: 30 seconds (Kalshi already pings every 10s, so this is a backup).
+    /// Default: 30 seconds.
     pub ping_interval: Duration,
 
-    /// Timeout for pong response before considering connection dead.
+    /// Timeout for pong response to client-initiated pings.
     ///
     /// Default: 10 seconds.
     pub ping_timeout: Duration,
+
+    /// Timeout for receiving pings from Kalshi server.
+    ///
+    /// Kalshi sends pings every 10 seconds. If no ping is received within
+    /// this duration, the connection is considered dead.
+    ///
+    /// Default: 15 seconds (allows for some network jitter).
+    pub server_ping_timeout: Duration,
 }
 
 impl Default for HealthConfig {
     fn default() -> Self {
         Self {
-            // Conservative interval since Kalshi pings every 10s
             ping_interval: Duration::from_secs(30),
             ping_timeout: Duration::from_secs(10),
+            // Kalshi pings every 10s, so 15s allows some slack
+            server_ping_timeout: Duration::from_secs(15),
         }
     }
 }

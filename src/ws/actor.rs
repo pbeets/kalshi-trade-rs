@@ -16,7 +16,7 @@ use futures_util::{
 use tokio::{
     net::TcpStream,
     sync::{broadcast, mpsc},
-    time::{interval_at, sleep, timeout},
+    time::{interval_at, sleep, sleep_until, timeout},
 };
 
 use tokio_tungstenite::{
@@ -63,10 +63,12 @@ pub struct StreamActor {
     next_request_id: u64,
     /// Health monitoring configuration.
     health_config: HealthConfig,
-    /// Last time we received a pong response.
+    /// Last time we received a pong response to our ping.
     last_pong: Instant,
     /// Whether we're waiting for a pong response.
     ping_pending: bool,
+    /// Last time we received a ping from Kalshi server.
+    last_server_ping: Instant,
 }
 
 impl StreamActor {
@@ -126,6 +128,7 @@ impl StreamActor {
             health_config,
             last_pong: Instant::now(),
             ping_pending: false,
+            last_server_ping: Instant::now(),
         })
     }
 
@@ -264,7 +267,7 @@ impl StreamActor {
                     }
                 }
 
-                // Send periodic ping for health monitoring
+                // Send periodic ping for health monitoring (client -> server)
                 _ = ping_interval.tick() => {
                     if self.ping_pending {
                         // Check if we've timed out waiting for pong
@@ -288,6 +291,18 @@ impl StreamActor {
                         }
                         self.ping_pending = true;
                         debug!("Sent health ping");
+                    }
+                }
+
+                // Check for server ping timeout (server -> client)
+                _ = sleep_until((self.last_server_ping + self.health_config.server_ping_timeout).into()) => {
+                    let elapsed = self.last_server_ping.elapsed();
+                    if elapsed > self.health_config.server_ping_timeout {
+                        error!("Server ping timeout: no ping from Kalshi in {:?}", elapsed);
+                        disconnect_msg = Some(StreamMessage::ConnectionLost {
+                            reason: "Server ping timeout".to_string(),
+                        });
+                        break;
                     }
                 }
 
@@ -458,6 +473,8 @@ impl StreamActor {
             Ok(Message::Ping(data)) => {
                 debug!("Received ping: {:?}", String::from_utf8_lossy(&data));
                 // Kalshi sends ping with body "heartbeat" every 10 seconds
+                // Reset server ping timer
+                self.last_server_ping = Instant::now();
                 // Respond with pong containing the same data
                 if let Err(e) = self.ws_writer.send(Message::Pong(data)).await {
                     error!("Failed to send pong: {}", e);
