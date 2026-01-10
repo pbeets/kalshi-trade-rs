@@ -4,7 +4,7 @@
 //! through flat methods on [`KalshiClient`](crate::KalshiClient).
 
 mod events;
-mod exchange;
+pub(crate) mod exchange;
 mod markets;
 mod orders;
 pub(crate) mod portfolio;
