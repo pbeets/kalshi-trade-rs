@@ -5,15 +5,15 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::{exchange, markets, portfolio},
+    api::{events, exchange, markets, portfolio},
     auth::KalshiConfig,
     error::Result,
     models::{
-        BalanceResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
-        ExchangeStatusResponse, FillsResponse, GetFillsParams, GetMarketsParams, GetOrderbookParams,
-        GetOrdersParams, GetPositionsParams, GetTradesParams, MarketResponse, MarketsResponse,
-        OrderbookResponse, OrdersResponse, PositionsResponse, TradesResponse,
-        UserDataTimestampResponse,
+        BalanceResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
+        ExchangeScheduleResponse, ExchangeStatusResponse, FillsResponse, GetEventParams,
+        GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams, GetOrdersParams,
+        GetPositionsParams, GetTradesParams, MarketResponse, MarketsResponse, OrderbookResponse,
+        OrdersResponse, PositionsResponse, TradesResponse, UserDataTimestampResponse,
     },
 };
 
@@ -450,5 +450,91 @@ impl KalshiClient {
     /// ```
     pub async fn get_trades_with_params(&self, params: GetTradesParams) -> Result<TradesResponse> {
         markets::get_trades(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Events API
+    // =========================================================================
+
+    /// Get a list of events with default parameters.
+    ///
+    /// Returns up to 200 events. Use `get_events_with_params` for filtering
+    /// and pagination. Note: This excludes multivariate events.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let events = client.get_events().await?;
+    /// for event in events.events {
+    ///     println!("{}: {}", event.event_ticker, event.title);
+    /// }
+    /// ```
+    pub async fn get_events(&self) -> Result<EventsResponse> {
+        self.get_events_with_params(GetEventsParams::default())
+            .await
+    }
+
+    /// Get a list of events with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::EventStatus;
+    ///
+    /// let params = GetEventsParams::new()
+    ///     .status(EventStatus::Open)
+    ///     .with_nested_markets(true)
+    ///     .limit(50);
+    /// let events = client.get_events_with_params(params).await?;
+    /// ```
+    pub async fn get_events_with_params(&self, params: GetEventsParams) -> Result<EventsResponse> {
+        events::get_events(&self.http, params).await
+    }
+
+    /// Get details for a specific event by ticker.
+    ///
+    /// # Arguments
+    ///
+    /// * `event_ticker` - The event ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let event = client.get_event("KXBTC-25JAN").await?;
+    /// println!("{}: {}", event.event.event_ticker, event.event.title);
+    /// ```
+    pub async fn get_event(&self, event_ticker: &str) -> Result<EventResponse> {
+        self.get_event_with_params(event_ticker, GetEventParams::default())
+            .await
+    }
+
+    /// Get details for a specific event with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `event_ticker` - The event ticker
+    /// * `params` - Query parameters (e.g., with_nested_markets)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetEventParams::new().with_nested_markets(true);
+    /// let event = client.get_event_with_params("KXBTC-25JAN", params).await?;
+    /// if let Some(markets) = &event.event.markets {
+    ///     for market in markets {
+    ///         println!("  Market: {}", market.ticker);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_event_with_params(
+        &self,
+        event_ticker: &str,
+        params: GetEventParams,
+    ) -> Result<EventResponse> {
+        events::get_event(&self.http, event_ticker, params).await
     }
 }
