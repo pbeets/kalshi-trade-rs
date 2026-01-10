@@ -56,9 +56,9 @@ pub use models::{
     GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetTradesParams, MaintenanceWindow,
     Market, MarketFilterStatus, MarketPosition, MarketResponse, MarketResult, MarketStatus,
     MarketType, MarketsResponse, MveFilter, Order, OrderStatus, OrderType, Orderbook,
-    OrderbookResponse, OrdersResponse, PositionsResponse, PriceRange, SelfTradePreventionType,
-    Side, StandardHoursPeriod, StrikeType, TakerSide, Trade, TradesResponse, TradingSession,
-    UserDataTimestampResponse, cents_to_dollars,
+    OrderbookResponse, OrdersResponse, PositionsResponse, PriceLevelDollars, PriceRange,
+    SelfTradePreventionType, Side, StandardHoursPeriod, StrikeType, TakerSide, Trade,
+    TradesResponse, TradingSession, UserDataTimestampResponse, cents_to_dollars,
 };
 
 // Re-export WebSocket types for convenience
