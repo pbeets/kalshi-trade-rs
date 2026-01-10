@@ -5,12 +5,13 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::portfolio,
+    api::{exchange, portfolio},
     auth::KalshiConfig,
     error::Result,
     models::{
-        BalanceResponse, FillsResponse, GetFillsParams, GetOrdersParams, GetPositionsParams,
-        OrdersResponse, PositionsResponse,
+        BalanceResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        ExchangeStatusResponse, FillsResponse, GetFillsParams, GetOrdersParams,
+        GetPositionsParams, OrdersResponse, PositionsResponse, UserDataTimestampResponse,
     },
 };
 
@@ -224,5 +225,88 @@ impl KalshiClient {
     /// ```
     pub async fn get_orders_with_params(&self, params: GetOrdersParams) -> Result<OrdersResponse> {
         portfolio::get_orders(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Exchange API
+    // =========================================================================
+
+    /// Get the current exchange status.
+    ///
+    /// Returns whether the exchange and trading are currently active.
+    /// This is useful for checking if the exchange is in maintenance mode
+    /// or if trading is paused.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let status = client.get_exchange_status().await?;
+    /// if status.trading_active {
+    ///     println!("Trading is open!");
+    /// } else {
+    ///     println!("Trading is closed");
+    ///     if let Some(resume_time) = status.exchange_estimated_resume_time {
+    ///         println!("Estimated resume: {}", resume_time);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_exchange_status(&self) -> Result<ExchangeStatusResponse> {
+        exchange::get_exchange_status(&self.http).await
+    }
+
+    /// Get the exchange schedule.
+    ///
+    /// Returns the weekly trading schedule and any scheduled maintenance windows.
+    /// All times are in Eastern Time (ET).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let schedule = client.get_exchange_schedule().await?;
+    /// for period in &schedule.schedule.standard_hours {
+    ///     for session in &period.monday {
+    ///         println!("Monday: {} - {}", session.open_time, session.close_time);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_exchange_schedule(&self) -> Result<ExchangeScheduleResponse> {
+        exchange::get_exchange_schedule(&self.http).await
+    }
+
+    /// Get exchange announcements.
+    ///
+    /// Returns all exchange-wide announcements including info, warning, and error messages.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::AnnouncementStatus;
+    ///
+    /// let announcements = client.get_exchange_announcements().await?;
+    /// for ann in announcements.announcements {
+    ///     if ann.status == AnnouncementStatus::Active {
+    ///         println!("[{:?}] {}", ann.announcement_type, ann.message);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_exchange_announcements(&self) -> Result<ExchangeAnnouncementsResponse> {
+        exchange::get_exchange_announcements(&self.http).await
+    }
+
+    /// Get the user data timestamp.
+    ///
+    /// Returns an approximate indication of when user portfolio data
+    /// (balance, orders, fills, positions) was last validated.
+    /// Useful for determining data freshness when there may be delays
+    /// in reflecting recent trades.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let timestamp = client.get_user_data_timestamp().await?;
+    /// println!("Data as of: {}", timestamp.as_of_time);
+    /// ```
+    pub async fn get_user_data_timestamp(&self) -> Result<UserDataTimestampResponse> {
+        exchange::get_user_data_timestamp(&self.http).await
     }
 }
