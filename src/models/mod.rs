@@ -12,7 +12,7 @@ pub(crate) mod query;
 
 // Re-export all public types
 pub use balance::BalanceResponse;
-pub use common::{cents_to_dollars, Action, OrderStatus, OrderType, SelfTradePreventionType, Side};
+pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
 pub use fill::{Fill, FillsResponse, GetFillsParams};
 pub use order::{GetOrdersParams, Order, OrdersResponse};
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};

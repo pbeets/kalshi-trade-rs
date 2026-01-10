@@ -50,7 +50,13 @@ pub use auth::KalshiConfig;
 pub use client::{Environment, HttpClient, KalshiClient};
 pub use error::{Error, Result};
 pub use models::{
-    cents_to_dollars, Action, BalanceResponse, EventPosition, Fill, FillsResponse, GetFillsParams,
-    GetOrdersParams, GetPositionsParams, MarketPosition, Order, OrderStatus, OrderType,
-    OrdersResponse, PositionsResponse, SelfTradePreventionType, Side,
+    Action, BalanceResponse, EventPosition, Fill, FillsResponse, GetFillsParams, GetOrdersParams,
+    GetPositionsParams, MarketPosition, Order, OrderStatus, OrderType, OrdersResponse,
+    PositionsResponse, SelfTradePreventionType, Side, cents_to_dollars,
+};
+
+// Re-export WebSocket types for convenience
+pub use ws::{
+    Channel, ConnectStrategy, KalshiStreamClient, KalshiStreamHandle, StreamMessage, StreamUpdate,
+    SubscribeResult,
 };

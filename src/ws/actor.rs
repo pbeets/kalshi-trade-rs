@@ -4,7 +4,7 @@
 //! to Kalshi's streaming API. The actor owns the WebSocket connection and handles
 //! all communication in a single async task.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use futures_util::{
     SinkExt, StreamExt,
@@ -14,25 +14,26 @@ use serde_json::Value as JsonValue;
 use tokio::{
     net::TcpStream,
     sync::{broadcast, mpsc},
+    time::{interval_at, sleep, timeout},
 };
 use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
-    tungstenite::{
-        self,
-        client::IntoClientRequest,
-        http::HeaderValue,
-        Message,
-    },
+    tungstenite::{self, Message, client::IntoClientRequest, http::HeaderValue},
 };
 use tracing::{debug, error, info, warn};
 
-use super::channel::Channel;
-use super::command::{StreamCommand, SubscribeResult};
-use super::message::StreamUpdate;
-use super::protocol::{self, IncomingMessage};
-use super::request_handler::RequestHandler;
-use crate::auth::KalshiConfig;
-use crate::error::{Error, Result};
+use super::{
+    BACKOFF_BASE, CONNECT_TIMEOUT, ConnectStrategy, HealthConfig, MAX_BACKOFF,
+    channel::Channel,
+    command::{StreamCommand, SubscribeResult},
+    message::{StreamMessage, StreamUpdate},
+    protocol::{self, IncomingMessage},
+    request_handler::RequestHandler,
+};
+use crate::{
+    auth::KalshiConfig,
+    error::{Error, Result},
+};
 
 /// WebSocket stream type alias for clarity.
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
@@ -43,6 +44,7 @@ type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 /// processes commands from clients, and broadcasts updates to subscribers.
 pub struct StreamActor {
     /// Configuration for authentication.
+    #[allow(dead_code)]
     config: KalshiConfig,
     /// Receiver for commands from client handles.
     cmd_receiver: mpsc::Receiver<StreamCommand>,
@@ -56,52 +58,57 @@ pub struct StreamActor {
     request_handler: RequestHandler,
     /// Next request ID to use for outgoing messages.
     next_request_id: u64,
+    /// Health monitoring configuration.
+    health_config: HealthConfig,
+    /// Last time we received a pong response.
+    last_pong: Instant,
+    /// Whether we're waiting for a pong response.
+    ping_pending: bool,
 }
 
 impl StreamActor {
-    /// Connect to the Kalshi WebSocket API and create a new actor.
-    ///
-    /// This establishes the WebSocket connection with authentication headers
-    /// and returns the actor along with channels for communication.
+    /// Connect to the Kalshi WebSocket API with the specified strategy.
     ///
     /// # Arguments
     ///
     /// * `config` - The Kalshi configuration with API credentials.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing:
-    /// - The actor instance
-    /// - A sender for sending commands to the actor
-    /// - A sender for receiving update broadcasts
-    pub async fn new(
-        config: KalshiConfig,
-    ) -> Result<(Self, mpsc::Sender<StreamCommand>, broadcast::Sender<StreamUpdate>)> {
-        let (cmd_sender, cmd_receiver) = mpsc::channel::<StreamCommand>(64);
-        let (update_sender, _) = broadcast::channel::<StreamUpdate>(10_000);
-
-        let actor = Self::connect(&config, cmd_receiver, update_sender.clone()).await?;
-
-        Ok((actor, cmd_sender, update_sender))
-    }
-
-    /// Connect to the Kalshi WebSocket API with provided channels.
-    ///
-    /// This is useful when the caller wants control over the channel configuration,
-    /// such as custom buffer sizes.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - The Kalshi configuration with API credentials.
+    /// * `strategy` - Connection strategy (Simple or Retry).
     /// * `cmd_receiver` - Receiver for commands from client handles.
     /// * `update_sender` - Sender for broadcasting updates to subscribers.
     pub async fn connect(
         config: &KalshiConfig,
+        strategy: ConnectStrategy,
+        cmd_receiver: mpsc::Receiver<StreamCommand>,
+        update_sender: broadcast::Sender<StreamUpdate>,
+    ) -> Result<Self> {
+        Self::connect_with_health(
+            config,
+            strategy,
+            HealthConfig::default(),
+            cmd_receiver,
+            update_sender,
+        )
+        .await
+    }
+
+    /// Connect with custom health monitoring configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The Kalshi configuration with API credentials.
+    /// * `strategy` - Connection strategy (Simple or Retry).
+    /// * `health_config` - Health monitoring configuration.
+    /// * `cmd_receiver` - Receiver for commands from client handles.
+    /// * `update_sender` - Sender for broadcasting updates to subscribers.
+    pub async fn connect_with_health(
+        config: &KalshiConfig,
+        strategy: ConnectStrategy,
+        health_config: HealthConfig,
         cmd_receiver: mpsc::Receiver<StreamCommand>,
         update_sender: broadcast::Sender<StreamUpdate>,
     ) -> Result<Self> {
         let ws_url = config.environment.ws_url();
-        let ws_stream = Self::connect_with_auth(config, ws_url).await?;
+        let ws_stream = Self::connect_with_strategy(config, ws_url, strategy).await?;
 
         let (ws_writer, ws_reader) = ws_stream.split();
 
@@ -113,7 +120,42 @@ impl StreamActor {
             ws_writer,
             request_handler: RequestHandler::new(),
             next_request_id: 1,
+            health_config,
+            last_pong: Instant::now(),
+            ping_pending: false,
         })
+    }
+
+    /// Connect using the specified strategy.
+    async fn connect_with_strategy(
+        config: &KalshiConfig,
+        ws_url: &str,
+        strategy: ConnectStrategy,
+    ) -> Result<WsStream> {
+        match strategy {
+            ConnectStrategy::Simple => Self::connect_with_auth(config, ws_url).await,
+            ConnectStrategy::Retry => Self::connect_with_retry(config, ws_url).await,
+        }
+    }
+
+    /// Connect with exponential backoff retry.
+    async fn connect_with_retry(config: &KalshiConfig, ws_url: &str) -> Result<WsStream> {
+        let mut attempt: u64 = 1;
+
+        loop {
+            info!("Connection attempt {} to {}", attempt, ws_url);
+
+            match timeout(CONNECT_TIMEOUT, Self::connect_with_auth(config, ws_url)).await {
+                Ok(Ok(ws_stream)) => return Ok(ws_stream),
+                Ok(Err(e)) => warn!("Connection failed: {}", e),
+                Err(_) => warn!("Connection timed out after {:?}", CONNECT_TIMEOUT),
+            }
+
+            let backoff = (BACKOFF_BASE * attempt as u32).min(MAX_BACKOFF);
+            info!("Retrying in {:?}", backoff);
+            sleep(backoff).await;
+            attempt += 1;
+        }
     }
 
     /// Establish a WebSocket connection with authentication headers.
@@ -136,7 +178,7 @@ impl StreamActor {
         // Build the request with auth headers
         let mut request = ws_url
             .into_client_request()
-            .map_err(|e| Error::WebSocket(e.into()))?;
+            .map_err(|e| Error::WebSocket(Box::new(e)))?;
 
         let headers = request.headers_mut();
         headers.insert(
@@ -172,11 +214,19 @@ impl StreamActor {
     /// This method processes:
     /// 1. Commands from client handles via `cmd_receiver`
     /// 2. Incoming WebSocket messages from `ws_reader`
+    /// 3. Periodic ping messages for health monitoring
     ///
     /// The loop continues until the connection is closed or an unrecoverable
-    /// error occurs.
+    /// error occurs. On disconnection, a `StreamMessage::Disconnected` event
+    /// is broadcast to all subscribers.
     pub async fn run(mut self) {
         info!("StreamActor starting main loop");
+
+        // Set up ping interval for health monitoring
+        let ping_start = Instant::now() + self.health_config.ping_interval;
+        let mut ping_interval = interval_at(ping_start.into(), self.health_config.ping_interval);
+
+        let disconnect_reason: Option<(String, bool)>;
 
         loop {
             tokio::select! {
@@ -184,24 +234,76 @@ impl StreamActor {
                 Some(command) = self.cmd_receiver.recv() => {
                     if self.handle_command(command).await {
                         info!("StreamActor received close command, shutting down");
+                        disconnect_reason = Some(("Client requested close".to_string(), true));
                         break;
                     }
                 }
 
                 // Handle incoming WebSocket messages
                 Some(message) = self.ws_reader.next() => {
-                    if self.handle_ws_message(message).await {
-                        info!("StreamActor WebSocket closed, shutting down");
-                        break;
+                    match self.handle_ws_message(message).await {
+                        Ok(false) => {} // Continue
+                        Ok(true) => {
+                            // Clean close from server
+                            disconnect_reason = Some(("Server closed connection".to_string(), true));
+                            break;
+                        }
+                        Err(reason) => {
+                            // Error close
+                            disconnect_reason = Some((reason, false));
+                            break;
+                        }
                     }
                 }
 
-                // Both channels closed
+                // Send periodic ping for health monitoring
+                _ = ping_interval.tick() => {
+                    if self.ping_pending {
+                        // Check if we've timed out waiting for pong
+                        let elapsed = self.last_pong.elapsed();
+                        if elapsed > self.health_config.ping_timeout {
+                            error!("Ping timeout: no pong received in {:?}", elapsed);
+                            disconnect_reason = Some(("Ping timeout".to_string(), false));
+                            break;
+                        }
+                    } else {
+                        // Send a ping
+                        let ping_data = b"health".to_vec();
+                        if let Err(e) = self.ws_writer.send(Message::Ping(ping_data)).await {
+                            error!("Failed to send ping: {}", e);
+                            disconnect_reason = Some((format!("Failed to send ping: {}", e), false));
+                            break;
+                        }
+                        self.ping_pending = true;
+                        debug!("Sent health ping");
+                    }
+                }
+
+                // All channels closed
                 else => {
                     info!("StreamActor all channels closed, shutting down");
+                    disconnect_reason = Some(("All channels closed".to_string(), true));
                     break;
                 }
             }
+        }
+
+        // Broadcast disconnection event
+        if let Some((reason, was_clean)) = disconnect_reason {
+            let disconnect_update = StreamUpdate {
+                channel: "system".to_string(),
+                sid: 0,
+                seq: None,
+                msg: StreamMessage::Disconnected {
+                    reason: reason.clone(),
+                    was_clean,
+                },
+            };
+            let _ = self.update_sender.send(disconnect_update);
+            info!(
+                "Broadcast disconnect event: {} (clean: {})",
+                reason, was_clean
+            );
         }
 
         // Clean up: cancel pending requests and close connection
@@ -252,7 +354,7 @@ impl StreamActor {
                 self.request_handler.register(request_id, tx);
 
                 // Send the subscribe message
-                if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
+                if let Err(e) = self.ws_writer.send(Message::Text(msg)).await {
                     error!("Failed to send subscribe message: {}", e);
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
@@ -290,7 +392,7 @@ impl StreamActor {
                 self.request_handler.register(request_id, tx);
 
                 // Send the unsubscribe message
-                if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
+                if let Err(e) = self.ws_writer.send(Message::Text(msg)).await {
                     error!("Failed to send unsubscribe message: {}", e);
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
@@ -320,14 +422,18 @@ impl StreamActor {
 
     /// Handle an incoming WebSocket message.
     ///
-    /// Returns `true` if the actor should shut down.
+    /// Returns:
+    /// - `Ok(false)` to continue processing
+    /// - `Ok(true)` for clean shutdown
+    /// - `Err(reason)` for error shutdown
     async fn handle_ws_message(
         &mut self,
         message: std::result::Result<Message, tungstenite::Error>,
-    ) -> bool {
+    ) -> std::result::Result<bool, String> {
         match message {
             Ok(Message::Text(text)) => {
                 self.handle_text_message(&text).await;
+                Ok(false)
             }
 
             Ok(Message::Ping(data)) => {
@@ -336,49 +442,53 @@ impl StreamActor {
                 // Respond with pong containing the same data
                 if let Err(e) = self.ws_writer.send(Message::Pong(data)).await {
                     error!("Failed to send pong: {}", e);
-                    return true;
+                    return Err(format!("Failed to send pong: {}", e));
                 }
+                Ok(false)
             }
 
             Ok(Message::Pong(data)) => {
                 debug!("Received pong: {:?}", String::from_utf8_lossy(&data));
+                self.last_pong = Instant::now();
+                self.ping_pending = false;
+                Ok(false)
             }
 
             Ok(Message::Close(frame)) => {
                 info!("Received close frame: {:?}", frame);
-                return true;
+                Ok(true)
             }
 
             Ok(Message::Binary(data)) => {
                 warn!("Received unexpected binary message: {} bytes", data.len());
+                Ok(false)
             }
 
             Ok(Message::Frame(_)) => {
                 // Raw frame, typically not received in normal operation
+                Ok(false)
             }
 
             Err(tungstenite::Error::ConnectionClosed) => {
                 info!("WebSocket connection closed");
-                return true;
+                Ok(true)
             }
 
             Err(tungstenite::Error::AlreadyClosed) => {
                 info!("WebSocket already closed");
-                return true;
+                Ok(true)
             }
 
             Err(tungstenite::Error::Io(ref e)) => {
                 error!("WebSocket I/O error: {}", e);
-                return true;
+                Err(format!("I/O error: {}", e))
             }
 
             Err(e) => {
                 error!("WebSocket error: {}", e);
-                return true;
+                Err(format!("WebSocket error: {}", e))
             }
         }
-
-        false
     }
 
     /// Handle an incoming text message from the WebSocket.
@@ -433,7 +543,10 @@ impl StreamActor {
                             "message": message,
                         }
                     });
-                    if !self.request_handler.handle_response(request_id, error_response) {
+                    if !self
+                        .request_handler
+                        .handle_response(request_id, error_response)
+                    {
                         warn!("No handler for error response id {}", request_id);
                     }
                 }
@@ -452,11 +565,7 @@ impl StreamActor {
             .get("msg")
             .and_then(|msg| msg.get("sids"))
             .and_then(|sids| sids.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_i64())
-                    .collect()
-            })
+            .map(|arr| arr.iter().filter_map(|v| v.as_i64()).collect())
             .unwrap_or_default()
     }
 }
@@ -464,9 +573,9 @@ impl StreamActor {
 impl std::fmt::Debug for StreamActor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StreamActor")
-            .field("config", &self.config)
             .field("next_request_id", &self.next_request_id)
             .field("pending_requests", &self.request_handler.pending_count())
+            .field("ping_pending", &self.ping_pending)
             .finish()
     }
 }

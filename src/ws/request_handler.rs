@@ -70,21 +70,9 @@ impl RequestHandler {
             }
             true
         } else {
-            warn!(
-                "No pending request found for request id: {}",
-                request_id
-            );
+            warn!("No pending request found for request id: {}", request_id);
             false
         }
-    }
-
-    /// Checks if there are any pending requests.
-    ///
-    /// # Returns
-    ///
-    /// `true` if there is at least one pending request, `false` otherwise.
-    pub fn has_pending(&self) -> bool {
-        !self.pending.is_empty()
     }
 
     /// Returns the number of pending requests.
@@ -115,14 +103,13 @@ mod tests {
         let (tx, rx) = oneshot::channel();
 
         handler.register(1, tx);
-        assert!(handler.has_pending());
         assert_eq!(handler.pending_count(), 1);
 
         let response = serde_json::json!({"id": 1, "result": "success"});
         let handled = handler.handle_response(1, response.clone());
 
         assert!(handled);
-        assert!(!handler.has_pending());
+        assert_eq!(handler.pending_count(), 0);
 
         let received = rx.await.unwrap();
         assert_eq!(received, response);
@@ -148,7 +135,6 @@ mod tests {
         assert_eq!(handler.pending_count(), 2);
 
         handler.cancel_all();
-        assert!(!handler.has_pending());
         assert_eq!(handler.pending_count(), 0);
 
         // Receivers should get errors since senders were dropped

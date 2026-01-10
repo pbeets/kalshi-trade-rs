@@ -155,9 +155,6 @@ mod tests {
     #[test]
     fn test_query_string_url_encoding() {
         let params = GetPositionsParams::new().ticker("TEST&SPECIAL=chars");
-        assert_eq!(
-            params.to_query_string(),
-            "?ticker=TEST%26SPECIAL%3Dchars"
-        );
+        assert_eq!(params.to_query_string(), "?ticker=TEST%26SPECIAL%3Dchars");
     }
 }

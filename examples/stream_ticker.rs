@@ -16,13 +16,18 @@
 //! ```
 
 use std::time::Duration;
-
-use kalshi_trade_rs::auth::KalshiConfig;
-use kalshi_trade_rs::ws::{Channel, KalshiStreamClient, StreamMessage};
 use tokio::time::timeout;
+
+use kalshi_trade_rs::{
+    auth::KalshiConfig,
+    ws::{Channel, KalshiStreamClient, StreamMessage},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load .env file
+    dotenvy::dotenv().ok();
+
     // Initialize tracing for logs
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -33,7 +38,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load configuration from environment
     let config = KalshiConfig::from_env()?;
-    println!("Connecting to Kalshi {:?} environment...", config.environment);
+
+    println!(
+        "Connecting to Kalshi {:?} environment...",
+        config.environment
+    );
 
     // Connect to WebSocket
     let client = KalshiStreamClient::connect(&config).await?;
@@ -65,6 +74,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match timeout(Duration::from_secs(5), handle.update_receiver.recv()).await {
             Ok(Ok(update)) => match &update.msg {
+                StreamMessage::Disconnected { reason, was_clean } => {
+                    println!("[DISCONNECT] {} (clean: {})", reason, was_clean);
+                    break;
+                }
                 StreamMessage::Ticker(ticker) => {
                     println!(
                         "[TICKER] {} | price: {}¢ | bid: {}¢ | ask: {}¢ | vol: {}",

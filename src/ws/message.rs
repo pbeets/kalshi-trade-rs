@@ -5,21 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Side of a trade or order (yes/no for binary markets).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Side {
-    Yes,
-    No,
-}
-
-/// Action type for fills.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Action {
-    Buy,
-    Sell,
-}
+// Re-export common types from models to avoid duplication
+pub use crate::models::{Action, Side};
 
 /// Market lifecycle event types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +57,17 @@ pub enum StreamMessage {
     MarketLifecycle(MarketLifecycleData),
     /// RFQ or quote communication.
     Communication(CommunicationData),
+    /// Connection was lost or closed.
+    ///
+    /// This is a local event, not received from the server.
+    /// When you receive this, you should reconnect.
+    #[serde(skip)]
+    Disconnected {
+        /// Human-readable reason for disconnection.
+        reason: String,
+        /// Whether this was a clean close (server sent close frame).
+        was_clean: bool,
+    },
 }
 
 /// A price level in the orderbook: [price_cents, contracts].
