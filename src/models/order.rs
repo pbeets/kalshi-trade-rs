@@ -132,8 +132,18 @@ impl GetOrdersParams {
         self
     }
 
+    /// Set the maximum number of results to return.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `limit` is not in the range 1..=1000.
     #[must_use]
     pub fn limit(mut self, limit: i64) -> Self {
+        debug_assert!(
+            limit > 0 && limit <= 1000,
+            "limit must be between 1 and 1000, got {}",
+            limit
+        );
         self.limit = Some(limit);
         self
     }
