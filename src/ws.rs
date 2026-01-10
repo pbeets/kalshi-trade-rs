@@ -29,9 +29,13 @@
 //! // Process updates - handle disconnection events
 //! while let Ok(update) = handle.update_receiver.recv().await {
 //!     match &update.msg {
-//!         kalshi_trade_rs::ws::StreamMessage::Disconnected { reason, .. } => {
-//!             eprintln!("Disconnected: {}", reason);
-//!             break; // Reconnect logic here
+//!         kalshi_trade_rs::ws::StreamMessage::Closed { reason } => {
+//!             println!("Connection closed: {}", reason);
+//!             break;
+//!         }
+//!         kalshi_trade_rs::ws::StreamMessage::ConnectionLost { reason } => {
+//!             eprintln!("Connection lost: {}", reason);
+//!             break; // Reconnect with backoff here
 //!         }
 //!         _ => println!("Update: {:?}", update),
 //!     }
@@ -77,18 +81,31 @@ pub enum ConnectStrategy {
 }
 
 /// Configuration for connection health monitoring.
+///
+/// # Kalshi WebSocket Behavior
+///
+/// Kalshi sends Ping frames every 10 seconds with body "heartbeat".
+/// The client automatically responds with Pong frames (handled by tokio-tungstenite).
+///
+/// This configuration controls *client-initiated* pings, which serve as a backup
+/// health check. The defaults are conservative since Kalshi already pings frequently.
 #[derive(Debug, Clone)]
 pub struct HealthConfig {
-    /// Interval between WebSocket ping frames.
+    /// Interval between client-initiated WebSocket ping frames.
+    ///
+    /// Default: 30 seconds (Kalshi already pings every 10s, so this is a backup).
     pub ping_interval: Duration,
 
     /// Timeout for pong response before considering connection dead.
+    ///
+    /// Default: 10 seconds.
     pub ping_timeout: Duration,
 }
 
 impl Default for HealthConfig {
     fn default() -> Self {
         Self {
+            // Conservative interval since Kalshi pings every 10s
             ping_interval: Duration::from_secs(30),
             ping_timeout: Duration::from_secs(10),
         }

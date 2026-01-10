@@ -74,8 +74,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         match timeout(Duration::from_secs(5), handle.update_receiver.recv()).await {
             Ok(Ok(update)) => match &update.msg {
-                StreamMessage::Disconnected { reason, was_clean } => {
-                    println!("[DISCONNECT] {} (clean: {})", reason, was_clean);
+                StreamMessage::Closed { reason } => {
+                    println!("[CLOSED] {}", reason);
+                    break;
+                }
+                StreamMessage::ConnectionLost { reason } => {
+                    println!("[CONNECTION LOST] {}", reason);
                     break;
                 }
                 StreamMessage::Ticker(ticker) => {

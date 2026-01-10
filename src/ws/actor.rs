@@ -4,23 +4,25 @@
 //! to Kalshi's streaming API. The actor owns the WebSocket connection and handles
 //! all communication in a single async task.
 
+use serde_json::Value as JsonValue;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use tracing::{debug, error, info, warn};
 
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use serde_json::Value as JsonValue;
+
 use tokio::{
     net::TcpStream,
     sync::{broadcast, mpsc},
     time::{interval_at, sleep, timeout},
 };
+
 use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
     tungstenite::{self, Message, client::IntoClientRequest, http::HeaderValue},
 };
-use tracing::{debug, error, info, warn};
 
 use super::{
     BACKOFF_BASE, CONNECT_TIMEOUT, ConnectStrategy, HealthConfig, MAX_BACKOFF,
@@ -30,6 +32,7 @@ use super::{
     protocol::{self, IncomingMessage},
     request_handler::RequestHandler,
 };
+
 use crate::{
     auth::KalshiConfig,
     error::{Error, Result},
@@ -217,8 +220,9 @@ impl StreamActor {
     /// 3. Periodic ping messages for health monitoring
     ///
     /// The loop continues until the connection is closed or an unrecoverable
-    /// error occurs. On disconnection, a `StreamMessage::Disconnected` event
-    /// is broadcast to all subscribers.
+    /// error occurs. On disconnection, either `StreamMessage::Closed` (for clean
+    /// shutdowns) or `StreamMessage::ConnectionLost` (for errors) is broadcast
+    /// to all subscribers.
     pub async fn run(mut self) {
         info!("StreamActor starting main loop");
 
@@ -226,7 +230,7 @@ impl StreamActor {
         let ping_start = Instant::now() + self.health_config.ping_interval;
         let mut ping_interval = interval_at(ping_start.into(), self.health_config.ping_interval);
 
-        let disconnect_reason: Option<(String, bool)>;
+        let disconnect_msg: Option<StreamMessage>;
 
         loop {
             tokio::select! {
@@ -234,7 +238,9 @@ impl StreamActor {
                 Some(command) = self.cmd_receiver.recv() => {
                     if self.handle_command(command).await {
                         info!("StreamActor received close command, shutting down");
-                        disconnect_reason = Some(("Client requested close".to_string(), true));
+                        disconnect_msg = Some(StreamMessage::Closed {
+                            reason: "Client requested close".to_string(),
+                        });
                         break;
                     }
                 }
@@ -245,12 +251,14 @@ impl StreamActor {
                         Ok(false) => {} // Continue
                         Ok(true) => {
                             // Clean close from server
-                            disconnect_reason = Some(("Server closed connection".to_string(), true));
+                            disconnect_msg = Some(StreamMessage::Closed {
+                                reason: "Server closed connection".to_string(),
+                            });
                             break;
                         }
                         Err(reason) => {
                             // Error close
-                            disconnect_reason = Some((reason, false));
+                            disconnect_msg = Some(StreamMessage::ConnectionLost { reason });
                             break;
                         }
                     }
@@ -263,7 +271,9 @@ impl StreamActor {
                         let elapsed = self.last_pong.elapsed();
                         if elapsed > self.health_config.ping_timeout {
                             error!("Ping timeout: no pong received in {:?}", elapsed);
-                            disconnect_reason = Some(("Ping timeout".to_string(), false));
+                            disconnect_msg = Some(StreamMessage::ConnectionLost {
+                                reason: "Ping timeout".to_string(),
+                            });
                             break;
                         }
                     } else {
@@ -271,7 +281,9 @@ impl StreamActor {
                         let ping_data = b"health".to_vec();
                         if let Err(e) = self.ws_writer.send(Message::Ping(ping_data)).await {
                             error!("Failed to send ping: {}", e);
-                            disconnect_reason = Some((format!("Failed to send ping: {}", e), false));
+                            disconnect_msg = Some(StreamMessage::ConnectionLost {
+                                reason: format!("Failed to send ping: {}", e),
+                            });
                             break;
                         }
                         self.ping_pending = true;
@@ -282,27 +294,34 @@ impl StreamActor {
                 // All channels closed
                 else => {
                     info!("StreamActor all channels closed, shutting down");
-                    disconnect_reason = Some(("All channels closed".to_string(), true));
+                    disconnect_msg = Some(StreamMessage::Closed {
+                        reason: "All channels closed".to_string(),
+                    });
                     break;
                 }
             }
         }
 
         // Broadcast disconnection event
-        if let Some((reason, was_clean)) = disconnect_reason {
+        if let Some(msg) = disconnect_msg {
+            let is_clean = matches!(msg, StreamMessage::Closed { .. });
+            let reason = match &msg {
+                StreamMessage::Closed { reason } | StreamMessage::ConnectionLost { reason } => {
+                    reason.clone()
+                }
+                _ => "Unknown".to_string(),
+            };
+
             let disconnect_update = StreamUpdate {
                 channel: "system".to_string(),
                 sid: 0,
                 seq: None,
-                msg: StreamMessage::Disconnected {
-                    reason: reason.clone(),
-                    was_clean,
-                },
+                msg,
             };
             let _ = self.update_sender.send(disconnect_update);
             info!(
                 "Broadcast disconnect event: {} (clean: {})",
-                reason, was_clean
+                reason, is_clean
             );
         }
 
