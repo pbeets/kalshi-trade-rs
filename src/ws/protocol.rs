@@ -121,14 +121,14 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
     }
 
     // Check for top-level error fields
-    if raw.code.is_some() || raw.message.is_some() {
-        if raw.msg_type.as_deref() == Some("error") || raw.code.is_some() {
-            return Ok(IncomingMessage::Error {
-                id: raw.id,
-                code: raw.code.unwrap_or_default(),
-                message: raw.message.unwrap_or_default(),
-            });
-        }
+    if (raw.code.is_some() || raw.message.is_some())
+        && (raw.msg_type.as_deref() == Some("error") || raw.code.is_some())
+    {
+        return Ok(IncomingMessage::Error {
+            id: raw.id,
+            code: raw.code.unwrap_or_default(),
+            message: raw.message.unwrap_or_default(),
+        });
     }
 
     // Check if it's an update (has sid but no id)
@@ -168,14 +168,21 @@ mod tests {
 
         assert_eq!(parsed["id"], 1);
         assert_eq!(parsed["cmd"], "subscribe");
-        assert_eq!(parsed["params"]["channels"], serde_json::json!(["orderbook_delta"]));
+        assert_eq!(
+            parsed["params"]["channels"],
+            serde_json::json!(["orderbook_delta"])
+        );
         assert_eq!(parsed["params"]["market_ticker"], "AAPL-YES");
         assert!(parsed["params"].get("market_tickers").is_none());
     }
 
     #[test]
     fn test_build_subscribe_multiple_tickers() {
-        let result = build_subscribe(2, &[Channel::OrderbookDelta, Channel::Ticker], &["AAPL-YES", "GOOG-NO"]);
+        let result = build_subscribe(
+            2,
+            &[Channel::OrderbookDelta, Channel::Ticker],
+            &["AAPL-YES", "GOOG-NO"],
+        );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 2);
@@ -184,7 +191,10 @@ mod tests {
             parsed["params"]["channels"],
             serde_json::json!(["orderbook_delta", "ticker"])
         );
-        assert_eq!(parsed["params"]["market_tickers"], serde_json::json!(["AAPL-YES", "GOOG-NO"]));
+        assert_eq!(
+            parsed["params"]["market_tickers"],
+            serde_json::json!(["AAPL-YES", "GOOG-NO"])
+        );
         assert!(parsed["params"].get("market_ticker").is_none());
     }
 
@@ -192,7 +202,12 @@ mod tests {
     fn test_build_subscribe_all_channels() {
         let result = build_subscribe(
             3,
-            &[Channel::OrderbookDelta, Channel::Ticker, Channel::Trade, Channel::Fill],
+            &[
+                Channel::OrderbookDelta,
+                Channel::Ticker,
+                Channel::Trade,
+                Channel::Fill,
+            ],
             &["TEST"],
         );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
@@ -255,7 +270,8 @@ mod tests {
 
     #[test]
     fn test_parse_error_with_nested_error() {
-        let json = r#"{"id": 1, "error": {"code": "invalid_params", "message": "Invalid market ticker"}}"#;
+        let json =
+            r#"{"id": 1, "error": {"code": "invalid_params", "message": "Invalid market ticker"}}"#;
         let result = parse_incoming(json).unwrap();
 
         match result {

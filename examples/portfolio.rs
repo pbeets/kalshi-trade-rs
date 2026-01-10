@@ -5,8 +5,8 @@
 //! Run with: cargo run --example portfolio
 
 use kalshi_trade_rs::{
-    cents_to_dollars, GetFillsParams, GetOrdersParams, GetPositionsParams, KalshiClient,
-    KalshiConfig, OrderStatus,
+    GetFillsParams, GetOrdersParams, GetPositionsParams, KalshiClient, KalshiConfig, OrderStatus,
+    cents_to_dollars,
 };
 
 #[tokio::main]
@@ -112,9 +112,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Show resting orders
     if resting > 0 {
         println!("\nResting orders:");
-        let params = GetOrdersParams::new()
-            .status(OrderStatus::Resting)
-            .limit(5);
+        let params = GetOrdersParams::new().status(OrderStatus::Resting).limit(5);
         let resting_orders = client.get_orders_with_params(params).await?;
 
         for order in &resting_orders.orders {

@@ -1,14 +1,21 @@
 //! WebSocket streaming client for Kalshi API.
 
-use tokio::sync::{broadcast, mpsc, oneshot};
-use tokio::task::JoinHandle;
+use tokio::{
+    sync::{broadcast, mpsc, oneshot},
+    task::JoinHandle,
+};
 
-use super::actor::StreamActor;
-use super::channel::Channel;
-use super::command::{StreamCommand, SubscribeResult};
-use super::message::StreamUpdate;
-use crate::auth::KalshiConfig;
-use crate::error::{Error, Result};
+use super::{
+    ConnectStrategy,
+    actor::StreamActor,
+    channel::Channel,
+    command::{StreamCommand, SubscribeResult},
+    message::StreamUpdate,
+};
+use crate::{
+    auth::KalshiConfig,
+    error::{Error, Result},
+};
 
 /// Default buffer size for the broadcast channel.
 const DEFAULT_BUFFER_SIZE: usize = 1024;
@@ -23,11 +30,20 @@ const DEFAULT_BUFFER_SIZE: usize = 1024;
 ///
 /// ```no_run
 /// use kalshi_trade_rs::auth::KalshiConfig;
-/// use kalshi_trade_rs::ws::{Channel, KalshiStreamClient};
+/// use kalshi_trade_rs::ws::{Channel, ConnectStrategy, KalshiStreamClient};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let config = KalshiConfig::from_env()?;
+///
+/// // Simple connection (fast-fail)
 /// let client = KalshiStreamClient::connect(&config).await?;
+///
+/// // Or with retry for production
+/// let client = KalshiStreamClient::connect_with_strategy(
+///     &config,
+///     ConnectStrategy::Retry,
+/// ).await?;
+///
 /// let mut handle = client.handle();
 ///
 /// // Subscribe to ticker updates
@@ -53,10 +69,14 @@ pub struct KalshiStreamClient {
 }
 
 impl KalshiStreamClient {
-    /// Connect to Kalshi's WebSocket API.
+    /// Connect to Kalshi's WebSocket API with the default (Simple) strategy.
     ///
     /// This establishes a WebSocket connection and starts the background actor
-    /// that manages the connection.
+    /// that manages the connection. Uses `ConnectStrategy::Simple` which fails
+    /// fast on connection errors.
+    ///
+    /// For production use, consider [`connect_with_strategy`](Self::connect_with_strategy)
+    /// with `ConnectStrategy::Retry`.
     ///
     /// # Arguments
     ///
@@ -66,30 +86,61 @@ impl KalshiStreamClient {
     ///
     /// Returns an error if the WebSocket connection cannot be established.
     pub async fn connect(config: &KalshiConfig) -> Result<Self> {
-        Self::connect_with_buffer_size(config, DEFAULT_BUFFER_SIZE).await
+        Self::connect_with_options(config, ConnectStrategy::Simple, DEFAULT_BUFFER_SIZE).await
     }
 
-    /// Connect with a custom broadcast buffer size.
-    ///
-    /// The buffer size determines how many messages can be queued before
-    /// slow receivers start missing messages.
+    /// Connect with a specific connection strategy.
     ///
     /// # Arguments
     ///
     /// * `config` - Kalshi API configuration with credentials.
+    /// * `strategy` - Connection strategy (Simple or Retry).
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use kalshi_trade_rs::auth::KalshiConfig;
+    /// use kalshi_trade_rs::ws::{ConnectStrategy, KalshiStreamClient};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let config = KalshiConfig::from_env()?;
+    ///
+    /// // Use Retry for production - will retry indefinitely with backoff
+    /// let client = KalshiStreamClient::connect_with_strategy(
+    ///     &config,
+    ///     ConnectStrategy::Retry,
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn connect_with_strategy(
+        config: &KalshiConfig,
+        strategy: ConnectStrategy,
+    ) -> Result<Self> {
+        Self::connect_with_options(config, strategy, DEFAULT_BUFFER_SIZE).await
+    }
+
+    /// Connect with full customization options.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Kalshi API configuration with credentials.
+    /// * `strategy` - Connection strategy (Simple or Retry).
     /// * `buffer_size` - Size of the broadcast channel buffer.
     ///
     /// # Errors
     ///
     /// Returns an error if the WebSocket connection cannot be established.
-    pub async fn connect_with_buffer_size(
+    pub async fn connect_with_options(
         config: &KalshiConfig,
+        strategy: ConnectStrategy,
         buffer_size: usize,
     ) -> Result<Self> {
         let (cmd_sender, cmd_receiver) = mpsc::channel(32);
         let (update_sender, _) = broadcast::channel(buffer_size);
 
-        let actor = StreamActor::connect(config, cmd_receiver, update_sender.clone()).await?;
+        let actor =
+            StreamActor::connect(config, strategy, cmd_receiver, update_sender.clone()).await?;
         let actor_handle = tokio::spawn(actor.run());
 
         Ok(Self {
@@ -136,7 +187,7 @@ impl KalshiStreamClient {
 /// # Example
 ///
 /// ```no_run
-/// use kalshi_trade_rs::ws::{Channel, KalshiStreamHandle};
+/// use kalshi_trade_rs::ws::{Channel, KalshiStreamHandle, StreamMessage};
 ///
 /// async fn subscribe_and_process(handle: KalshiStreamHandle) {
 ///     let mut handle = handle;
@@ -149,9 +200,15 @@ impl KalshiStreamClient {
 ///
 ///     println!("Subscribed with SIDs: {:?}", result.sids);
 ///
-///     // Process updates
+///     // Process updates - handle disconnection
 ///     while let Ok(update) = handle.update_receiver.recv().await {
-///         println!("Got update: {:?}", update);
+///         match &update.msg {
+///             StreamMessage::Disconnected { reason, was_clean } => {
+///                 eprintln!("Disconnected: {} (clean: {})", reason, was_clean);
+///                 break; // Implement reconnection logic here
+///             }
+///             _ => println!("Got update: {:?}", update),
+///         }
 ///     }
 /// }
 /// ```
@@ -321,22 +378,20 @@ mod tests {
             channel: "ticker".to_string(),
             sid: 1,
             seq: Some(1),
-            msg: super::super::message::StreamMessage::Ticker(
-                super::super::message::TickerData {
-                    market_ticker: "TEST".to_string(),
-                    price: 50,
-                    yes_bid: 49,
-                    yes_ask: 51,
-                    volume: 100,
-                    open_interest: 50,
-                    dollar_volume: 5000,
-                    dollar_open_interest: 2500,
-                    ts: 1234567890,
-                    price_dollars: None,
-                    yes_bid_dollars: None,
-                    no_bid_dollars: None,
-                },
-            ),
+            msg: super::super::message::StreamMessage::Ticker(super::super::message::TickerData {
+                market_ticker: "TEST".to_string(),
+                price: 50,
+                yes_bid: 49,
+                yes_ask: 51,
+                volume: 100,
+                open_interest: 50,
+                dollar_volume: 5000,
+                dollar_open_interest: 2500,
+                ts: 1234567890,
+                price_dollars: None,
+                yes_bid_dollars: None,
+                no_bid_dollars: None,
+            }),
         };
 
         // Send a message

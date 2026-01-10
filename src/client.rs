@@ -5,6 +5,7 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
+    api::portfolio,
     auth::KalshiConfig,
     error::Result,
     models::{
@@ -113,7 +114,7 @@ impl KalshiClient {
     /// println!("Balance: ${:.2}", balance.balance as f64 / 100.0);
     /// ```
     pub async fn get_balance(&self) -> Result<BalanceResponse> {
-        self.http.get("/portfolio/balance").await
+        portfolio::get_balance(&self.http).await
     }
 
     /// Get all positions with default parameters.
@@ -151,8 +152,7 @@ impl KalshiClient {
         &self,
         params: GetPositionsParams,
     ) -> Result<PositionsResponse> {
-        let path = format!("/portfolio/positions{}", params.to_query_string());
-        self.http.get(&path).await
+        portfolio::get_positions(&self.http, params).await
     }
 
     /// Get all fills with default parameters.
@@ -186,8 +186,7 @@ impl KalshiClient {
     /// let fills = client.get_fills_with_params(params).await?;
     /// ```
     pub async fn get_fills_with_params(&self, params: GetFillsParams) -> Result<FillsResponse> {
-        let path = format!("/portfolio/fills{}", params.to_query_string());
-        self.http.get(&path).await
+        portfolio::get_fills(&self.http, params).await
     }
 
     /// Get all orders with default parameters.
@@ -224,7 +223,6 @@ impl KalshiClient {
     /// let orders = client.get_orders_with_params(params).await?;
     /// ```
     pub async fn get_orders_with_params(&self, params: GetOrdersParams) -> Result<OrdersResponse> {
-        let path = format!("/portfolio/orders{}", params.to_query_string());
-        self.http.get(&path).await
+        portfolio::get_orders(&self.http, params).await
     }
 }

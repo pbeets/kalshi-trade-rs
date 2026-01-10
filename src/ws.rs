@@ -7,11 +7,17 @@
 //!
 //! ```no_run
 //! use kalshi_trade_rs::auth::KalshiConfig;
-//! use kalshi_trade_rs::ws::{Channel, KalshiStreamClient};
+//! use kalshi_trade_rs::ws::{Channel, ConnectStrategy, KalshiStreamClient};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let config = KalshiConfig::from_env()?;
-//! let client = KalshiStreamClient::connect(&config).await?;
+//!
+//! // Connect with retry strategy for production use
+//! let client = KalshiStreamClient::connect_with_strategy(
+//!     &config,
+//!     ConnectStrategy::Retry,
+//! ).await?;
+//!
 //! let mut handle = client.handle();
 //!
 //! // Subscribe to ticker updates
@@ -20,13 +26,21 @@
 //!     Some(&["INXD-25JAN17-B5955"]),
 //! ).await?;
 //!
-//! // Process updates
+//! // Process updates - handle disconnection events
 //! while let Ok(update) = handle.update_receiver.recv().await {
-//!     println!("Update: {:?}", update);
+//!     match &update.msg {
+//!         kalshi_trade_rs::ws::StreamMessage::Disconnected { reason, .. } => {
+//!             eprintln!("Disconnected: {}", reason);
+//!             break; // Reconnect logic here
+//!         }
+//!         _ => println!("Update: {:?}", update),
+//!     }
 //! }
 //! # Ok(())
 //! # }
 //! ```
+
+use std::time::Duration;
 
 mod actor;
 mod channel;
@@ -44,3 +58,48 @@ pub use message::{
     OrderbookDeltaData, OrderbookSnapshotData, Side, StreamMessage, StreamUpdate, TickerData,
     TradeData,
 };
+
+/// Connection strategy for the WebSocket client.
+///
+/// Controls how the client handles initial connection and reconnection attempts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ConnectStrategy {
+    /// Single connection attempt. Fast-fail on error.
+    ///
+    /// Recommended for testing or when you want explicit control over retries.
+    #[default]
+    Simple,
+
+    /// Retry with exponential backoff, capped at 60 seconds.
+    ///
+    /// Recommended for production use. Will retry indefinitely until connected.
+    Retry,
+}
+
+/// Configuration for connection health monitoring.
+#[derive(Debug, Clone)]
+pub struct HealthConfig {
+    /// Interval between WebSocket ping frames.
+    pub ping_interval: Duration,
+
+    /// Timeout for pong response before considering connection dead.
+    pub ping_timeout: Duration,
+}
+
+impl Default for HealthConfig {
+    fn default() -> Self {
+        Self {
+            ping_interval: Duration::from_secs(30),
+            ping_timeout: Duration::from_secs(10),
+        }
+    }
+}
+
+/// Connection timeout for initial connection attempts.
+pub(crate) const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Base backoff duration, multiplied by attempt number.
+pub(crate) const BACKOFF_BASE: Duration = Duration::from_millis(500);
+
+/// Maximum backoff duration.
+pub(crate) const MAX_BACKOFF: Duration = Duration::from_secs(60);
