@@ -30,5 +30,10 @@ pub use market::{
     MarketResponse, MarketResult, MarketStatus, MarketType, MarketsResponse, MveFilter, Orderbook,
     OrderbookResponse, PriceLevelDollars, PriceRange, StrikeType, TakerSide, Trade, TradesResponse,
 };
-pub use order::{GetOrdersParams, Order, OrdersResponse};
+pub use order::{
+    AmendOrderRequest, AmendOrderResponse, BatchCancelOrderResult, BatchCancelOrdersRequest,
+    BatchCancelOrdersResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
+    BatchOrderError, BatchOrderResult, CancelOrderResponse, CreateOrderRequest,
+    DecreaseOrderRequest, GetOrdersParams, Order, OrderResponse, OrdersResponse, TimeInForce,
+};
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};

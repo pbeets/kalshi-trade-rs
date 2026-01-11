@@ -157,6 +157,21 @@ impl HttpClient {
         response.json::<T>().await.map_err(Error::Http)
     }
 
+    /// Make a DELETE request with a JSON body and deserialize the response.
+    ///
+    /// # Arguments
+    /// * `path` - The API path
+    /// * `body` - The request body to serialize as JSON
+    pub async fn delete_with_body<T: DeserializeOwned, B: Serialize>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T> {
+        let request = self.build_request(Method::DELETE, path)?.json(body);
+        let response = self.execute(request).await?;
+        response.json::<T>().await.map_err(Error::Http)
+    }
+
     /// Make a PUT request with a JSON body and deserialize the response.
     ///
     /// # Arguments

@@ -5,6 +5,18 @@ use serde::{Deserialize, Serialize};
 use super::common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side};
 use super::query::QueryBuilder;
 
+/// Time in force for an order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TimeInForce {
+    /// Fill or kill - entire order must fill immediately or cancel.
+    FillOrKill,
+    /// Good till canceled - order remains until filled or explicitly canceled.
+    GoodTillCanceled,
+    /// Immediate or cancel - fill what's possible immediately, cancel the rest.
+    ImmediateOrCancel,
+}
+
 /// An order in the Kalshi exchange.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Order {
@@ -168,6 +180,451 @@ impl GetOrdersParams {
     }
 }
 
+/// Response from GET /portfolio/orders/{order_id}.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderResponse {
+    pub order: Order,
+}
+
+/// Request body for POST /portfolio/orders (create order).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateOrderRequest {
+    /// Market ticker.
+    pub ticker: String,
+
+    /// Side of the order (yes or no).
+    pub side: Side,
+
+    /// Action (buy or sell).
+    pub action: Action,
+
+    /// Number of contracts. Must be >= 1.
+    pub count: i64,
+
+    /// Client-assigned order identifier.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_order_id: Option<String>,
+
+    /// Order type (limit or market).
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order_type: Option<OrderType>,
+
+    /// Yes price in cents (1-99).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_price: Option<i64>,
+
+    /// No price in cents (1-99).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_price: Option<i64>,
+
+    /// Yes price in fixed-point dollars.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_price_dollars: Option<String>,
+
+    /// No price in fixed-point dollars.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_price_dollars: Option<String>,
+
+    /// Order expiration timestamp (Unix seconds).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiration_ts: Option<i64>,
+
+    /// Time in force.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_in_force: Option<TimeInForce>,
+
+    /// Maximum cost in cents. Enables fill-or-kill behavior.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub buy_max_cost: Option<i64>,
+
+    /// Post-only flag (maker only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_only: Option<bool>,
+
+    /// Reduce-only flag.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reduce_only: Option<bool>,
+
+    /// Self-trade prevention type.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub self_trade_prevention_type: Option<SelfTradePreventionType>,
+
+    /// Associated order group ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order_group_id: Option<String>,
+
+    /// Auto-cancel if exchange trading pauses.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancel_order_on_pause: Option<bool>,
+}
+
+impl CreateOrderRequest {
+    /// Create a new order request with required fields.
+    #[must_use]
+    pub fn new(ticker: impl Into<String>, side: Side, action: Action, count: i64) -> Self {
+        Self {
+            ticker: ticker.into(),
+            side,
+            action,
+            count,
+            client_order_id: None,
+            order_type: None,
+            yes_price: None,
+            no_price: None,
+            yes_price_dollars: None,
+            no_price_dollars: None,
+            expiration_ts: None,
+            time_in_force: None,
+            buy_max_cost: None,
+            post_only: None,
+            reduce_only: None,
+            self_trade_prevention_type: None,
+            order_group_id: None,
+            cancel_order_on_pause: None,
+        }
+    }
+
+    #[must_use]
+    pub fn client_order_id(mut self, id: impl Into<String>) -> Self {
+        self.client_order_id = Some(id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn order_type(mut self, order_type: OrderType) -> Self {
+        self.order_type = Some(order_type);
+        self
+    }
+
+    /// Set yes price in cents (1-99).
+    #[must_use]
+    pub fn yes_price(mut self, price: i64) -> Self {
+        debug_assert!(
+            price >= 1 && price <= 99,
+            "yes_price must be between 1 and 99, got {}",
+            price
+        );
+        self.yes_price = Some(price);
+        self
+    }
+
+    /// Set no price in cents (1-99).
+    #[must_use]
+    pub fn no_price(mut self, price: i64) -> Self {
+        debug_assert!(
+            price >= 1 && price <= 99,
+            "no_price must be between 1 and 99, got {}",
+            price
+        );
+        self.no_price = Some(price);
+        self
+    }
+
+    /// Set yes price in fixed-point dollars (e.g., "0.56").
+    #[must_use]
+    pub fn yes_price_dollars(mut self, price: impl Into<String>) -> Self {
+        self.yes_price_dollars = Some(price.into());
+        self
+    }
+
+    /// Set no price in fixed-point dollars (e.g., "0.56").
+    #[must_use]
+    pub fn no_price_dollars(mut self, price: impl Into<String>) -> Self {
+        self.no_price_dollars = Some(price.into());
+        self
+    }
+
+    #[must_use]
+    pub fn expiration_ts(mut self, ts: i64) -> Self {
+        self.expiration_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn time_in_force(mut self, tif: TimeInForce) -> Self {
+        self.time_in_force = Some(tif);
+        self
+    }
+
+    #[must_use]
+    pub fn buy_max_cost(mut self, cost: i64) -> Self {
+        self.buy_max_cost = Some(cost);
+        self
+    }
+
+    #[must_use]
+    pub fn post_only(mut self, post_only: bool) -> Self {
+        self.post_only = Some(post_only);
+        self
+    }
+
+    #[must_use]
+    pub fn reduce_only(mut self, reduce_only: bool) -> Self {
+        self.reduce_only = Some(reduce_only);
+        self
+    }
+
+    #[must_use]
+    pub fn self_trade_prevention_type(mut self, stp: SelfTradePreventionType) -> Self {
+        self.self_trade_prevention_type = Some(stp);
+        self
+    }
+
+    #[must_use]
+    pub fn order_group_id(mut self, id: impl Into<String>) -> Self {
+        self.order_group_id = Some(id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn cancel_order_on_pause(mut self, cancel: bool) -> Self {
+        self.cancel_order_on_pause = Some(cancel);
+        self
+    }
+}
+
+/// Response from DELETE /portfolio/orders/{order_id} (cancel order).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CancelOrderResponse {
+    pub order: Order,
+    /// Number of contracts that were canceled.
+    #[serde(default)]
+    pub reduced_by: Option<i64>,
+}
+
+/// Request body for POST /portfolio/orders/{order_id}/amend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AmendOrderRequest {
+    /// Market ticker.
+    pub ticker: String,
+
+    /// Side of the order.
+    pub side: Side,
+
+    /// Action of the order.
+    pub action: Action,
+
+    /// Original client-specified order ID to be amended.
+    pub client_order_id: String,
+
+    /// New client-specified order ID after amendment.
+    pub updated_client_order_id: String,
+
+    /// Updated yes price in cents (1-99).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_price: Option<i64>,
+
+    /// Updated no price in cents (1-99).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_price: Option<i64>,
+
+    /// Updated yes price in fixed-point dollars.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_price_dollars: Option<String>,
+
+    /// Updated no price in fixed-point dollars.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_price_dollars: Option<String>,
+
+    /// Updated quantity for the order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
+}
+
+impl AmendOrderRequest {
+    /// Create a new amend order request.
+    #[must_use]
+    pub fn new(
+        ticker: impl Into<String>,
+        side: Side,
+        action: Action,
+        client_order_id: impl Into<String>,
+        updated_client_order_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            ticker: ticker.into(),
+            side,
+            action,
+            client_order_id: client_order_id.into(),
+            updated_client_order_id: updated_client_order_id.into(),
+            yes_price: None,
+            no_price: None,
+            yes_price_dollars: None,
+            no_price_dollars: None,
+            count: None,
+        }
+    }
+
+    #[must_use]
+    pub fn yes_price(mut self, price: i64) -> Self {
+        self.yes_price = Some(price);
+        self
+    }
+
+    #[must_use]
+    pub fn no_price(mut self, price: i64) -> Self {
+        self.no_price = Some(price);
+        self
+    }
+
+    #[must_use]
+    pub fn yes_price_dollars(mut self, price: impl Into<String>) -> Self {
+        self.yes_price_dollars = Some(price.into());
+        self
+    }
+
+    #[must_use]
+    pub fn no_price_dollars(mut self, price: impl Into<String>) -> Self {
+        self.no_price_dollars = Some(price.into());
+        self
+    }
+
+    #[must_use]
+    pub fn count(mut self, count: i64) -> Self {
+        self.count = Some(count);
+        self
+    }
+}
+
+/// Response from POST /portfolio/orders/{order_id}/amend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AmendOrderResponse {
+    /// Order state before amendment.
+    pub old_order: Order,
+    /// Order state after amendment.
+    pub order: Order,
+}
+
+/// Request body for POST /portfolio/orders/{order_id}/decrease.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecreaseOrderRequest {
+    /// Amount to decrease order by.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reduce_by: Option<i64>,
+
+    /// Target remaining quantity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reduce_to: Option<i64>,
+}
+
+impl DecreaseOrderRequest {
+    /// Create a request to reduce by a specific amount.
+    #[must_use]
+    pub fn reduce_by(amount: i64) -> Self {
+        Self {
+            reduce_by: Some(amount),
+            reduce_to: None,
+        }
+    }
+
+    /// Create a request to reduce to a target quantity.
+    #[must_use]
+    pub fn reduce_to(target: i64) -> Self {
+        Self {
+            reduce_by: None,
+            reduce_to: Some(target),
+        }
+    }
+}
+
+/// Request body for POST /portfolio/orders/batched (batch create).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCreateOrdersRequest {
+    /// Array of orders to create (max 20).
+    pub orders: Vec<CreateOrderRequest>,
+}
+
+impl BatchCreateOrdersRequest {
+    #[must_use]
+    pub fn new(orders: Vec<CreateOrderRequest>) -> Self {
+        debug_assert!(
+            orders.len() <= 20,
+            "batch create supports max 20 orders, got {}",
+            orders.len()
+        );
+        Self { orders }
+    }
+}
+
+/// Result for a single order in a batch operation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchOrderResult {
+    /// Echo of submitted client_order_id.
+    #[serde(default)]
+    pub client_order_id: Option<String>,
+
+    /// Confirmed order details (present on success).
+    #[serde(default)]
+    pub order: Option<Order>,
+
+    /// Error details (present on failure).
+    #[serde(default)]
+    pub error: Option<BatchOrderError>,
+}
+
+/// Error details for a failed batch order.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchOrderError {
+    pub code: String,
+    pub message: String,
+    #[serde(default)]
+    pub details: Option<String>,
+    #[serde(default)]
+    pub service: Option<String>,
+}
+
+/// Response from POST /portfolio/orders/batched.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCreateOrdersResponse {
+    pub orders: Vec<BatchOrderResult>,
+}
+
+/// Request body for DELETE /portfolio/orders/batched (batch cancel).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCancelOrdersRequest {
+    /// Array of order IDs to cancel.
+    pub ids: Vec<String>,
+}
+
+impl BatchCancelOrdersRequest {
+    #[must_use]
+    pub fn new(ids: Vec<String>) -> Self {
+        debug_assert!(
+            ids.len() <= 20,
+            "batch cancel supports max 20 orders, got {}",
+            ids.len()
+        );
+        Self { ids }
+    }
+}
+
+/// Result for a single order in a batch cancel operation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCancelOrderResult {
+    /// Order ID.
+    #[serde(default)]
+    pub order_id: Option<String>,
+
+    /// Number of contracts canceled.
+    #[serde(default)]
+    pub reduced_by: Option<i64>,
+
+    /// Order details after cancellation.
+    #[serde(default)]
+    pub order: Option<Order>,
+
+    /// Error details (present on failure).
+    #[serde(default)]
+    pub error: Option<BatchOrderError>,
+}
+
+/// Response from DELETE /portfolio/orders/batched.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCancelOrdersResponse {
+    pub orders: Vec<BatchCancelOrderResult>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,5 +633,16 @@ mod tests {
     fn test_query_string_with_status() {
         let params = GetOrdersParams::new().status(OrderStatus::Resting);
         assert_eq!(params.to_query_string(), "?status=resting");
+    }
+
+    #[test]
+    fn test_create_order_request() {
+        let req = CreateOrderRequest::new("KXBTC-25JAN", Side::Yes, Action::Buy, 10)
+            .yes_price(50)
+            .post_only(true);
+        assert_eq!(req.ticker, "KXBTC-25JAN");
+        assert_eq!(req.count, 10);
+        assert_eq!(req.yes_price, Some(50));
+        assert_eq!(req.post_only, Some(true));
     }
 }
