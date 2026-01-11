@@ -5,7 +5,7 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::{events, exchange, markets, orders, portfolio},
+    api::{events, exchange, markets, orders, portfolio, search},
     auth::KalshiConfig,
     error::Result,
     models::{
@@ -13,10 +13,11 @@ use crate::{
         BatchCancelOrdersResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
         CancelOrderResponse, CreateOrderRequest, DecreaseOrderRequest, EventResponse,
         EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
-        ExchangeStatusResponse, FillsResponse, GetEventParams, GetEventsParams, GetFillsParams,
-        GetMarketsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetTradesParams,
-        MarketResponse, MarketsResponse, OrderResponse, OrderbookResponse, OrdersResponse,
-        PositionsResponse, TradesResponse, UserDataTimestampResponse,
+        ExchangeStatusResponse, FillsResponse, FiltersBySportResponse, GetEventParams,
+        GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams, GetOrdersParams,
+        GetPositionsParams, GetTradesParams, MarketResponse, MarketsResponse, OrderResponse,
+        OrderbookResponse, OrdersResponse, PositionsResponse, TagsByCategoriesResponse,
+        TradesResponse, UserDataTimestampResponse,
     },
 };
 
@@ -725,5 +726,45 @@ impl KalshiClient {
         request: BatchCancelOrdersRequest,
     ) -> Result<BatchCancelOrdersResponse> {
         orders::batch_cancel_orders(&self.http, request).await
+    }
+
+    // =========================================================================
+    // Search API
+    // =========================================================================
+
+    /// Get tags organized by series categories.
+    ///
+    /// Returns a mapping of series categories to their associated tags,
+    /// which can be used for filtering and search functionality.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let tags = client.get_tags_by_categories().await?;
+    /// for (category, category_tags) in &tags.tags_by_categories {
+    ///     println!("{}: {:?}", category, category_tags);
+    /// }
+    /// ```
+    pub async fn get_tags_by_categories(&self) -> Result<TagsByCategoriesResponse> {
+        search::get_tags_by_categories(&self.http).await
+    }
+
+    /// Get filtering options organized by sport.
+    ///
+    /// Returns available scopes and competitions for each sport,
+    /// along with a recommended display order.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let filters = client.get_filters_by_sport().await?;
+    /// for sport in &filters.sport_ordering {
+    ///     if let Some(filter) = filters.filters_by_sports.get(sport) {
+    ///         println!("{}: scopes={:?}", sport, filter.scopes);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_filters_by_sport(&self) -> Result<FiltersBySportResponse> {
+        search::get_filters_by_sport(&self.http).await
     }
 }
