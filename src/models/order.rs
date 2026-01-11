@@ -301,7 +301,7 @@ impl CreateOrderRequest {
     #[must_use]
     pub fn yes_price(mut self, price: i64) -> Self {
         debug_assert!(
-            price >= 1 && price <= 99,
+            (1..=99).contains(&price),
             "yes_price must be between 1 and 99, got {}",
             price
         );
@@ -313,7 +313,7 @@ impl CreateOrderRequest {
     #[must_use]
     pub fn no_price(mut self, price: i64) -> Self {
         debug_assert!(
-            price >= 1 && price <= 99,
+            (1..=99).contains(&price),
             "no_price must be between 1 and 99, got {}",
             price
         );
