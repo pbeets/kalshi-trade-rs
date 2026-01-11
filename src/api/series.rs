@@ -23,6 +23,8 @@ pub async fn get_series(http: &HttpClient, ticker: &str) -> Result<SeriesRespons
 }
 
 /// Get a list of series with optional filtering.
+///
+/// Returns series matching the provided query parameters.
 pub async fn get_series_list(
     http: &HttpClient,
     params: GetSeriesParams,
