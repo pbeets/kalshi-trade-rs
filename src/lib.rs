@@ -40,6 +40,7 @@
 
 mod api;
 pub mod auth;
+pub mod batch;
 pub mod client;
 pub mod error;
 pub mod models;
@@ -71,3 +72,6 @@ pub use ws::{
     Channel, ConnectStrategy, KalshiStreamClient, KalshiStreamHandle, StreamMessage, StreamUpdate,
     SubscribeResult,
 };
+
+// Re-export batch management types
+pub use batch::{AggregatedCancelResponse, AggregatedCreateResponse, BatchManager, RateLimitTier};
