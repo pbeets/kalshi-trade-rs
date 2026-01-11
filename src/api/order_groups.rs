@@ -9,6 +9,8 @@ use crate::{
 };
 
 /// Create a new order group.
+///
+/// Creates multiple orders atomically as a group.
 pub async fn create_order_group(
     http: &HttpClient,
     request: CreateOrderGroupRequest,
@@ -17,6 +19,8 @@ pub async fn create_order_group(
 }
 
 /// Get an order group by ID.
+///
+/// Returns details about a specific order group and its contained orders.
 pub async fn get_order_group(
     http: &HttpClient,
     order_group_id: &str,
@@ -26,6 +30,8 @@ pub async fn get_order_group(
 }
 
 /// Update an existing order group.
+///
+/// Modifies orders within an existing group.
 pub async fn update_order_group(
     http: &HttpClient,
     order_group_id: &str,
