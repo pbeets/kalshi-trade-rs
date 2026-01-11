@@ -10,9 +10,11 @@ mod exchange;
 mod fill;
 mod market;
 mod order;
+mod order_group;
 mod position;
 pub(crate) mod query;
 mod search;
+mod series;
 mod settlement;
 
 // Re-export all public types
@@ -42,8 +44,13 @@ pub use order::{
     OrderQueuePositionResponse, OrderResponse, OrdersResponse, QueuePosition,
     QueuePositionsResponse, TimeInForce,
 };
+pub use order_group::{
+    CreateOrderGroupOrder, CreateOrderGroupRequest, OrderGroup, OrderGroupResponse,
+    UpdateOrderGroupOrder, UpdateOrderGroupRequest,
+};
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};
 pub use search::{
     CompetitionFilter, FiltersBySportResponse, SportFilter, TagsByCategoriesResponse,
 };
+pub use series::{GetSeriesParams, Series, SeriesListResponse, SeriesResponse};
 pub use settlement::{GetSettlementsParams, Settlement, SettlementsResponse};
