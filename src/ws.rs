@@ -94,6 +94,12 @@ pub enum ConnectStrategy {
 ///    within `ping_timeout`.
 /// 2. **Server → Client**: Client expects Kalshi pings at ~10s intervals. If no
 ///    ping received within `server_ping_timeout`, connection is considered dead.
+///
+/// # Startup Grace Period
+///
+/// The server ping timeout monitoring only begins after the first ping is
+/// received from Kalshi. This prevents false timeouts at connection startup
+/// if there's a delay before Kalshi sends its first ping.
 #[derive(Debug, Clone)]
 pub struct HealthConfig {
     /// Interval between client-initiated WebSocket ping frames.
@@ -109,9 +115,10 @@ pub struct HealthConfig {
     /// Timeout for receiving pings from Kalshi server.
     ///
     /// Kalshi sends pings every 10 seconds. If no ping is received within
-    /// this duration, the connection is considered dead.
+    /// this duration (after the first ping has been received), the connection
+    /// is considered dead.
     ///
-    /// Default: 15 seconds (allows for some network jitter).
+    /// Default: 30 seconds (allows for up to 2 missed pings before timeout).
     pub server_ping_timeout: Duration,
 }
 
@@ -120,8 +127,9 @@ impl Default for HealthConfig {
         Self {
             ping_interval: Duration::from_secs(30),
             ping_timeout: Duration::from_secs(10),
-            // Kalshi pings every 10s, so 15s allows some slack
-            server_ping_timeout: Duration::from_secs(15),
+            // Kalshi pings every 10s, so 30s allows for up to 2 missed pings
+            // before considering the connection dead
+            server_ping_timeout: Duration::from_secs(30),
         }
     }
 }
