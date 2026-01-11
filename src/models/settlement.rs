@@ -94,10 +94,41 @@ impl GetSettlementsParams {
     }
 
     /// Filter by event ticker (comma-separated for multiple, max 10).
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if more than 10 event tickers are provided.
+    /// Use [`try_event_ticker`](Self::try_event_ticker) for fallible construction.
     #[must_use]
     pub fn event_ticker(mut self, event_ticker: impl Into<String>) -> Self {
-        self.event_ticker = Some(event_ticker.into());
+        let tickers = event_ticker.into();
+        let count = tickers.split(',').filter(|s| !s.is_empty()).count();
+        debug_assert!(
+            count <= crate::error::MAX_EVENT_TICKERS,
+            "max {} event tickers allowed, got {}",
+            crate::error::MAX_EVENT_TICKERS,
+            count
+        );
+        self.event_ticker = Some(tickers);
         self
+    }
+
+    /// Filter by event ticker with validation (comma-separated for multiple, max 10).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if more than 10 event tickers are provided.
+    pub fn try_event_ticker(
+        mut self,
+        event_ticker: impl Into<String>,
+    ) -> crate::error::Result<Self> {
+        let tickers = event_ticker.into();
+        let count = tickers.split(',').filter(|s| !s.is_empty()).count();
+        if count > crate::error::MAX_EVENT_TICKERS {
+            return Err(crate::error::Error::TooManyEventTickers(count));
+        }
+        self.event_ticker = Some(tickers);
+        Ok(self)
     }
 
     /// Filter items after this Unix timestamp.
@@ -146,5 +177,25 @@ mod tests {
 
         let params = GetSettlementsParams::new().limit(0);
         assert_eq!(params.limit, Some(1));
+    }
+
+    #[test]
+    fn test_settlements_event_ticker_validation() {
+        // Valid single ticker
+        let params = GetSettlementsParams::new().event_ticker("EVENT1");
+        assert_eq!(params.event_ticker, Some("EVENT1".to_string()));
+
+        // Valid multiple tickers (10 max)
+        let params = GetSettlementsParams::new().event_ticker("E1,E2,E3,E4,E5,E6,E7,E8,E9,E10");
+        assert!(params.event_ticker.is_some());
+
+        // try_event_ticker with valid count
+        let params = GetSettlementsParams::new().try_event_ticker("E1,E2,E3");
+        assert!(params.is_ok());
+
+        // try_event_ticker with too many (11)
+        let params =
+            GetSettlementsParams::new().try_event_ticker("E1,E2,E3,E4,E5,E6,E7,E8,E9,E10,E11");
+        assert!(params.is_err());
     }
 }

@@ -801,13 +801,44 @@ pub struct GetCandlesticksParams {
 
 impl GetCandlesticksParams {
     /// Create new candlesticks query parameters.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `start_ts >= end_ts`.
+    /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
     pub fn new(start_ts: i64, end_ts: i64, period_interval: CandlestickPeriod) -> Self {
+        debug_assert!(
+            start_ts < end_ts,
+            "start_ts ({}) must be less than end_ts ({})",
+            start_ts,
+            end_ts
+        );
         Self {
             start_ts,
             end_ts,
             period_interval,
         }
+    }
+
+    /// Create new candlesticks query parameters with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `start_ts >= end_ts`.
+    pub fn try_new(
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> crate::error::Result<Self> {
+        if start_ts >= end_ts {
+            return Err(crate::error::Error::InvalidTimestampRange(start_ts, end_ts));
+        }
+        Ok(Self {
+            start_ts,
+            end_ts,
+            period_interval,
+        })
     }
 
     #[must_use]
@@ -838,6 +869,14 @@ pub struct GetBatchCandlesticksParams {
 
 impl GetBatchCandlesticksParams {
     /// Create new batch candlesticks query parameters.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if:
+    /// - More than 100 market tickers are provided (count by splitting on commas)
+    /// - `start_ts >= end_ts`
+    ///
+    /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
     pub fn new(
         market_tickers: impl Into<String>,
@@ -845,8 +884,22 @@ impl GetBatchCandlesticksParams {
         end_ts: i64,
         period_interval: CandlestickPeriod,
     ) -> Self {
+        let tickers = market_tickers.into();
+        let ticker_count = tickers.split(',').filter(|s| !s.is_empty()).count();
+        debug_assert!(
+            ticker_count <= crate::error::MAX_BATCH_CANDLESTICKS_TICKERS,
+            "batch candlesticks supports max {} tickers, got {}",
+            crate::error::MAX_BATCH_CANDLESTICKS_TICKERS,
+            ticker_count
+        );
+        debug_assert!(
+            start_ts < end_ts,
+            "start_ts ({}) must be less than end_ts ({})",
+            start_ts,
+            end_ts
+        );
         Self {
-            market_tickers: market_tickers.into(),
+            market_tickers: tickers,
             start_ts,
             end_ts,
             period_interval: period_interval.as_minutes(),
@@ -854,7 +907,43 @@ impl GetBatchCandlesticksParams {
         }
     }
 
+    /// Create new batch candlesticks query parameters with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - More than 100 market tickers are provided
+    /// - `start_ts >= end_ts`
+    pub fn try_new(
+        market_tickers: impl Into<String>,
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> crate::error::Result<Self> {
+        let tickers = market_tickers.into();
+        let ticker_count = tickers.split(',').filter(|s| !s.is_empty()).count();
+        if ticker_count > crate::error::MAX_BATCH_CANDLESTICKS_TICKERS {
+            return Err(crate::error::Error::TooManyMarketTickers(ticker_count));
+        }
+        if start_ts >= end_ts {
+            return Err(crate::error::Error::InvalidTimestampRange(start_ts, end_ts));
+        }
+        Ok(Self {
+            market_tickers: tickers,
+            start_ts,
+            end_ts,
+            period_interval: period_interval.as_minutes(),
+            include_latest_before_start: None,
+        })
+    }
+
     /// Create from a list of tickers.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if more than 100 tickers are provided or if
+    /// `start_ts >= end_ts`. Use [`try_from_tickers`](Self::try_from_tickers) for
+    /// fallible construction.
     #[must_use]
     pub fn from_tickers(
         tickers: &[&str],
@@ -863,6 +952,21 @@ impl GetBatchCandlesticksParams {
         period_interval: CandlestickPeriod,
     ) -> Self {
         Self::new(tickers.join(","), start_ts, end_ts, period_interval)
+    }
+
+    /// Create from a list of tickers with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if more than 100 tickers are provided or if
+    /// `start_ts >= end_ts`.
+    pub fn try_from_tickers(
+        tickers: &[&str],
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> crate::error::Result<Self> {
+        Self::try_new(tickers.join(","), start_ts, end_ts, period_interval)
     }
 
     /// Include synthetic candlestick before start_ts for price continuity.
@@ -1044,5 +1148,70 @@ mod tests {
         let response: MarketsResponse = serde_json::from_str(json).unwrap();
         assert_eq!(response.markets.len(), 1);
         assert_eq!(response.cursor, Some("next_page_token".to_string()));
+    }
+
+    #[test]
+    fn test_candlesticks_params_validation() {
+        // Valid params should work
+        let params = GetCandlesticksParams::new(1000, 2000, CandlestickPeriod::OneHour);
+        assert_eq!(params.start_ts, 1000);
+        assert_eq!(params.end_ts, 2000);
+
+        // try_new with valid params
+        let params = GetCandlesticksParams::try_new(1000, 2000, CandlestickPeriod::OneMinute);
+        assert!(params.is_ok());
+
+        // try_new with invalid range
+        let params = GetCandlesticksParams::try_new(2000, 1000, CandlestickPeriod::OneDay);
+        assert!(params.is_err());
+
+        // try_new with equal timestamps
+        let params = GetCandlesticksParams::try_new(1000, 1000, CandlestickPeriod::OneDay);
+        assert!(params.is_err());
+    }
+
+    #[test]
+    fn test_batch_candlesticks_params_validation() {
+        // Valid params should work
+        let params =
+            GetBatchCandlesticksParams::new("TICK1,TICK2", 1000, 2000, CandlestickPeriod::OneHour);
+        assert_eq!(params.market_tickers, "TICK1,TICK2");
+
+        // try_new with valid params
+        let params =
+            GetBatchCandlesticksParams::try_new("TICK1", 1000, 2000, CandlestickPeriod::OneMinute);
+        assert!(params.is_ok());
+
+        // try_new with too many tickers (101)
+        let tickers: Vec<&str> = (0..101).map(|_| "TICK").collect();
+        let params = GetBatchCandlesticksParams::try_from_tickers(
+            &tickers,
+            1000,
+            2000,
+            CandlestickPeriod::OneDay,
+        );
+        assert!(params.is_err());
+
+        // try_new with exactly 100 tickers (should succeed)
+        let tickers: Vec<&str> = (0..100).map(|_| "T").collect();
+        let params = GetBatchCandlesticksParams::try_from_tickers(
+            &tickers,
+            1000,
+            2000,
+            CandlestickPeriod::OneDay,
+        );
+        assert!(params.is_ok());
+
+        // try_new with invalid timestamp range
+        let params =
+            GetBatchCandlesticksParams::try_new("TICK1", 2000, 1000, CandlestickPeriod::OneHour);
+        assert!(params.is_err());
+    }
+
+    #[test]
+    fn test_candlestick_period_values() {
+        assert_eq!(CandlestickPeriod::OneMinute.as_minutes(), 1);
+        assert_eq!(CandlestickPeriod::OneHour.as_minutes(), 60);
+        assert_eq!(CandlestickPeriod::OneDay.as_minutes(), 1440);
     }
 }
