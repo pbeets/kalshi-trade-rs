@@ -459,6 +459,23 @@ impl StreamActor {
                     return false;
                 }
 
+                // Validate that channels requiring market tickers have at least one
+                if market_tickers.is_empty() {
+                    let channels_requiring_tickers: Vec<&str> = channels
+                        .iter()
+                        .filter(|c| c.requires_market_ticker())
+                        .map(|c| c.as_str())
+                        .collect();
+
+                    if !channels_requiring_tickers.is_empty() {
+                        let _ = response.send(Err(format!(
+                            "Market tickers required for channels: {}",
+                            channels_requiring_tickers.join(", ")
+                        )));
+                        return false;
+                    }
+                }
+
                 let tickers: Vec<&str> = market_tickers.iter().map(|s| s.as_str()).collect();
                 let num_channels = channels.len();
 
