@@ -1,14 +1,14 @@
 //! Portfolio API endpoints.
 //!
 //! This module provides functions for interacting with the Kalshi Portfolio API,
-//! including balance, positions, fills, and orders.
+//! including balance, positions, fills, orders, and settlements.
 
 use crate::{
     client::HttpClient,
     error::Result,
     models::{
         BalanceResponse, FillsResponse, GetFillsParams, GetOrdersParams, GetPositionsParams,
-        OrdersResponse, PositionsResponse,
+        GetSettlementsParams, OrdersResponse, PositionsResponse, SettlementsResponse,
     },
 };
 
@@ -37,5 +37,16 @@ pub async fn get_fills(http: &HttpClient, params: GetFillsParams) -> Result<Fill
 /// Get orders with the given query parameters.
 pub async fn get_orders(http: &HttpClient, params: GetOrdersParams) -> Result<OrdersResponse> {
     let path = format!("/portfolio/orders{}", params.to_query_string());
+    http.get(&path).await
+}
+
+/// Get settlement history.
+///
+/// Returns historical settlement records showing P&L from settled markets.
+pub async fn get_settlements(
+    http: &HttpClient,
+    params: GetSettlementsParams,
+) -> Result<SettlementsResponse> {
+    let path = format!("/portfolio/settlements{}", params.to_query_string());
     http.get(&path).await
 }
