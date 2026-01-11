@@ -5,23 +5,27 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::{events, exchange, markets, order_groups, orders, portfolio, search, series},
+    api::{
+        communications, events, exchange, markets, order_groups, orders, portfolio, search, series,
+    },
     auth::KalshiConfig,
     error::Result,
     models::{
-        AmendOrderRequest, AmendOrderResponse, BalanceResponse, BatchCancelOrdersRequest,
-        BatchCancelOrdersResponse, BatchCandlesticksResponse, BatchCreateOrdersRequest,
-        BatchCreateOrdersResponse, CancelOrderResponse, CandlesticksResponse,
-        CreateOrderGroupRequest, CreateOrderRequest, DecreaseOrderRequest, EventResponse,
-        EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
-        ExchangeStatusResponse, FillsResponse, FiltersBySportResponse, GetBatchCandlesticksParams,
-        GetCandlesticksParams, GetEventParams, GetEventsParams, GetFillsParams, GetMarketsParams,
-        GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
-        GetSettlementsParams, GetTradesParams, MarketResponse, MarketsResponse, OrderGroupResponse,
+        AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, BalanceResponse,
+        BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCandlesticksResponse,
+        BatchCreateOrdersRequest, BatchCreateOrdersResponse, CancelOrderResponse,
+        CandlesticksResponse, CreateOrderGroupRequest, CreateOrderRequest, CreateQuoteRequest,
+        CreateRfqRequest, DecreaseOrderRequest, EventResponse, EventsResponse,
+        ExchangeAnnouncementsResponse, ExchangeScheduleResponse, ExchangeStatusResponse,
+        FillsResponse, FiltersBySportResponse, GetBatchCandlesticksParams, GetCandlesticksParams,
+        GetEventParams, GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams,
+        GetOrdersParams, GetPositionsParams, GetQueuePositionsParams, GetQuoteResponse,
+        GetRfqResponse, GetSettlementsParams, GetTradesParams, ListQuotesResponse,
+        ListRfqsResponse, MarketResponse, MarketsResponse, OrderGroupResponse,
         OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
-        PositionsResponse, QueuePositionsResponse, SeriesListResponse, SeriesResponse,
-        SettlementsResponse, TagsByCategoriesResponse, TradesResponse, UpdateOrderGroupRequest,
-        UserDataTimestampResponse,
+        PositionsResponse, QueuePositionsResponse, QuoteResponse, RfqResponse, SeriesListResponse,
+        SeriesResponse, SettlementsResponse, TagsByCategoriesResponse, TradesResponse,
+        UpdateOrderGroupRequest, UserDataTimestampResponse,
     },
 };
 
@@ -1083,5 +1087,58 @@ impl KalshiClient {
         params: crate::models::GetSeriesParams,
     ) -> Result<SeriesListResponse> {
         series::get_series_list(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Communications API (RFQs and Quotes)
+    // =========================================================================
+
+    /// Create a new RFQ (Request for Quote).
+    pub async fn create_rfq(&self, request: CreateRfqRequest) -> Result<RfqResponse> {
+        communications::create_rfq(&self.http, request).await
+    }
+
+    /// Create a new quote for an RFQ.
+    pub async fn create_quote(&self, request: CreateQuoteRequest) -> Result<QuoteResponse> {
+        communications::create_quote(&self.http, request).await
+    }
+
+    /// Accept a quote.
+    pub async fn accept_quote(
+        &self,
+        quote_id: &str,
+        request: AcceptQuoteRequest,
+    ) -> Result<QuoteResponse> {
+        communications::accept_quote(&self.http, quote_id, request).await
+    }
+
+    /// Cancel an RFQ.
+    pub async fn cancel_rfq(&self, rfq_id: &str) -> Result<RfqResponse> {
+        communications::cancel_rfq(&self.http, rfq_id).await
+    }
+
+    /// Cancel a quote.
+    pub async fn cancel_quote(&self, quote_id: &str) -> Result<QuoteResponse> {
+        communications::cancel_quote(&self.http, quote_id).await
+    }
+
+    /// Get details of an RFQ.
+    pub async fn get_rfq(&self, rfq_id: &str) -> Result<GetRfqResponse> {
+        communications::get_rfq(&self.http, rfq_id).await
+    }
+
+    /// Get details of a quote.
+    pub async fn get_quote(&self, quote_id: &str) -> Result<GetQuoteResponse> {
+        communications::get_quote(&self.http, quote_id).await
+    }
+
+    /// List all RFQs.
+    pub async fn list_rfqs(&self) -> Result<ListRfqsResponse> {
+        communications::list_rfqs(&self.http).await
+    }
+
+    /// List all quotes.
+    pub async fn list_quotes(&self) -> Result<ListQuotesResponse> {
+        communications::list_quotes(&self.http).await
     }
 }

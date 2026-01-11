@@ -5,6 +5,7 @@
 
 mod balance;
 mod common;
+mod communications;
 mod event;
 mod exchange;
 mod fill;
@@ -20,6 +21,10 @@ mod settlement;
 // Re-export all public types
 pub use balance::BalanceResponse;
 pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
+pub use communications::{
+    AcceptQuoteRequest, CreateQuoteRequest, CreateRfqRequest, GetQuoteResponse, GetRfqResponse,
+    ListQuotesResponse, ListRfqsResponse, Quote, QuoteResponse, Rfq, RfqResponse,
+};
 pub use event::{
     Event, EventResponse, EventStatus, EventsResponse, GetEventParams, GetEventsParams, Milestone,
 };
