@@ -5,6 +5,7 @@
 
 mod balance;
 mod common;
+mod event;
 mod exchange;
 mod fill;
 mod market;
@@ -15,6 +16,9 @@ pub(crate) mod query;
 // Re-export all public types
 pub use balance::BalanceResponse;
 pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
+pub use event::{
+    Event, EventResponse, EventStatus, EventsResponse, GetEventParams, GetEventsParams, Milestone,
+};
 pub use exchange::{
     Announcement, AnnouncementStatus, AnnouncementType, ExchangeAnnouncementsResponse,
     ExchangeSchedule, ExchangeScheduleResponse, ExchangeStatusResponse, MaintenanceWindow,
