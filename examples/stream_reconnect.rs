@@ -94,11 +94,11 @@ async fn run_stream(config: &KalshiConfig) -> Result<String, Box<dyn std::error:
 
     // Subscribe to channels
     let result = handle.subscribe(CHANNELS, None).await?;
-    println!("Subscribed with SIDs: {:?}", result.sids);
+    println!("Subscribed with SIDs: {:?}", result.sids());
     println!("Waiting for updates (Ctrl+C to exit)...\n");
 
     // Track subscription IDs for potential resubscription
-    let _subscription_ids = result.sids.clone();
+    let _subscription_ids = result.sids();
 
     // Process updates
     loop {

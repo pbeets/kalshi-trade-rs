@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await?;
 
-    println!("Subscribed with SIDs: {:?}", result.sids);
+    println!("Subscribed with SIDs: {:?}", result.sids());
     println!("Waiting for updates (Ctrl+C to exit)...\n");
 
     // Process updates for 60 seconds or until interrupted
@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Unsubscribe and shut down
     println!("Unsubscribing...");
-    handle.unsubscribe(&result.sids).await?;
+    handle.unsubscribe(&result.sids()).await?;
 
     println!("Shutting down...");
     client.shutdown().await?;
