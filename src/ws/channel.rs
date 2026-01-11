@@ -34,6 +34,18 @@ impl Channel {
         )
     }
 
+    /// Returns true if this channel requires at least one market ticker.
+    ///
+    /// Channels like `Fill` and `Communications` are user-scoped and don't
+    /// require market tickers. Market data channels like `OrderbookDelta`,
+    /// `Ticker`, and `Trade` require at least one market ticker.
+    pub fn requires_market_ticker(&self) -> bool {
+        matches!(
+            self,
+            Self::OrderbookDelta | Self::Ticker | Self::Trade | Self::MarketLifecycle
+        )
+    }
+
     /// Returns the wire format name for this channel.
     pub fn as_str(&self) -> &'static str {
         match self {
