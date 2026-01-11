@@ -198,7 +198,7 @@ impl KalshiStreamClient {
 ///         Some(&["BTCUSD-25JAN17"]),
 ///     ).await.unwrap();
 ///
-///     println!("Subscribed with SIDs: {:?}", result.sids);
+///     println!("Subscribed with SIDs: {:?}", result.sids());
 ///
 ///     // Process updates - handle disconnection
 ///     while let Ok(update) = handle.update_receiver.recv().await {
@@ -268,7 +268,7 @@ impl KalshiStreamHandle {
     ///     Some(&["BTCUSD-25JAN17", "ETHUSD-25JAN17"]),
     /// ).await?;
     ///
-    /// println!("Subscription IDs: {:?}", result.sids);
+    /// println!("Subscription IDs: {:?}", result.sids());
     /// # Ok(())
     /// # }
     /// ```
