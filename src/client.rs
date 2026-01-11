@@ -5,15 +5,18 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::{events, exchange, markets, portfolio},
+    api::{events, exchange, markets, orders, portfolio},
     auth::KalshiConfig,
     error::Result,
     models::{
-        BalanceResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
-        ExchangeScheduleResponse, ExchangeStatusResponse, FillsResponse, GetEventParams,
-        GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams, GetOrdersParams,
-        GetPositionsParams, GetTradesParams, MarketResponse, MarketsResponse, OrderbookResponse,
-        OrdersResponse, PositionsResponse, TradesResponse, UserDataTimestampResponse,
+        AmendOrderRequest, AmendOrderResponse, BalanceResponse, BatchCancelOrdersRequest,
+        BatchCancelOrdersResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
+        CancelOrderResponse, CreateOrderRequest, DecreaseOrderRequest, EventResponse,
+        EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        ExchangeStatusResponse, FillsResponse, GetEventParams, GetEventsParams, GetFillsParams,
+        GetMarketsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetTradesParams,
+        MarketResponse, MarketsResponse, OrderResponse, OrderbookResponse, OrdersResponse,
+        PositionsResponse, TradesResponse, UserDataTimestampResponse,
     },
 };
 
@@ -536,5 +539,191 @@ impl KalshiClient {
         params: GetEventParams,
     ) -> Result<EventResponse> {
         events::get_event(&self.http, event_ticker, params).await
+    }
+
+    // =========================================================================
+    // Orders API
+    // =========================================================================
+
+    /// Create a new order.
+    ///
+    /// Submits an order to the exchange. Use the builder pattern on
+    /// `CreateOrderRequest` to set optional fields.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The order creation request
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{CreateOrderRequest, Side, Action};
+    ///
+    /// let request = CreateOrderRequest::new("KXBTC-25JAN10-B50000", Side::Yes, Action::Buy, 10)
+    ///     .yes_price(50)
+    ///     .post_only(true);
+    /// let response = client.create_order(request).await?;
+    /// println!("Order created: {}", response.order.order_id);
+    /// ```
+    pub async fn create_order(&self, request: CreateOrderRequest) -> Result<OrderResponse> {
+        orders::create_order(&self.http, request).await
+    }
+
+    /// Get a specific order by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - The order ID
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let order = client.get_order("abc123").await?;
+    /// println!("Order status: {:?}", order.order.status);
+    /// ```
+    pub async fn get_order(&self, order_id: &str) -> Result<OrderResponse> {
+        orders::get_order(&self.http, order_id).await
+    }
+
+    /// Cancel an order by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - The order ID to cancel
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.cancel_order("abc123").await?;
+    /// println!("Canceled {} contracts", response.reduced_by.unwrap_or(0));
+    /// ```
+    pub async fn cancel_order(&self, order_id: &str) -> Result<CancelOrderResponse> {
+        orders::cancel_order(&self.http, order_id).await
+    }
+
+    /// Amend an existing order.
+    ///
+    /// Modifies the price and/or quantity of an existing order.
+    /// The order is canceled and replaced atomically.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - The order ID to amend
+    /// * `request` - The amendment details
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{AmendOrderRequest, Side, Action};
+    ///
+    /// let request = AmendOrderRequest::new(
+    ///     "KXBTC-25JAN10-B50000",
+    ///     Side::Yes,
+    ///     Action::Buy,
+    ///     "my-order-1",
+    ///     "my-order-2",
+    /// ).yes_price(55);
+    /// let response = client.amend_order("abc123", request).await?;
+    /// println!("Amended: old price={}, new price={}",
+    ///     response.old_order.yes_price, response.order.yes_price);
+    /// ```
+    pub async fn amend_order(
+        &self,
+        order_id: &str,
+        request: AmendOrderRequest,
+    ) -> Result<AmendOrderResponse> {
+        orders::amend_order(&self.http, order_id, request).await
+    }
+
+    /// Decrease an order's quantity.
+    ///
+    /// Reduces the remaining quantity of an order without canceling it entirely.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - The order ID
+    /// * `request` - The decrease details (reduce_by or reduce_to)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::DecreaseOrderRequest;
+    ///
+    /// // Reduce by 5 contracts
+    /// let request = DecreaseOrderRequest::reduce_by(5);
+    /// let response = client.decrease_order("abc123", request).await?;
+    /// println!("Remaining: {} contracts", response.order.remaining_count);
+    /// ```
+    pub async fn decrease_order(
+        &self,
+        order_id: &str,
+        request: DecreaseOrderRequest,
+    ) -> Result<OrderResponse> {
+        orders::decrease_order(&self.http, order_id, request).await
+    }
+
+    /// Create multiple orders in a single request.
+    ///
+    /// Supports up to 20 orders per batch. Each order in the batch is
+    /// processed independently, so some may succeed while others fail.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The batch create request containing orders
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{BatchCreateOrdersRequest, CreateOrderRequest, Side, Action};
+    ///
+    /// let orders = vec![
+    ///     CreateOrderRequest::new("KXBTC-25JAN10-B50000", Side::Yes, Action::Buy, 5)
+    ///         .yes_price(50),
+    ///     CreateOrderRequest::new("KXBTC-25JAN10-B55000", Side::No, Action::Buy, 3)
+    ///         .no_price(40),
+    /// ];
+    /// let response = client.batch_create_orders(BatchCreateOrdersRequest::new(orders)).await?;
+    /// for result in response.orders {
+    ///     if let Some(order) = result.order {
+    ///         println!("Created order: {}", order.order_id);
+    ///     } else if let Some(error) = result.error {
+    ///         println!("Failed: {}", error.message);
+    ///     }
+    /// }
+    /// ```
+    pub async fn batch_create_orders(
+        &self,
+        request: BatchCreateOrdersRequest,
+    ) -> Result<BatchCreateOrdersResponse> {
+        orders::batch_create_orders(&self.http, request).await
+    }
+
+    /// Cancel multiple orders in a single request.
+    ///
+    /// Supports up to 20 orders per batch. Each order in the batch is
+    /// processed independently.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The batch cancel request containing order IDs
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::BatchCancelOrdersRequest;
+    ///
+    /// let order_ids = vec!["order1".to_string(), "order2".to_string()];
+    /// let response = client.batch_cancel_orders(BatchCancelOrdersRequest::new(order_ids)).await?;
+    /// for result in response.orders {
+    ///     if let Some(order) = result.order {
+    ///         println!("Canceled order: {}", order.order_id);
+    ///     }
+    /// }
+    /// ```
+    pub async fn batch_cancel_orders(
+        &self,
+        request: BatchCancelOrdersRequest,
+    ) -> Result<BatchCancelOrdersResponse> {
+        orders::batch_cancel_orders(&self.http, request).await
     }
 }

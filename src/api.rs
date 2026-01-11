@@ -6,5 +6,5 @@
 pub(crate) mod events;
 pub(crate) mod exchange;
 pub(crate) mod markets;
-mod orders;
+pub(crate) mod orders;
 pub(crate) mod portfolio;
