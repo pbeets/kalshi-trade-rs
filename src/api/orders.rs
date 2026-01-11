@@ -9,7 +9,8 @@ use crate::{
     models::{
         AmendOrderRequest, AmendOrderResponse, BatchCancelOrdersRequest, BatchCancelOrdersResponse,
         BatchCreateOrdersRequest, BatchCreateOrdersResponse, CancelOrderResponse,
-        CreateOrderRequest, DecreaseOrderRequest, OrderResponse,
+        CreateOrderRequest, DecreaseOrderRequest, GetQueuePositionsParams,
+        OrderQueuePositionResponse, OrderResponse, QueuePositionsResponse,
     },
 };
 
@@ -75,4 +76,31 @@ pub async fn batch_cancel_orders(
 ) -> Result<BatchCancelOrdersResponse> {
     http.delete_with_body("/portfolio/orders/batched", &request)
         .await
+}
+
+/// Get queue positions for all resting orders.
+///
+/// Queue position represents the number of contracts that need to be matched
+/// before an order receives a partial or full match, determined using
+/// price-time priority.
+pub async fn get_queue_positions(
+    http: &HttpClient,
+    params: GetQueuePositionsParams,
+) -> Result<QueuePositionsResponse> {
+    let path = format!(
+        "/portfolio/orders/queue_positions{}",
+        params.to_query_string()
+    );
+    http.get(&path).await
+}
+
+/// Get queue position for a specific order.
+///
+/// Returns the number of contracts ahead of this order in the queue.
+pub async fn get_order_queue_position(
+    http: &HttpClient,
+    order_id: &str,
+) -> Result<OrderQueuePositionResponse> {
+    let path = format!("/portfolio/orders/{}/queue_position", order_id);
+    http.get(&path).await
 }

@@ -3,6 +3,12 @@ use thiserror::Error;
 /// Maximum number of orders allowed in a batch request.
 pub const MAX_BATCH_SIZE: usize = 20;
 
+/// Maximum number of market tickers in a batch candlesticks request.
+pub const MAX_BATCH_CANDLESTICKS_TICKERS: usize = 100;
+
+/// Maximum number of event tickers in comma-separated filter.
+pub const MAX_EVENT_TICKERS: usize = 10;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("HTTP error: {0}")]
@@ -34,6 +40,15 @@ pub enum Error {
 
     #[error("Batch size {0} exceeds maximum of {MAX_BATCH_SIZE}")]
     BatchSizeExceeded(usize),
+
+    #[error("Market tickers count {0} exceeds maximum of {MAX_BATCH_CANDLESTICKS_TICKERS}")]
+    TooManyMarketTickers(usize),
+
+    #[error("Event tickers count {0} exceeds maximum of {MAX_EVENT_TICKERS}")]
+    TooManyEventTickers(usize),
+
+    #[error("Invalid timestamp range: start_ts ({0}) must be less than end_ts ({1})")]
+    InvalidTimestampRange(i64, i64),
 
     #[error("Market tickers required for channels: {0}")]
     MissingMarketTickers(String),

@@ -10,14 +10,16 @@ use crate::{
     error::Result,
     models::{
         AmendOrderRequest, AmendOrderResponse, BalanceResponse, BatchCancelOrdersRequest,
-        BatchCancelOrdersResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
-        CancelOrderResponse, CreateOrderRequest, DecreaseOrderRequest, EventResponse,
-        EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
-        ExchangeStatusResponse, FillsResponse, FiltersBySportResponse, GetEventParams,
-        GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams, GetOrdersParams,
-        GetPositionsParams, GetTradesParams, MarketResponse, MarketsResponse, OrderResponse,
-        OrderbookResponse, OrdersResponse, PositionsResponse, TagsByCategoriesResponse,
-        TradesResponse, UserDataTimestampResponse,
+        BatchCancelOrdersResponse, BatchCandlesticksResponse, BatchCreateOrdersRequest,
+        BatchCreateOrdersResponse, CancelOrderResponse, CandlesticksResponse, CreateOrderRequest,
+        DecreaseOrderRequest, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
+        ExchangeScheduleResponse, ExchangeStatusResponse, FillsResponse, FiltersBySportResponse,
+        GetBatchCandlesticksParams, GetCandlesticksParams, GetEventParams, GetEventsParams,
+        GetFillsParams, GetMarketsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
+        GetQueuePositionsParams, GetSettlementsParams, GetTradesParams, MarketResponse,
+        MarketsResponse, OrderQueuePositionResponse, OrderResponse, OrderbookResponse,
+        OrdersResponse, PositionsResponse, QueuePositionsResponse, SettlementsResponse,
+        TagsByCategoriesResponse, TradesResponse, UserDataTimestampResponse,
     },
 };
 
@@ -726,6 +728,189 @@ impl KalshiClient {
         request: BatchCancelOrdersRequest,
     ) -> Result<BatchCancelOrdersResponse> {
         orders::batch_cancel_orders(&self.http, request).await
+    }
+
+    /// Get queue positions for all resting orders.
+    ///
+    /// Queue position represents the number of contracts that need to be matched
+    /// before an order receives a partial or full match, determined using
+    /// price-time priority.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let positions = client.get_queue_positions().await?;
+    /// for pos in positions.queue_positions {
+    ///     println!("Order {} on {}: {} contracts ahead",
+    ///         pos.order_id, pos.market_ticker, pos.queue_position);
+    /// }
+    /// ```
+    pub async fn get_queue_positions(&self) -> Result<QueuePositionsResponse> {
+        self.get_queue_positions_with_params(GetQueuePositionsParams::default())
+            .await
+    }
+
+    /// Get queue positions for resting orders with filtering.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering by market or event ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetQueuePositionsParams::new()
+    ///     .event_ticker("KXBTC-25JAN");
+    /// let positions = client.get_queue_positions_with_params(params).await?;
+    /// ```
+    pub async fn get_queue_positions_with_params(
+        &self,
+        params: GetQueuePositionsParams,
+    ) -> Result<QueuePositionsResponse> {
+        orders::get_queue_positions(&self.http, params).await
+    }
+
+    /// Get queue position for a specific order.
+    ///
+    /// Returns the number of contracts ahead of this order in the queue.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - The order ID
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_order_queue_position("abc123").await?;
+    /// println!("Contracts ahead: {}", response.queue_position);
+    /// ```
+    pub async fn get_order_queue_position(
+        &self,
+        order_id: &str,
+    ) -> Result<OrderQueuePositionResponse> {
+        orders::get_order_queue_position(&self.http, order_id).await
+    }
+
+    // =========================================================================
+    // Candlesticks API
+    // =========================================================================
+
+    /// Get candlestick (OHLCV) data for a specific market.
+    ///
+    /// Returns historical price data in candlestick format.
+    ///
+    /// # Arguments
+    ///
+    /// * `series_ticker` - The series ticker containing the market
+    /// * `ticker` - The market ticker
+    /// * `params` - Query parameters including time range and interval
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetCandlesticksParams, CandlestickPeriod};
+    ///
+    /// let now = std::time::SystemTime::now()
+    ///     .duration_since(std::time::UNIX_EPOCH)
+    ///     .unwrap()
+    ///     .as_secs() as i64;
+    /// let one_day_ago = now - 86400;
+    ///
+    /// let params = GetCandlesticksParams::new(one_day_ago, now, CandlestickPeriod::OneHour);
+    /// let candles = client.get_candlesticks("KXBTC", "KXBTC-25JAN10-B50000", params).await?;
+    /// for candle in candles.candlesticks {
+    ///     if let Some(price) = &candle.price {
+    ///         println!("Close: {:?}", price.close_dollars);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_candlesticks(
+        &self,
+        series_ticker: &str,
+        ticker: &str,
+        params: GetCandlesticksParams,
+    ) -> Result<CandlesticksResponse> {
+        markets::get_candlesticks(&self.http, series_ticker, ticker, params).await
+    }
+
+    /// Get candlestick data for multiple markets in a single request.
+    ///
+    /// Supports up to 100 market tickers per request.
+    /// Returns up to 10,000 candlesticks total across all markets.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters including tickers, time range, and interval
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetBatchCandlesticksParams, CandlestickPeriod};
+    ///
+    /// let now = std::time::SystemTime::now()
+    ///     .duration_since(std::time::UNIX_EPOCH)
+    ///     .unwrap()
+    ///     .as_secs() as i64;
+    /// let one_day_ago = now - 86400;
+    ///
+    /// let params = GetBatchCandlesticksParams::from_tickers(
+    ///     &["TICKER-1", "TICKER-2"],
+    ///     one_day_ago,
+    ///     now,
+    ///     CandlestickPeriod::OneHour,
+    /// );
+    /// let response = client.get_batch_candlesticks(params).await?;
+    /// for market in response.markets {
+    ///     println!("{}: {} candlesticks", market.market_ticker, market.candlesticks.len());
+    /// }
+    /// ```
+    pub async fn get_batch_candlesticks(
+        &self,
+        params: GetBatchCandlesticksParams,
+    ) -> Result<BatchCandlesticksResponse> {
+        markets::get_batch_candlesticks(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Settlements API
+    // =========================================================================
+
+    /// Get settlement history with default parameters.
+    ///
+    /// Returns historical settlement records showing P&L from settled markets.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let settlements = client.get_settlements().await?;
+    /// for settlement in settlements.settlements {
+    ///     println!("{}: revenue={} cents", settlement.ticker, settlement.revenue);
+    /// }
+    /// ```
+    pub async fn get_settlements(&self) -> Result<SettlementsResponse> {
+        self.get_settlements_with_params(GetSettlementsParams::default())
+            .await
+    }
+
+    /// Get settlement history with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetSettlementsParams::new()
+    ///     .limit(50)
+    ///     .event_ticker("KXBTC-25JAN");
+    /// let settlements = client.get_settlements_with_params(params).await?;
+    /// ```
+    pub async fn get_settlements_with_params(
+        &self,
+        params: GetSettlementsParams,
+    ) -> Result<SettlementsResponse> {
+        portfolio::get_settlements(&self.http, params).await
     }
 
     // =========================================================================

@@ -640,6 +640,357 @@ impl GetTradesParams {
     }
 }
 
+/// Candlestick period interval in minutes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[repr(i32)]
+pub enum CandlestickPeriod {
+    /// 1 minute candles.
+    OneMinute = 1,
+    /// 1 hour candles.
+    OneHour = 60,
+    /// 1 day candles.
+    OneDay = 1440,
+}
+
+impl CandlestickPeriod {
+    /// Get the period as minutes.
+    pub fn as_minutes(&self) -> i32 {
+        *self as i32
+    }
+}
+
+/// OHLC (Open/High/Low/Close) candlestick data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OhlcData {
+    /// Open price in cents.
+    #[serde(default)]
+    pub open: Option<i64>,
+    /// Open price in dollars.
+    #[serde(default)]
+    pub open_dollars: Option<String>,
+    /// Low price in cents.
+    #[serde(default)]
+    pub low: Option<i64>,
+    /// Low price in dollars.
+    #[serde(default)]
+    pub low_dollars: Option<String>,
+    /// High price in cents.
+    #[serde(default)]
+    pub high: Option<i64>,
+    /// High price in dollars.
+    #[serde(default)]
+    pub high_dollars: Option<String>,
+    /// Close price in cents.
+    #[serde(default)]
+    pub close: Option<i64>,
+    /// Close price in dollars.
+    #[serde(default)]
+    pub close_dollars: Option<String>,
+}
+
+/// Extended OHLC data with additional price fields for trade prices.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceOhlcData {
+    /// Open price in cents.
+    #[serde(default)]
+    pub open: Option<i64>,
+    /// Open price in dollars.
+    #[serde(default)]
+    pub open_dollars: Option<String>,
+    /// Low price in cents.
+    #[serde(default)]
+    pub low: Option<i64>,
+    /// Low price in dollars.
+    #[serde(default)]
+    pub low_dollars: Option<String>,
+    /// High price in cents.
+    #[serde(default)]
+    pub high: Option<i64>,
+    /// High price in dollars.
+    #[serde(default)]
+    pub high_dollars: Option<String>,
+    /// Close price in cents.
+    #[serde(default)]
+    pub close: Option<i64>,
+    /// Close price in dollars.
+    #[serde(default)]
+    pub close_dollars: Option<String>,
+    /// Mean price in cents.
+    #[serde(default)]
+    pub mean: Option<i64>,
+    /// Mean price in dollars.
+    #[serde(default)]
+    pub mean_dollars: Option<String>,
+    /// Previous close price in cents.
+    #[serde(default)]
+    pub previous: Option<i64>,
+    /// Previous close price in dollars.
+    #[serde(default)]
+    pub previous_dollars: Option<String>,
+    /// Min price in cents (alias for low).
+    #[serde(default)]
+    pub min: Option<i64>,
+    /// Min price in dollars.
+    #[serde(default)]
+    pub min_dollars: Option<String>,
+    /// Max price in cents (alias for high).
+    #[serde(default)]
+    pub max: Option<i64>,
+    /// Max price in dollars.
+    #[serde(default)]
+    pub max_dollars: Option<String>,
+}
+
+/// A single candlestick data point.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Candlestick {
+    /// End of the period (Unix timestamp in seconds).
+    pub end_period_ts: i64,
+    /// YES bid OHLC data.
+    #[serde(default)]
+    pub yes_bid: Option<OhlcData>,
+    /// YES ask OHLC data.
+    #[serde(default)]
+    pub yes_ask: Option<OhlcData>,
+    /// Trade price OHLC data.
+    #[serde(default)]
+    pub price: Option<PriceOhlcData>,
+    /// Trading volume during the period.
+    #[serde(default)]
+    pub volume: Option<i64>,
+    /// Open interest at end of period.
+    #[serde(default)]
+    pub open_interest: Option<i64>,
+}
+
+/// Response from GET /series/{series_ticker}/markets/{ticker}/candlesticks.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CandlesticksResponse {
+    /// Market ticker.
+    pub ticker: String,
+    /// Array of candlestick data.
+    pub candlesticks: Vec<Candlestick>,
+}
+
+/// Candlestick data for a single market in batch response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketCandlesticks {
+    /// Market ticker.
+    pub market_ticker: String,
+    /// Array of candlestick data.
+    pub candlesticks: Vec<Candlestick>,
+}
+
+/// Response from GET /markets/candlesticks (batch).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCandlesticksResponse {
+    /// Array of market candlestick data.
+    pub markets: Vec<MarketCandlesticks>,
+}
+
+/// Query parameters for GET /series/{series_ticker}/markets/{ticker}/candlesticks.
+#[derive(Debug, Clone, Serialize)]
+pub struct GetCandlesticksParams {
+    /// Start timestamp (Unix seconds).
+    pub start_ts: i64,
+    /// End timestamp (Unix seconds).
+    pub end_ts: i64,
+    /// Candlestick period interval.
+    pub period_interval: CandlestickPeriod,
+}
+
+impl GetCandlesticksParams {
+    /// Create new candlesticks query parameters.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `start_ts >= end_ts`.
+    /// Use [`try_new`](Self::try_new) for fallible construction.
+    #[must_use]
+    pub fn new(start_ts: i64, end_ts: i64, period_interval: CandlestickPeriod) -> Self {
+        debug_assert!(
+            start_ts < end_ts,
+            "start_ts ({}) must be less than end_ts ({})",
+            start_ts,
+            end_ts
+        );
+        Self {
+            start_ts,
+            end_ts,
+            period_interval,
+        }
+    }
+
+    /// Create new candlesticks query parameters with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `start_ts >= end_ts`.
+    pub fn try_new(
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> crate::error::Result<Self> {
+        if start_ts >= end_ts {
+            return Err(crate::error::Error::InvalidTimestampRange(start_ts, end_ts));
+        }
+        Ok(Self {
+            start_ts,
+            end_ts,
+            period_interval,
+        })
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push("start_ts", self.start_ts);
+        qb.push("end_ts", self.end_ts);
+        qb.push("period_interval", self.period_interval.as_minutes());
+        qb.build()
+    }
+}
+
+/// Query parameters for GET /markets/candlesticks (batch).
+#[derive(Debug, Clone, Serialize)]
+pub struct GetBatchCandlesticksParams {
+    /// Comma-separated list of market tickers (max 100).
+    pub market_tickers: String,
+    /// Start timestamp (Unix seconds).
+    pub start_ts: i64,
+    /// End timestamp (Unix seconds).
+    pub end_ts: i64,
+    /// Candlestick period interval in minutes.
+    pub period_interval: i32,
+    /// Include synthetic candlestick before start_ts.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_latest_before_start: Option<bool>,
+}
+
+impl GetBatchCandlesticksParams {
+    /// Create new batch candlesticks query parameters.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if:
+    /// - More than 100 market tickers are provided (count by splitting on commas)
+    /// - `start_ts >= end_ts`
+    ///
+    /// Use [`try_new`](Self::try_new) for fallible construction.
+    #[must_use]
+    pub fn new(
+        market_tickers: impl Into<String>,
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> Self {
+        let tickers = market_tickers.into();
+        let ticker_count = tickers.split(',').filter(|s| !s.is_empty()).count();
+        debug_assert!(
+            ticker_count <= crate::error::MAX_BATCH_CANDLESTICKS_TICKERS,
+            "batch candlesticks supports max {} tickers, got {}",
+            crate::error::MAX_BATCH_CANDLESTICKS_TICKERS,
+            ticker_count
+        );
+        debug_assert!(
+            start_ts < end_ts,
+            "start_ts ({}) must be less than end_ts ({})",
+            start_ts,
+            end_ts
+        );
+        Self {
+            market_tickers: tickers,
+            start_ts,
+            end_ts,
+            period_interval: period_interval.as_minutes(),
+            include_latest_before_start: None,
+        }
+    }
+
+    /// Create new batch candlesticks query parameters with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - More than 100 market tickers are provided
+    /// - `start_ts >= end_ts`
+    pub fn try_new(
+        market_tickers: impl Into<String>,
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> crate::error::Result<Self> {
+        let tickers = market_tickers.into();
+        let ticker_count = tickers.split(',').filter(|s| !s.is_empty()).count();
+        if ticker_count > crate::error::MAX_BATCH_CANDLESTICKS_TICKERS {
+            return Err(crate::error::Error::TooManyMarketTickers(ticker_count));
+        }
+        if start_ts >= end_ts {
+            return Err(crate::error::Error::InvalidTimestampRange(start_ts, end_ts));
+        }
+        Ok(Self {
+            market_tickers: tickers,
+            start_ts,
+            end_ts,
+            period_interval: period_interval.as_minutes(),
+            include_latest_before_start: None,
+        })
+    }
+
+    /// Create from a list of tickers.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if more than 100 tickers are provided or if
+    /// `start_ts >= end_ts`. Use [`try_from_tickers`](Self::try_from_tickers) for
+    /// fallible construction.
+    #[must_use]
+    pub fn from_tickers(
+        tickers: &[&str],
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> Self {
+        Self::new(tickers.join(","), start_ts, end_ts, period_interval)
+    }
+
+    /// Create from a list of tickers with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if more than 100 tickers are provided or if
+    /// `start_ts >= end_ts`.
+    pub fn try_from_tickers(
+        tickers: &[&str],
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> crate::error::Result<Self> {
+        Self::try_new(tickers.join(","), start_ts, end_ts, period_interval)
+    }
+
+    /// Include synthetic candlestick before start_ts for price continuity.
+    #[must_use]
+    pub fn include_latest_before_start(mut self, include: bool) -> Self {
+        self.include_latest_before_start = Some(include);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push("market_tickers", &self.market_tickers);
+        qb.push("start_ts", self.start_ts);
+        qb.push("end_ts", self.end_ts);
+        qb.push("period_interval", self.period_interval);
+        qb.push_opt(
+            "include_latest_before_start",
+            self.include_latest_before_start,
+        );
+        qb.build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -797,5 +1148,70 @@ mod tests {
         let response: MarketsResponse = serde_json::from_str(json).unwrap();
         assert_eq!(response.markets.len(), 1);
         assert_eq!(response.cursor, Some("next_page_token".to_string()));
+    }
+
+    #[test]
+    fn test_candlesticks_params_validation() {
+        // Valid params should work
+        let params = GetCandlesticksParams::new(1000, 2000, CandlestickPeriod::OneHour);
+        assert_eq!(params.start_ts, 1000);
+        assert_eq!(params.end_ts, 2000);
+
+        // try_new with valid params
+        let params = GetCandlesticksParams::try_new(1000, 2000, CandlestickPeriod::OneMinute);
+        assert!(params.is_ok());
+
+        // try_new with invalid range
+        let params = GetCandlesticksParams::try_new(2000, 1000, CandlestickPeriod::OneDay);
+        assert!(params.is_err());
+
+        // try_new with equal timestamps
+        let params = GetCandlesticksParams::try_new(1000, 1000, CandlestickPeriod::OneDay);
+        assert!(params.is_err());
+    }
+
+    #[test]
+    fn test_batch_candlesticks_params_validation() {
+        // Valid params should work
+        let params =
+            GetBatchCandlesticksParams::new("TICK1,TICK2", 1000, 2000, CandlestickPeriod::OneHour);
+        assert_eq!(params.market_tickers, "TICK1,TICK2");
+
+        // try_new with valid params
+        let params =
+            GetBatchCandlesticksParams::try_new("TICK1", 1000, 2000, CandlestickPeriod::OneMinute);
+        assert!(params.is_ok());
+
+        // try_new with too many tickers (101)
+        let tickers: Vec<&str> = (0..101).map(|_| "TICK").collect();
+        let params = GetBatchCandlesticksParams::try_from_tickers(
+            &tickers,
+            1000,
+            2000,
+            CandlestickPeriod::OneDay,
+        );
+        assert!(params.is_err());
+
+        // try_new with exactly 100 tickers (should succeed)
+        let tickers: Vec<&str> = (0..100).map(|_| "T").collect();
+        let params = GetBatchCandlesticksParams::try_from_tickers(
+            &tickers,
+            1000,
+            2000,
+            CandlestickPeriod::OneDay,
+        );
+        assert!(params.is_ok());
+
+        // try_new with invalid timestamp range
+        let params =
+            GetBatchCandlesticksParams::try_new("TICK1", 2000, 1000, CandlestickPeriod::OneHour);
+        assert!(params.is_err());
+    }
+
+    #[test]
+    fn test_candlestick_period_values() {
+        assert_eq!(CandlestickPeriod::OneMinute.as_minutes(), 1);
+        assert_eq!(CandlestickPeriod::OneHour.as_minutes(), 60);
+        assert_eq!(CandlestickPeriod::OneDay.as_minutes(), 1440);
     }
 }

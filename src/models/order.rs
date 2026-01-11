@@ -677,6 +677,70 @@ pub struct BatchCancelOrdersResponse {
     pub orders: Vec<BatchCancelOrderResult>,
 }
 
+/// Queue position for a single order.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueuePosition {
+    /// Order ID.
+    pub order_id: String,
+    /// Market ticker.
+    pub market_ticker: String,
+    /// Queue position - number of contracts ahead in the queue.
+    pub queue_position: i64,
+}
+
+/// Response from GET /portfolio/orders/queue_positions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueuePositionsResponse {
+    pub queue_positions: Vec<QueuePosition>,
+}
+
+/// Response from GET /portfolio/orders/{order_id}/queue_position.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderQueuePositionResponse {
+    /// Queue position - number of contracts ahead in the queue.
+    pub queue_position: i64,
+}
+
+/// Query parameters for GET /portfolio/orders/queue_positions.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetQueuePositionsParams {
+    /// Comma-separated list of market tickers to filter by.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub market_tickers: Option<String>,
+    /// Event ticker to filter by.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_ticker: Option<String>,
+}
+
+impl GetQueuePositionsParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Filter by market tickers (comma-separated).
+    #[must_use]
+    pub fn market_tickers(mut self, tickers: impl Into<String>) -> Self {
+        self.market_tickers = Some(tickers.into());
+        self
+    }
+
+    /// Filter by event ticker.
+    #[must_use]
+    pub fn event_ticker(mut self, ticker: impl Into<String>) -> Self {
+        self.event_ticker = Some(ticker.into());
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("market_tickers", self.market_tickers.as_ref());
+        qb.push_opt("event_ticker", self.event_ticker.as_ref());
+        qb.build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -685,6 +749,16 @@ mod tests {
     fn test_query_string_with_status() {
         let params = GetOrdersParams::new().status(OrderStatus::Resting);
         assert_eq!(params.to_query_string(), "?status=resting");
+    }
+
+    #[test]
+    fn test_queue_positions_params() {
+        let params = GetQueuePositionsParams::new()
+            .market_tickers("AAPL,GOOG")
+            .event_ticker("EVENT-123");
+        let qs = params.to_query_string();
+        assert!(qs.contains("market_tickers=AAPL%2CGOOG"));
+        assert!(qs.contains("event_ticker=EVENT-123"));
     }
 
     #[test]
