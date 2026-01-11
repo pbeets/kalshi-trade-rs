@@ -7,7 +7,7 @@ use tokio::{
 
 use super::{
     ConnectStrategy,
-    actor::StreamActor,
+    actor::KalshiStreamSession,
     channel::Channel,
     command::{StreamCommand, SubscribeResult},
     message::StreamUpdate,
@@ -140,7 +140,8 @@ impl KalshiStreamClient {
         let (update_sender, _) = broadcast::channel(buffer_size);
 
         let actor =
-            StreamActor::connect(config, strategy, cmd_receiver, update_sender.clone()).await?;
+            KalshiStreamSession::connect(config, strategy, cmd_receiver, update_sender.clone())
+                .await?;
         let actor_handle = tokio::spawn(actor.run());
 
         Ok(Self {
