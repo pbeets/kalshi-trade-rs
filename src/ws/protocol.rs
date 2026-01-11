@@ -12,15 +12,19 @@ use super::Channel;
 /// # Arguments
 /// * `id` - Message ID for correlation
 /// * `channels` - List of channels to subscribe to
-/// * `market_tickers` - Market ticker(s) to subscribe to. If empty, subscribes to all markets.
+/// * `market_tickers` - Market ticker(s) to subscribe to. At least one ticker is required.
 ///
 /// # Returns
 /// JSON string ready to send over WebSocket
+///
+/// # Note
+/// The Kalshi API requires at least one market ticker for most channels.
+/// Omitting market tickers will likely result in an error response.
 pub fn build_subscribe(id: u64, channels: &[Channel], market_tickers: &[&str]) -> String {
     let channel_strings: Vec<&str> = channels.iter().map(|c| c.as_str()).collect();
 
     let params = if market_tickers.is_empty() {
-        // Subscribe to all markets - omit market_ticker(s) field
+        // No tickers provided - some channels may reject this
         serde_json::json!({
             "channels": channel_strings
         })

@@ -238,13 +238,15 @@ impl Clone for KalshiStreamHandle {
 }
 
 impl KalshiStreamHandle {
-    /// Subscribe to channels, optionally filtered by market tickers.
+    /// Subscribe to channels for specific market tickers.
     ///
     /// # Arguments
     ///
     /// * `channels` - The channels to subscribe to (e.g., Ticker, OrderbookDelta).
-    /// * `market_tickers` - Optional list of market tickers to filter updates.
-    ///   If `None`, subscribes to all markets for the given channels.
+    /// * `market_tickers` - List of market tickers to subscribe to. Most channels
+    ///   require at least one ticker. Pass `None` or an empty slice only for
+    ///   channels that support subscription without tickers (e.g., `fill`,
+    ///   `communications`).
     ///
     /// # Returns
     ///
@@ -256,6 +258,7 @@ impl KalshiStreamHandle {
     /// Returns an error if:
     /// - The command channel is closed (actor has shut down)
     /// - The server rejects the subscription request
+    /// - No market tickers provided for a channel that requires them
     ///
     /// # Example
     ///
