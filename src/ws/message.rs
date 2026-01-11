@@ -77,6 +77,10 @@ pub enum StreamMessage {
         /// Human-readable reason for the connection loss.
         reason: String,
     },
+    /// Channel was unsubscribed.
+    ///
+    /// Confirms that a specific subscription ID (sid) has been unsubscribed.
+    Unsubscribed,
 }
 
 /// A price level in the orderbook: [price_cents, contracts].
