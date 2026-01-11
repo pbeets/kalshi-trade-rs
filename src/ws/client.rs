@@ -198,7 +198,7 @@ impl KalshiStreamClient {
 ///         Some(&["BTCUSD-25JAN17"]),
 ///     ).await.unwrap();
 ///
-///     println!("Subscribed with SIDs: {:?}", result.sids);
+///     println!("Subscribed with SIDs: {:?}", result.sids());
 ///
 ///     // Process updates - handle disconnection
 ///     while let Ok(update) = handle.update_receiver.recv().await {
@@ -238,13 +238,15 @@ impl Clone for KalshiStreamHandle {
 }
 
 impl KalshiStreamHandle {
-    /// Subscribe to channels, optionally filtered by market tickers.
+    /// Subscribe to channels for specific market tickers.
     ///
     /// # Arguments
     ///
     /// * `channels` - The channels to subscribe to (e.g., Ticker, OrderbookDelta).
-    /// * `market_tickers` - Optional list of market tickers to filter updates.
-    ///   If `None`, subscribes to all markets for the given channels.
+    /// * `market_tickers` - List of market tickers to subscribe to. Most channels
+    ///   require at least one ticker. Pass `None` or an empty slice only for
+    ///   channels that support subscription without tickers (e.g., `fill`,
+    ///   `communications`).
     ///
     /// # Returns
     ///
@@ -256,6 +258,7 @@ impl KalshiStreamHandle {
     /// Returns an error if:
     /// - The command channel is closed (actor has shut down)
     /// - The server rejects the subscription request
+    /// - No market tickers provided for a channel that requires them
     ///
     /// # Example
     ///
@@ -268,7 +271,7 @@ impl KalshiStreamHandle {
     ///     Some(&["BTCUSD-25JAN17", "ETHUSD-25JAN17"]),
     /// ).await?;
     ///
-    /// println!("Subscription IDs: {:?}", result.sids);
+    /// println!("Subscription IDs: {:?}", result.sids());
     /// # Ok(())
     /// # }
     /// ```
@@ -277,6 +280,21 @@ impl KalshiStreamHandle {
         channels: &[Channel],
         market_tickers: Option<&[&str]>,
     ) -> Result<SubscribeResult> {
+        // Validate: channels requiring market tickers must have at least one
+        let has_tickers = market_tickers.is_some_and(|t| !t.is_empty());
+
+        if !has_tickers {
+            let requiring: Vec<&str> = channels
+                .iter()
+                .filter(|c| c.requires_market_ticker())
+                .map(|c| c.as_str())
+                .collect();
+
+            if !requiring.is_empty() {
+                return Err(Error::MissingMarketTickers(requiring.join(", ")));
+            }
+        }
+
         let (tx, rx) = oneshot::channel();
 
         let channel_strings: Vec<String> =

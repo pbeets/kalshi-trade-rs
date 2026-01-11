@@ -12,19 +12,30 @@ use super::Channel;
 /// # Arguments
 /// * `id` - Message ID for correlation
 /// * `channels` - List of channels to subscribe to
-/// * `market_tickers` - Market ticker(s) to subscribe to
+/// * `market_tickers` - Market ticker(s) to subscribe to. At least one ticker is required.
 ///
 /// # Returns
 /// JSON string ready to send over WebSocket
+///
+/// # Note
+/// The Kalshi API requires at least one market ticker for most channels.
+/// Omitting market tickers will likely result in an error response.
 pub fn build_subscribe(id: u64, channels: &[Channel], market_tickers: &[&str]) -> String {
     let channel_strings: Vec<&str> = channels.iter().map(|c| c.as_str()).collect();
 
-    let params = if market_tickers.len() == 1 {
+    let params = if market_tickers.is_empty() {
+        // No tickers provided - some channels may reject this
+        serde_json::json!({
+            "channels": channel_strings
+        })
+    } else if market_tickers.len() == 1 {
+        // Single market - use singular field
         serde_json::json!({
             "channels": channel_strings,
             "market_ticker": market_tickers[0]
         })
     } else {
+        // Multiple markets - use plural field
         serde_json::json!({
             "channels": channel_strings,
             "market_tickers": market_tickers
@@ -88,6 +99,8 @@ struct RawMessage {
     #[serde(rename = "type")]
     msg_type: Option<String>,
     sid: Option<i64>,
+    #[serde(rename = "seq")]
+    _seq: Option<i64>,
     msg: Option<JsonValue>,
     // Error fields
     code: Option<String>,
@@ -107,7 +120,7 @@ struct ErrorPayload {
 /// * `text` - Raw JSON text received from WebSocket
 ///
 /// # Returns
-/// Parsed `IncomingMessage` or a JSON parsing error
+/// * Parsed `IncomingMessage` or a JSON parsing error
 pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> {
     let raw: RawMessage = serde_json::from_str(text)?;
 
@@ -131,20 +144,30 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
         });
     }
 
+    // Check if it's a response (has id)
+    if let Some(id) = raw.id {
+        // If it's a response but has sid at top level (like unsubscribed),
+        // ensure sid is preserved in msg if msg is otherwise null
+        let msg = raw.msg.unwrap_or_else(|| {
+            if let Some(sid) = raw.sid {
+                serde_json::json!({ "sid": sid })
+            } else {
+                JsonValue::Null
+            }
+        });
+
+        return Ok(IncomingMessage::Response {
+            id,
+            msg_type: raw.msg_type.unwrap_or_default(),
+            msg,
+        });
+    }
+
     // Check if it's an update (has sid but no id)
     if let Some(sid) = raw.sid {
         return Ok(IncomingMessage::Update {
             msg_type: raw.msg_type.unwrap_or_default(),
             sid,
-            msg: raw.msg.unwrap_or(JsonValue::Null),
-        });
-    }
-
-    // Otherwise it's a response (has id)
-    if let Some(id) = raw.id {
-        return Ok(IncomingMessage::Response {
-            id,
-            msg_type: raw.msg_type.unwrap_or_default(),
             msg: raw.msg.unwrap_or(JsonValue::Null),
         });
     }
@@ -159,6 +182,7 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -196,6 +220,20 @@ mod tests {
             serde_json::json!(["AAPL-YES", "GOOG-NO"])
         );
         assert!(parsed["params"].get("market_ticker").is_none());
+    }
+
+    #[test]
+    fn test_build_subscribe_no_tickers() {
+        // Subscribe to all markets by omitting market_ticker(s)
+        let result = build_subscribe(3, &[Channel::Ticker], &[]);
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 3);
+        assert_eq!(parsed["cmd"], "subscribe");
+        assert_eq!(parsed["params"]["channels"], serde_json::json!(["ticker"]));
+        // Neither market_ticker nor market_tickers should be present
+        assert!(parsed["params"].get("market_ticker").is_none());
+        assert!(parsed["params"].get("market_tickers").is_none());
     }
 
     #[test]
@@ -366,6 +404,23 @@ mod tests {
                 assert_eq!(msg["taker_side"], "yes");
             }
             _ => panic!("Expected Update variant"),
+        }
+    }
+
+    #[test]
+    fn test_parse_unsubscribed_message() {
+        // Log example: {"type":"unsubscribed","id":2,"sid":2,"seq":707}
+        let json = r#"{"type":"unsubscribed","id":2,"sid":2,"seq":707}"#;
+        let result = parse_incoming(json).unwrap();
+
+        match result {
+            IncomingMessage::Response { id, msg_type, msg } => {
+                assert_eq!(id, 2);
+                assert_eq!(msg_type, "unsubscribed");
+                // The parser should synthesize a msg object with sid if msg is null
+                assert_eq!(msg["sid"], 2);
+            }
+            _ => panic!("Expected Response variant"),
         }
     }
 }

@@ -4,7 +4,7 @@
 //! to Kalshi's streaming API. The actor owns the WebSocket connection and handles
 //! all communication in a single async task.
 
-use serde_json::Value as JsonValue;
+use std::collections::HashMap;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tracing::{debug, error, info, warn};
 
@@ -15,7 +15,7 @@ use futures_util::{
 
 use tokio::{
     net::TcpStream,
-    sync::{broadcast, mpsc},
+    sync::{broadcast, mpsc, oneshot},
     time::{interval_at, sleep, sleep_until, timeout},
 };
 
@@ -27,7 +27,7 @@ use tokio_tungstenite::{
 use super::{
     BACKOFF_BASE, CONNECT_TIMEOUT, ConnectStrategy, HealthConfig, MAX_BACKOFF,
     channel::Channel,
-    command::{StreamCommand, SubscribeResult},
+    command::{ChannelError, ChannelSubscription, StreamCommand, SubscribeResult},
     message::{StreamMessage, StreamUpdate},
     protocol::{self, IncomingMessage},
     request_handler::RequestHandler,
@@ -40,6 +40,69 @@ use crate::{
 
 /// WebSocket stream type alias for clarity.
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
+/// Collects multiple responses for a single multi-channel subscribe request.
+///
+/// When subscribing to N channels, Kalshi sends N responses (all with the same
+/// request ID but different `sid` values). This collector accumulates those
+/// responses until all expected responses are received.
+struct SubscribeCollector {
+    /// Number of responses we expect to receive.
+    expected: usize,
+    /// Successfully subscribed channels.
+    successful: Vec<ChannelSubscription>,
+    /// Channels that failed to subscribe.
+    failed: Vec<ChannelError>,
+    /// Channel to send the final result when all responses are collected.
+    sender: oneshot::Sender<std::result::Result<SubscribeResult, String>>,
+}
+
+impl SubscribeCollector {
+    /// Create a new collector expecting `expected` responses.
+    fn new(
+        expected: usize,
+        sender: oneshot::Sender<std::result::Result<SubscribeResult, String>>,
+    ) -> Self {
+        Self {
+            expected,
+            successful: Vec::with_capacity(expected),
+            failed: Vec::new(),
+            sender,
+        }
+    }
+
+    /// Add a successful subscription response.
+    /// Returns `true` if all expected responses have been received.
+    fn add_success(&mut self, channel: String, sid: i64) -> bool {
+        self.successful.push(ChannelSubscription { channel, sid });
+        self.is_complete()
+    }
+
+    /// Add a failed subscription response.
+    /// Returns `true` if all expected responses have been received.
+    fn add_error(&mut self, channel: Option<String>, code: String, message: String) -> bool {
+        self.failed.push(ChannelError {
+            channel,
+            code,
+            message,
+        });
+        self.is_complete()
+    }
+
+    /// Check if we've received all expected responses.
+    fn is_complete(&self) -> bool {
+        self.successful.len() + self.failed.len() >= self.expected
+    }
+
+    /// Consume the collector and send the final result.
+    fn finish(self) {
+        let result = SubscribeResult {
+            successful: self.successful,
+            failed: self.failed,
+        };
+        let _ = self.sender.send(Ok(result));
+    }
+}
 
 /// The WebSocket stream actor that manages the connection lifecycle.
 ///
@@ -57,8 +120,10 @@ pub struct StreamActor {
     ws_reader: SplitStream<WsStream>,
     /// WebSocket writer half.
     ws_writer: SplitSink<WsStream, Message>,
-    /// Handler for mapping request IDs to response channels.
+    /// Handler for mapping request IDs to response channels (for simple 1:1 request/response).
     request_handler: RequestHandler,
+    /// Pending multi-channel subscribe requests awaiting multiple responses.
+    pending_subscriptions: HashMap<u64, SubscribeCollector>,
     /// Next request ID to use for outgoing messages.
     next_request_id: u64,
     /// Health monitoring configuration.
@@ -68,7 +133,8 @@ pub struct StreamActor {
     /// Whether we're waiting for a pong response.
     ping_pending: bool,
     /// Last time we received a ping from Kalshi server.
-    last_server_ping: Instant,
+    /// `None` until the first ping is received (grace period at startup).
+    last_server_ping: Option<Instant>,
 }
 
 impl StreamActor {
@@ -124,11 +190,12 @@ impl StreamActor {
             ws_reader,
             ws_writer,
             request_handler: RequestHandler::new(),
+            pending_subscriptions: HashMap::new(),
             next_request_id: 1,
             health_config,
             last_pong: Instant::now(),
             ping_pending: false,
-            last_server_ping: Instant::now(),
+            last_server_ping: None, // Grace period until first ping received
         })
     }
 
@@ -295,14 +362,24 @@ impl StreamActor {
                 }
 
                 // Check for server ping timeout (server -> client)
-                _ = sleep_until((self.last_server_ping + self.health_config.server_ping_timeout).into()) => {
-                    let elapsed = self.last_server_ping.elapsed();
-                    if elapsed > self.health_config.server_ping_timeout {
-                        error!("Server ping timeout: no ping from Kalshi in {:?}", elapsed);
-                        disconnect_msg = Some(StreamMessage::ConnectionLost {
-                            reason: "Server ping timeout".to_string(),
-                        });
-                        break;
+                // Only active after we receive the first ping from Kalshi (grace period at startup)
+                _ = async {
+                    if let Some(last_ping) = self.last_server_ping {
+                        sleep_until((last_ping + self.health_config.server_ping_timeout).into()).await;
+                    } else {
+                        // No ping received yet - wait indefinitely (other branches will handle connection issues)
+                        std::future::pending::<()>().await;
+                    }
+                } => {
+                    if let Some(last_ping) = self.last_server_ping {
+                        let elapsed = last_ping.elapsed();
+                        if elapsed > self.health_config.server_ping_timeout {
+                            error!("Server ping timeout: no ping from Kalshi in {:?}", elapsed);
+                            disconnect_msg = Some(StreamMessage::ConnectionLost {
+                                reason: "Server ping timeout".to_string(),
+                            });
+                            break;
+                        }
                     }
                 }
 
@@ -342,6 +419,8 @@ impl StreamActor {
 
         // Clean up: cancel pending requests and close connection
         self.request_handler.cancel_all();
+        // Drop pending subscriptions (their senders will be dropped, causing recv errors)
+        self.pending_subscriptions.clear();
         let _ = self.ws_writer.close().await;
         info!("StreamActor shutdown complete");
     }
@@ -356,9 +435,6 @@ impl StreamActor {
                 market_tickers,
                 response,
             } => {
-                let request_id = self.next_request_id;
-                self.next_request_id += 1;
-
                 // Convert channel strings to Channel enums for protocol
                 let channels: Vec<Channel> = channels
                     .iter()
@@ -378,14 +454,43 @@ impl StreamActor {
                     })
                     .collect();
 
+                if channels.is_empty() {
+                    let _ = response.send(Err("No valid channels specified".to_string()));
+                    return false;
+                }
+
+                // Validate that channels requiring market tickers have at least one
+                if market_tickers.is_empty() {
+                    let channels_requiring_tickers: Vec<&str> = channels
+                        .iter()
+                        .filter(|c| c.requires_market_ticker())
+                        .map(|c| c.as_str())
+                        .collect();
+
+                    if !channels_requiring_tickers.is_empty() {
+                        let _ = response.send(Err(format!(
+                            "Market tickers required for channels: {}",
+                            channels_requiring_tickers.join(", ")
+                        )));
+                        return false;
+                    }
+                }
+
                 let tickers: Vec<&str> = market_tickers.iter().map(|s| s.as_str()).collect();
+                let num_channels = channels.len();
+
+                // Get request ID for this subscribe request
+                let request_id = self.next_request_id;
+                self.next_request_id += 1;
+
+                // Build ONE subscribe message with ALL channels
+                // Kalshi will respond with N separate responses (one per channel),
+                // all sharing the same request ID but with different sids.
                 let msg = protocol::build_subscribe(request_id, &channels, &tickers);
-
-                debug!("Sending subscribe request {}: {}", request_id, msg);
-
-                // Register the response handler
-                let (tx, rx) = tokio::sync::oneshot::channel();
-                self.request_handler.register(request_id, tx);
+                debug!(
+                    "Sending subscribe request {} for {} channels: {}",
+                    request_id, num_channels, msg
+                );
 
                 // Send the subscribe message
                 if let Err(e) = self.ws_writer.send(Message::Text(msg)).await {
@@ -394,23 +499,9 @@ impl StreamActor {
                     return false;
                 }
 
-                // Wait for response and forward it
-                tokio::spawn(async move {
-                    match rx.await {
-                        Ok(json) => {
-                            // Parse subscription IDs from response
-                            let sids = Self::extract_sids(&json);
-                            let result = SubscribeResult {
-                                sids,
-                                response: json,
-                            };
-                            let _ = response.send(Ok(result));
-                        }
-                        Err(_) => {
-                            let _ = response.send(Err("Request cancelled".to_string()));
-                        }
-                    }
-                });
+                // Register a collector to accumulate all N responses
+                let collector = SubscribeCollector::new(num_channels, response);
+                self.pending_subscriptions.insert(request_id, collector);
             }
 
             StreamCommand::Unsubscribe { sids, response } => {
@@ -474,7 +565,7 @@ impl StreamActor {
                 debug!("Received ping: {:?}", String::from_utf8_lossy(&data));
                 // Kalshi sends ping with body "heartbeat" every 10 seconds
                 // Reset server ping timer
-                self.last_server_ping = Instant::now();
+                self.last_server_ping = Some(Instant::now());
                 // Respond with pong containing the same data
                 if let Err(e) = self.ws_writer.send(Message::Pong(data)).await {
                     error!("Failed to send pong: {}", e);
@@ -535,12 +626,55 @@ impl StreamActor {
             Ok(IncomingMessage::Response { id, msg_type, msg }) => {
                 debug!("Response for request {}: type={}", id, msg_type);
 
+                // Check if this is a response to a pending multi-channel subscription
+                if msg_type == "subscribed" {
+                    if let Some(collector) = self.pending_subscriptions.get_mut(&id) {
+                        // Extract channel and sid from the response
+                        let channel = msg
+                            .get("channel")
+                            .and_then(|c| c.as_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+                        let sid = msg.get("sid").and_then(|s| s.as_i64()).unwrap_or(-1);
+
+                        debug!(
+                            "Subscribe response for request {}: channel={}, sid={}",
+                            id, channel, sid
+                        );
+
+                        let is_complete = collector.add_success(channel, sid);
+                        if is_complete {
+                            // All responses received, send the final result
+                            if let Some(collector) = self.pending_subscriptions.remove(&id) {
+                                collector.finish();
+                            }
+                        }
+                        return;
+                    }
+                }
+
                 // Build the full response JSON including type and msg
                 let full_response = serde_json::json!({
                     "id": id,
                     "type": msg_type,
                     "msg": msg,
                 });
+
+                if msg_type == "unsubscribed" {
+                    // Also broadcast this as an update to let the client know the stream is closed
+                    if let Some(sid) = msg.get("sid").and_then(|s| s.as_i64()) {
+                        let update = StreamUpdate {
+                            channel: msg_type.clone(),
+                            sid,
+                            seq: None,
+                            msg: StreamMessage::Unsubscribed,
+                        };
+
+                        if let Err(e) = self.update_sender.send(update) {
+                            debug!("No update receivers for unsubscribed event: {}", e);
+                        }
+                    }
+                }
 
                 if !self.request_handler.handle_response(id, full_response) {
                     warn!("No handler for response id {}", id);
@@ -549,6 +683,22 @@ impl StreamActor {
 
             Ok(IncomingMessage::Update { msg_type, sid, msg }) => {
                 debug!("Update on sid {}: type={}", sid, msg_type);
+
+                // Handle "unsubscribed" updates specially
+                if msg_type == "unsubscribed" {
+                    // This is a confirmation of unsubscription for this sid
+                    let update = StreamUpdate {
+                        channel: msg_type,
+                        sid,
+                        seq: None,
+                        msg: StreamMessage::Unsubscribed,
+                    };
+
+                    if let Err(e) = self.update_sender.send(update) {
+                        debug!("No update receivers for unsubscribed event: {}", e);
+                    }
+                    return;
+                }
 
                 // Try to parse as StreamUpdate
                 match serde_json::from_value::<StreamUpdate>(serde_json::json!({
@@ -571,7 +721,26 @@ impl StreamActor {
             Ok(IncomingMessage::Error { id, code, message }) => {
                 error!("Error response: code={}, message={}", code, message);
 
+                // Check if this is an error for a pending multi-channel subscription
                 if let Some(request_id) = id {
+                    if let Some(collector) = self.pending_subscriptions.get_mut(&request_id) {
+                        debug!(
+                            "Subscribe error for request {}: code={}, message={}",
+                            request_id, code, message
+                        );
+
+                        let is_complete = collector.add_error(None, code, message.clone());
+                        if is_complete {
+                            // All responses received, send the final result
+                            if let Some(collector) = self.pending_subscriptions.remove(&request_id)
+                            {
+                                collector.finish();
+                            }
+                        }
+                        return;
+                    }
+
+                    // Fall through to regular request handler
                     let error_response = serde_json::json!({
                         "id": request_id,
                         "error": {
@@ -593,17 +762,6 @@ impl StreamActor {
             }
         }
     }
-
-    /// Extract subscription IDs from a subscribe response.
-    fn extract_sids(response: &JsonValue) -> Vec<i64> {
-        // Response format: {"id": N, "type": "subscribed", "msg": {"sids": [1, 2, 3]}}
-        response
-            .get("msg")
-            .and_then(|msg| msg.get("sids"))
-            .and_then(|sids| sids.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_i64()).collect())
-            .unwrap_or_default()
-    }
 }
 
 impl std::fmt::Debug for StreamActor {
@@ -611,6 +769,7 @@ impl std::fmt::Debug for StreamActor {
         f.debug_struct("StreamActor")
             .field("next_request_id", &self.next_request_id)
             .field("pending_requests", &self.request_handler.pending_count())
+            .field("pending_subscriptions", &self.pending_subscriptions.len())
             .field("ping_pending", &self.ping_pending)
             .finish()
     }
@@ -618,10 +777,51 @@ impl std::fmt::Debug for StreamActor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use serde_json::Value as JsonValue;
+
+    /// Extract subscription IDs from a subscribe response.
+    fn extract_sids(response: &JsonValue) -> Vec<i64> {
+        // Kalshi response format: {"id": N, "type": "subscribed", "msg": {"channel": "...", "sid": 1}}
+        // Note: Kalshi returns a singular "sid" field, not a "sids" array.
+        // When subscribing to multiple channels, Kalshi sends multiple responses.
+
+        // First try the singular "sid" field (Kalshi's actual format)
+        if let Some(sid) = response
+            .get("msg")
+            .and_then(|msg| msg.get("sid"))
+            .and_then(|s| s.as_i64())
+        {
+            return vec![sid];
+        }
+
+        // Fallback: try "sids" array format (in case Kalshi ever changes)
+        response
+            .get("msg")
+            .and_then(|msg| msg.get("sids"))
+            .and_then(|sids| sids.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_i64()).collect())
+            .unwrap_or_default()
+    }
 
     #[test]
-    fn test_extract_sids() {
+    fn test_extract_sids_singular() {
+        // Kalshi's actual response format
+        let response = serde_json::json!({
+            "id": 1,
+            "type": "subscribed",
+            "msg": {
+                "channel": "orderbook_delta",
+                "sid": 42
+            }
+        });
+
+        let sids = extract_sids(&response);
+        assert_eq!(sids, vec![42]);
+    }
+
+    #[test]
+    fn test_extract_sids_array_fallback() {
+        // Fallback format in case Kalshi ever changes to array format
         let response = serde_json::json!({
             "id": 1,
             "type": "subscribed",
@@ -630,7 +830,7 @@ mod tests {
             }
         });
 
-        let sids = StreamActor::extract_sids(&response);
+        let sids = extract_sids(&response);
         assert_eq!(sids, vec![42, 43, 44]);
     }
 
@@ -642,7 +842,7 @@ mod tests {
             "msg": {}
         });
 
-        let sids = StreamActor::extract_sids(&response);
+        let sids = extract_sids(&response);
         assert!(sids.is_empty());
     }
 
@@ -653,7 +853,7 @@ mod tests {
             "type": "error"
         });
 
-        let sids = StreamActor::extract_sids(&response);
+        let sids = extract_sids(&response);
         assert!(sids.is_empty());
     }
 }
