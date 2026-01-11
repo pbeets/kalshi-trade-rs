@@ -49,7 +49,7 @@ pub mod ws;
 // Re-export commonly used types at the crate root
 pub use auth::KalshiConfig;
 pub use client::{Environment, HttpClient, KalshiClient};
-pub use error::{Error, Result};
+pub use error::{Error, MAX_BATCH_SIZE, Result};
 pub use models::{
     Action, AmendOrderRequest, AmendOrderResponse, Announcement, AnnouncementStatus,
     AnnouncementType, BalanceResponse, BatchCancelOrderResult, BatchCancelOrdersRequest,
@@ -74,4 +74,7 @@ pub use ws::{
 };
 
 // Re-export batch management types
-pub use batch::{AggregatedCancelResponse, AggregatedCreateResponse, BatchManager, RateLimitTier};
+pub use batch::{
+    AggregatedCancelResponse, AggregatedCreateResponse, BatchManager, BatchManagerBuilder,
+    BatchOperationResult, RateLimitTier, RetryConfig,
+};

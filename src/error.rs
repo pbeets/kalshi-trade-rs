@@ -1,5 +1,8 @@
 use thiserror::Error;
 
+/// Maximum number of orders allowed in a batch request.
+pub const MAX_BATCH_SIZE: usize = 20;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("HTTP error: {0}")]
@@ -28,6 +31,9 @@ pub enum Error {
 
     #[error("Invalid header value: {0}")]
     InvalidHeaderValue(String),
+
+    #[error("Batch size {0} exceeds maximum of {MAX_BATCH_SIZE}")]
+    BatchSizeExceeded(usize),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

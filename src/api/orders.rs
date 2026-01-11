@@ -16,10 +16,7 @@ use crate::{
 /// Create a new order.
 ///
 /// Submits an order to the exchange.
-pub async fn create_order(
-    http: &HttpClient,
-    request: CreateOrderRequest,
-) -> Result<OrderResponse> {
+pub async fn create_order(http: &HttpClient, request: CreateOrderRequest) -> Result<OrderResponse> {
     http.post("/portfolio/orders", &request).await
 }
 
