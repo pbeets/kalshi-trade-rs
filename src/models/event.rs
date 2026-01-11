@@ -116,7 +116,10 @@ pub struct EventsResponse {
 pub struct EventResponse {
     pub event: Event,
 
-    /// Markets in this event (deprecated in favor of nested markets).
+    /// Markets in this event.
+    ///
+    /// **Deprecated:** Use `get_event_with_params()` with `with_nested_markets(true)`
+    /// instead, which returns markets in the `event.markets` field.
     #[serde(default)]
     pub markets: Option<Vec<Market>>,
 }
@@ -152,19 +155,12 @@ impl GetEventsParams {
         Self::default()
     }
 
-    /// Set the maximum number of results to return.
+    /// Set the maximum number of results to return (1-200).
     ///
-    /// # Panics
-    ///
-    /// Panics in debug builds if `limit` is not in the range 1..=200.
+    /// Values outside this range are clamped.
     #[must_use]
     pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 200,
-            "limit must be between 1 and 200, got {}",
-            limit
-        );
-        self.limit = Some(limit);
+        self.limit = Some(limit.clamp(1, 200));
         self
     }
 
