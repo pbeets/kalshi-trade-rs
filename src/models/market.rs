@@ -1,0 +1,801 @@
+//! Market models and response types.
+//!
+//! Types for markets, orderbooks, and trades.
+
+use serde::{Deserialize, Serialize};
+
+use super::query::QueryBuilder;
+
+/// Market type (binary or scalar).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum MarketType {
+    Binary,
+    Scalar,
+    /// Unknown market type returned by the API.
+    #[serde(other)]
+    Unknown,
+}
+
+/// Market status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum MarketStatus {
+    Initialized,
+    Inactive,
+    Active,
+    Closed,
+    Determined,
+    Disputed,
+    Amended,
+    Finalized,
+    /// Unknown status returned by the API.
+    #[serde(other)]
+    Unknown,
+}
+
+impl MarketStatus {
+    /// Returns the lowercase API representation.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MarketStatus::Initialized => "initialized",
+            MarketStatus::Inactive => "inactive",
+            MarketStatus::Active => "active",
+            MarketStatus::Closed => "closed",
+            MarketStatus::Determined => "determined",
+            MarketStatus::Disputed => "disputed",
+            MarketStatus::Amended => "amended",
+            MarketStatus::Finalized => "finalized",
+            MarketStatus::Unknown => "unknown",
+        }
+    }
+}
+
+/// Market result.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum MarketResult {
+    Yes,
+    No,
+    #[serde(rename = "")]
+    None,
+    /// Unknown result returned by the API.
+    #[serde(other)]
+    Unknown,
+}
+
+/// Filter status for list markets query.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MarketFilterStatus {
+    Unopened,
+    Open,
+    Paused,
+    Closed,
+    Settled,
+}
+
+impl MarketFilterStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MarketFilterStatus::Unopened => "unopened",
+            MarketFilterStatus::Open => "open",
+            MarketFilterStatus::Paused => "paused",
+            MarketFilterStatus::Closed => "closed",
+            MarketFilterStatus::Settled => "settled",
+        }
+    }
+}
+
+/// Multivariate event filter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MveFilter {
+    /// Only multivariate events.
+    Only,
+    /// Exclude multivariate events.
+    Exclude,
+}
+
+impl MveFilter {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MveFilter::Only => "only",
+            MveFilter::Exclude => "exclude",
+        }
+    }
+}
+
+/// Strike type for a market.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum StrikeType {
+    Greater,
+    GreaterOrEqual,
+    Less,
+    LessOrEqual,
+    Between,
+    Functional,
+    Custom,
+    Structured,
+    /// Unknown strike type returned by the API.
+    #[serde(other)]
+    Unknown,
+}
+
+/// Price range configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceRange {
+    pub start: String,
+    pub end: String,
+    pub step: String,
+}
+
+/// A market on the Kalshi exchange.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Market {
+    pub ticker: String,
+    pub event_ticker: String,
+    pub market_type: MarketType,
+
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub subtitle: Option<String>,
+    #[serde(default)]
+    pub yes_sub_title: Option<String>,
+    #[serde(default)]
+    pub no_sub_title: Option<String>,
+
+    #[serde(default)]
+    pub created_time: Option<String>,
+    #[serde(default)]
+    pub open_time: Option<String>,
+    #[serde(default)]
+    pub close_time: Option<String>,
+    #[serde(default)]
+    pub expiration_time: Option<String>,
+    #[serde(default)]
+    pub latest_expiration_time: Option<String>,
+    #[serde(default)]
+    pub expected_expiration_time: Option<String>,
+    #[serde(default)]
+    pub settlement_timer_seconds: Option<i64>,
+
+    pub status: MarketStatus,
+
+    /// Best YES bid price in dollars.
+    #[serde(default)]
+    pub yes_bid_dollars: Option<String>,
+    /// Best YES ask price in dollars.
+    #[serde(default)]
+    pub yes_ask_dollars: Option<String>,
+    /// Best NO bid price in dollars.
+    #[serde(default)]
+    pub no_bid_dollars: Option<String>,
+    /// Best NO ask price in dollars.
+    #[serde(default)]
+    pub no_ask_dollars: Option<String>,
+    /// Last trade price in dollars.
+    #[serde(default)]
+    pub last_price_dollars: Option<String>,
+
+    /// Previous YES bid (24h ago) in dollars.
+    #[serde(default)]
+    pub previous_yes_bid_dollars: Option<String>,
+    /// Previous YES ask (24h ago) in dollars.
+    #[serde(default)]
+    pub previous_yes_ask_dollars: Option<String>,
+    /// Previous price (24h ago) in dollars.
+    #[serde(default)]
+    pub previous_price_dollars: Option<String>,
+
+    /// Total contracts traded.
+    #[serde(default)]
+    pub volume: Option<i64>,
+    /// 24-hour trading volume.
+    #[serde(default)]
+    pub volume_24h: Option<i64>,
+    /// Contracts outstanding.
+    #[serde(default)]
+    pub open_interest: Option<i64>,
+
+    /// Notional value per contract in dollars.
+    #[serde(default)]
+    pub notional_value_dollars: Option<String>,
+    /// Available order liquidity in dollars.
+    #[serde(default)]
+    pub liquidity_dollars: Option<String>,
+
+    #[serde(default)]
+    pub result: Option<MarketResult>,
+    #[serde(default)]
+    pub can_close_early: Option<bool>,
+    #[serde(default)]
+    pub early_close_condition: Option<String>,
+
+    #[serde(default)]
+    pub settlement_value_dollars: Option<String>,
+    #[serde(default)]
+    pub settlement_ts: Option<String>,
+    #[serde(default)]
+    pub fee_waiver_expiration_time: Option<String>,
+
+    #[serde(default)]
+    pub rules_primary: Option<String>,
+    #[serde(default)]
+    pub rules_secondary: Option<String>,
+    #[serde(default)]
+    pub price_level_structure: Option<String>,
+    #[serde(default)]
+    pub price_ranges: Option<Vec<PriceRange>>,
+
+    #[serde(default)]
+    pub strike_type: Option<StrikeType>,
+    #[serde(default)]
+    pub floor_strike: Option<f64>,
+    #[serde(default)]
+    pub cap_strike: Option<f64>,
+    #[serde(default)]
+    pub functional_strike: Option<String>,
+    #[serde(default)]
+    pub custom_strike: Option<String>,
+
+    #[serde(default)]
+    pub mve_collection_ticker: Option<String>,
+    #[serde(default)]
+    pub mve_selected_legs: Option<Vec<String>>,
+    #[serde(default)]
+    pub primary_participant_key: Option<String>,
+    #[serde(default)]
+    pub is_provisional: Option<bool>,
+}
+
+/// Response from GET /markets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketsResponse {
+    pub markets: Vec<Market>,
+    #[serde(default)]
+    pub cursor: Option<String>,
+}
+
+/// Response from GET /markets/{ticker}.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketResponse {
+    pub market: Market,
+}
+
+/// Query parameters for GET /markets.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetMarketsParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_ticker: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub series_ticker: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tickers: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<MarketFilterStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_created_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_created_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_close_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_close_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_settled_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_settled_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mve_filter: Option<MveFilter>,
+}
+
+impl GetMarketsParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the maximum number of results to return.
+    ///
+    /// The value is clamped to the valid range of 1..=1000.
+    #[must_use]
+    pub fn limit(mut self, limit: i64) -> Self {
+        self.limit = Some(limit.clamp(1, 1000));
+        self
+    }
+
+    #[must_use]
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+
+    /// Filter by event ticker. Multiple tickers can be comma-separated (max 10).
+    #[must_use]
+    pub fn event_ticker(mut self, event_ticker: impl Into<String>) -> Self {
+        self.event_ticker = Some(event_ticker.into());
+        self
+    }
+
+    #[must_use]
+    pub fn series_ticker(mut self, series_ticker: impl Into<String>) -> Self {
+        self.series_ticker = Some(series_ticker.into());
+        self
+    }
+
+    /// Filter by specific market tickers. Comma-separated list.
+    #[must_use]
+    pub fn tickers(mut self, tickers: impl Into<String>) -> Self {
+        self.tickers = Some(tickers.into());
+        self
+    }
+
+    #[must_use]
+    pub fn status(mut self, status: MarketFilterStatus) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    #[must_use]
+    pub fn min_created_ts(mut self, ts: i64) -> Self {
+        self.min_created_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn max_created_ts(mut self, ts: i64) -> Self {
+        self.max_created_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn min_close_ts(mut self, ts: i64) -> Self {
+        self.min_close_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn max_close_ts(mut self, ts: i64) -> Self {
+        self.max_close_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn min_settled_ts(mut self, ts: i64) -> Self {
+        self.min_settled_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn max_settled_ts(mut self, ts: i64) -> Self {
+        self.max_settled_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn mve_filter(mut self, filter: MveFilter) -> Self {
+        self.mve_filter = Some(filter);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("limit", self.limit);
+        qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("event_ticker", self.event_ticker.as_ref());
+        qb.push_opt("series_ticker", self.series_ticker.as_ref());
+        qb.push_opt("tickers", self.tickers.as_ref());
+        qb.push_opt("status", self.status.map(|s| s.as_str()));
+        qb.push_opt("min_created_ts", self.min_created_ts);
+        qb.push_opt("max_created_ts", self.max_created_ts);
+        qb.push_opt("min_close_ts", self.min_close_ts);
+        qb.push_opt("max_close_ts", self.max_close_ts);
+        qb.push_opt("min_settled_ts", self.min_settled_ts);
+        qb.push_opt("max_settled_ts", self.max_settled_ts);
+        qb.push_opt("mve_filter", self.mve_filter.map(|f| f.as_str()));
+        qb.build()
+    }
+}
+
+/// A price level in the orderbook with dollar pricing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceLevelDollars {
+    /// Price in dollars (e.g., "0.50").
+    pub price: String,
+    /// Quantity at this price level.
+    pub quantity: i64,
+}
+
+/// Custom deserializer for price level arrays from the API.
+mod price_level_serde {
+    use super::PriceLevelDollars;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Vec<PriceLevelDollars>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<Vec<Vec<serde_json::Value>>> = Option::deserialize(deserializer)?;
+        match opt {
+            None => Ok(None),
+            Some(levels) => {
+                let mut result = Vec::with_capacity(levels.len());
+                for level in levels {
+                    if level.len() >= 2 {
+                        let price = match &level[0] {
+                            serde_json::Value::String(s) => s.clone(),
+                            serde_json::Value::Number(n) => n.to_string(),
+                            _ => continue,
+                        };
+                        let quantity = match &level[1] {
+                            serde_json::Value::Number(n) => n.as_i64().unwrap_or(0),
+                            _ => continue,
+                        };
+                        result.push(PriceLevelDollars { price, quantity });
+                    }
+                }
+                Ok(Some(result))
+            }
+        }
+    }
+
+    pub fn serialize<S>(
+        value: &Option<Vec<PriceLevelDollars>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            None => serializer.serialize_none(),
+            Some(levels) => {
+                let arrays: Vec<Vec<serde_json::Value>> = levels
+                    .iter()
+                    .map(|pl| {
+                        vec![
+                            serde_json::Value::String(pl.price.clone()),
+                            serde_json::Value::Number(pl.quantity.into()),
+                        ]
+                    })
+                    .collect();
+                arrays.serialize(serializer)
+            }
+        }
+    }
+}
+
+/// An orderbook for a market.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Orderbook {
+    /// YES price levels as [price_cents, quantity] pairs.
+    #[serde(default)]
+    pub yes: Vec<Vec<i64>>,
+    /// NO price levels as [price_cents, quantity] pairs.
+    #[serde(default)]
+    pub no: Vec<Vec<i64>>,
+    /// YES price levels with dollar pricing.
+    #[serde(default, with = "price_level_serde")]
+    pub yes_dollars: Option<Vec<PriceLevelDollars>>,
+    /// NO price levels with dollar pricing.
+    #[serde(default, with = "price_level_serde")]
+    pub no_dollars: Option<Vec<PriceLevelDollars>>,
+}
+
+/// Response from GET /markets/{ticker}/orderbook.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderbookResponse {
+    pub orderbook: Orderbook,
+}
+
+/// Query parameters for GET /markets/{ticker}/orderbook.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetOrderbookParams {
+    /// Depth of orderbook. 0 or negative means all levels. 1-100 for specific depth.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth: Option<i64>,
+}
+
+impl GetOrderbookParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the depth of the orderbook.
+    ///
+    /// 0 or negative means all levels. 1-100 for specific depth.
+    #[must_use]
+    pub fn depth(mut self, depth: i64) -> Self {
+        self.depth = Some(depth);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("depth", self.depth);
+        qb.build()
+    }
+}
+
+/// Taker side of a trade.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum TakerSide {
+    Yes,
+    No,
+    /// Unknown taker side returned by the API.
+    #[serde(other)]
+    Unknown,
+}
+
+/// A trade on the exchange.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Trade {
+    pub trade_id: String,
+    pub ticker: String,
+    /// Trade price (deprecated).
+    #[serde(default)]
+    pub price: Option<f64>,
+    /// Contract quantity.
+    pub count: i64,
+    /// Yes side price in cents.
+    pub yes_price: i64,
+    /// No side price in cents.
+    pub no_price: i64,
+    /// Yes price in dollars.
+    #[serde(default)]
+    pub yes_price_dollars: Option<String>,
+    /// No price in dollars.
+    #[serde(default)]
+    pub no_price_dollars: Option<String>,
+    pub taker_side: TakerSide,
+    pub created_time: String,
+}
+
+/// Response from GET /markets/trades.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TradesResponse {
+    pub trades: Vec<Trade>,
+    #[serde(default)]
+    pub cursor: Option<String>,
+}
+
+/// Query parameters for GET /markets/trades.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetTradesParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ticker: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_ts: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_ts: Option<i64>,
+}
+
+impl GetTradesParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the maximum number of results to return.
+    ///
+    /// The value is clamped to the valid range of 1..=1000.
+    #[must_use]
+    pub fn limit(mut self, limit: i64) -> Self {
+        self.limit = Some(limit.clamp(1, 1000));
+        self
+    }
+
+    #[must_use]
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+
+    #[must_use]
+    pub fn ticker(mut self, ticker: impl Into<String>) -> Self {
+        self.ticker = Some(ticker.into());
+        self
+    }
+
+    #[must_use]
+    pub fn min_ts(mut self, ts: i64) -> Self {
+        self.min_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn max_ts(mut self, ts: i64) -> Self {
+        self.max_ts = Some(ts);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("limit", self.limit);
+        qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("ticker", self.ticker.as_ref());
+        qb.push_opt("min_ts", self.min_ts);
+        qb.push_opt("max_ts", self.max_ts);
+        qb.build()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_markets_query_string() {
+        let params = GetMarketsParams::new()
+            .status(MarketFilterStatus::Open)
+            .limit(50);
+        assert!(params.to_query_string().contains("status=open"));
+        assert!(params.to_query_string().contains("limit=50"));
+    }
+
+    #[test]
+    fn test_get_trades_query_string() {
+        let params = GetTradesParams::new().ticker("BTC-USD").limit(100);
+        assert!(params.to_query_string().contains("ticker=BTC-USD"));
+        assert!(params.to_query_string().contains("limit=100"));
+    }
+
+    #[test]
+    fn test_limit_clamping() {
+        // Test clamping to minimum
+        let params = GetMarketsParams::new().limit(0);
+        assert_eq!(params.limit, Some(1));
+
+        let params = GetMarketsParams::new().limit(-10);
+        assert_eq!(params.limit, Some(1));
+
+        // Test clamping to maximum
+        let params = GetMarketsParams::new().limit(2000);
+        assert_eq!(params.limit, Some(1000));
+
+        // Test value in range is unchanged
+        let params = GetMarketsParams::new().limit(500);
+        assert_eq!(params.limit, Some(500));
+
+        // Same for GetTradesParams
+        let params = GetTradesParams::new().limit(0);
+        assert_eq!(params.limit, Some(1));
+
+        let params = GetTradesParams::new().limit(9999);
+        assert_eq!(params.limit, Some(1000));
+    }
+
+    #[test]
+    fn test_market_type_deserialize_unknown() {
+        let json = r#""some_future_type""#;
+        let market_type: MarketType = serde_json::from_str(json).unwrap();
+        assert_eq!(market_type, MarketType::Unknown);
+    }
+
+    #[test]
+    fn test_market_status_deserialize_unknown() {
+        let json = r#""pending_review""#;
+        let status: MarketStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status, MarketStatus::Unknown);
+    }
+
+    #[test]
+    fn test_market_result_deserialize_unknown() {
+        let json = r#""void""#;
+        let result: MarketResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result, MarketResult::Unknown);
+    }
+
+    #[test]
+    fn test_taker_side_deserialize_unknown() {
+        let json = r#""both""#;
+        let side: TakerSide = serde_json::from_str(json).unwrap();
+        assert_eq!(side, TakerSide::Unknown);
+    }
+
+    #[test]
+    fn test_strike_type_deserialize_unknown() {
+        let json = r#""exotic""#;
+        let strike: StrikeType = serde_json::from_str(json).unwrap();
+        assert_eq!(strike, StrikeType::Unknown);
+    }
+
+    #[test]
+    fn test_market_deserialize() {
+        let json = r#"{
+            "ticker": "KXBTC-25JAN10-B50000",
+            "event_ticker": "KXBTC-25JAN10",
+            "market_type": "binary",
+            "status": "active",
+            "title": "Will Bitcoin reach $50,000?",
+            "volume": 1000,
+            "open_interest": 500
+        }"#;
+        let market: Market = serde_json::from_str(json).unwrap();
+        assert_eq!(market.ticker, "KXBTC-25JAN10-B50000");
+        assert_eq!(market.market_type, MarketType::Binary);
+        assert_eq!(market.status, MarketStatus::Active);
+        assert_eq!(market.volume, Some(1000));
+    }
+
+    #[test]
+    fn test_orderbook_deserialize() {
+        let json = r#"{
+            "yes": [[50, 100], [55, 200]],
+            "no": [[45, 150]],
+            "yes_dollars": [["0.50", 100], ["0.55", 200]],
+            "no_dollars": [["0.45", 150]]
+        }"#;
+        let orderbook: Orderbook = serde_json::from_str(json).unwrap();
+        assert_eq!(orderbook.yes.len(), 2);
+        assert_eq!(orderbook.yes[0], vec![50, 100]);
+        assert_eq!(orderbook.no.len(), 1);
+
+        let yes_dollars = orderbook.yes_dollars.unwrap();
+        assert_eq!(yes_dollars.len(), 2);
+        assert_eq!(yes_dollars[0].price, "0.50");
+        assert_eq!(yes_dollars[0].quantity, 100);
+    }
+
+    #[test]
+    fn test_orderbook_deserialize_empty() {
+        let json = r#"{"yes": [], "no": []}"#;
+        let orderbook: Orderbook = serde_json::from_str(json).unwrap();
+        assert!(orderbook.yes.is_empty());
+        assert!(orderbook.no.is_empty());
+        assert!(orderbook.yes_dollars.is_none());
+    }
+
+    #[test]
+    fn test_trade_deserialize() {
+        let json = r#"{
+            "trade_id": "abc123",
+            "ticker": "KXBTC-25JAN10-B50000",
+            "count": 10,
+            "yes_price": 50,
+            "no_price": 50,
+            "taker_side": "yes",
+            "created_time": "2025-01-10T12:00:00Z"
+        }"#;
+        let trade: Trade = serde_json::from_str(json).unwrap();
+        assert_eq!(trade.trade_id, "abc123");
+        assert_eq!(trade.count, 10);
+        assert_eq!(trade.taker_side, TakerSide::Yes);
+    }
+
+    #[test]
+    fn test_markets_response_deserialize() {
+        let json = r#"{
+            "markets": [{
+                "ticker": "TEST-001",
+                "event_ticker": "TEST",
+                "market_type": "binary",
+                "status": "active"
+            }],
+            "cursor": "next_page_token"
+        }"#;
+        let response: MarketsResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.markets.len(), 1);
+        assert_eq!(response.cursor, Some("next_page_token".to_string()));
+    }
+}
