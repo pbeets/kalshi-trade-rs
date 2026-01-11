@@ -34,6 +34,9 @@ pub enum Error {
 
     #[error("Batch size {0} exceeds maximum of {MAX_BATCH_SIZE}")]
     BatchSizeExceeded(usize),
+
+    #[error("Market tickers required for channels: {0}")]
+    MissingMarketTickers(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
