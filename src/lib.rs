@@ -50,12 +50,13 @@ pub use auth::KalshiConfig;
 pub use client::{Environment, HttpClient, KalshiClient};
 pub use error::{Error, Result};
 pub use models::{
-    Action, Announcement, AnnouncementStatus, AnnouncementType, BalanceResponse, EventPosition,
-    ExchangeAnnouncementsResponse, ExchangeSchedule, ExchangeScheduleResponse,
-    ExchangeStatusResponse, Fill, FillsResponse, GetFillsParams, GetMarketsParams,
-    GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetTradesParams, MaintenanceWindow,
-    Market, MarketFilterStatus, MarketPosition, MarketResponse, MarketResult, MarketStatus,
-    MarketType, MarketsResponse, MveFilter, Order, OrderStatus, OrderType, Orderbook,
+    Action, Announcement, AnnouncementStatus, AnnouncementType, BalanceResponse, Event,
+    EventPosition, EventResponse, EventStatus, EventsResponse, ExchangeAnnouncementsResponse,
+    ExchangeSchedule, ExchangeScheduleResponse, ExchangeStatusResponse, Fill, FillsResponse,
+    GetEventParams, GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams,
+    GetOrdersParams, GetPositionsParams, GetTradesParams, MaintenanceWindow, Market,
+    MarketFilterStatus, MarketPosition, MarketResponse, MarketResult, MarketStatus, MarketType,
+    MarketsResponse, Milestone, MveFilter, Order, OrderStatus, OrderType, Orderbook,
     OrderbookResponse, OrdersResponse, PositionsResponse, PriceLevelDollars, PriceRange,
     SelfTradePreventionType, Side, StandardHoursPeriod, StrikeType, TakerSide, Trade,
     TradesResponse, TradingSession, UserDataTimestampResponse, cents_to_dollars,
