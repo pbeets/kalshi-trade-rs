@@ -46,13 +46,13 @@
 
 use std::time::Duration;
 
-mod actor;
 mod channel;
 mod client;
 mod command;
 mod message;
 mod protocol;
 mod request_handler;
+mod session;
 
 pub use channel::Channel;
 pub use client::{KalshiStreamClient, KalshiStreamHandle};
