@@ -12,6 +12,7 @@ mod market;
 mod order;
 mod position;
 pub(crate) mod query;
+mod search;
 
 // Re-export all public types
 pub use balance::BalanceResponse;
@@ -37,3 +38,6 @@ pub use order::{
     DecreaseOrderRequest, GetOrdersParams, Order, OrderResponse, OrdersResponse, TimeInForce,
 };
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};
+pub use search::{
+    CompetitionFilter, FiltersBySportResponse, SportFilter, TagsByCategoriesResponse,
+};
