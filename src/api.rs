@@ -8,3 +8,4 @@ pub(crate) mod exchange;
 pub(crate) mod markets;
 pub(crate) mod orders;
 pub(crate) mod portfolio;
+pub(crate) mod search;
