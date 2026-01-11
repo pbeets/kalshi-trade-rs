@@ -15,6 +15,36 @@ pub struct CreateRfqRequest {
     pub side: Side,
 }
 
+impl CreateRfqRequest {
+    /// Create a new RFQ request.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `size` is not positive. Use [`try_new`](Self::try_new)
+    /// for fallible construction.
+    #[must_use]
+    pub fn new(ticker: impl Into<String>, size: i64, side: Side) -> Self {
+        debug_assert!(size > 0, "size must be positive, got {}", size);
+        Self {
+            ticker: ticker.into(),
+            size,
+            side,
+        }
+    }
+
+    /// Create a new RFQ request with validation.
+    pub fn try_new(ticker: impl Into<String>, size: i64, side: Side) -> crate::error::Result<Self> {
+        if size <= 0 {
+            return Err(crate::error::Error::InvalidQuantity(size));
+        }
+        Ok(Self {
+            ticker: ticker.into(),
+            size,
+            side,
+        })
+    }
+}
+
 /// Request body for POST /communications/quotes (create quote).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateQuoteRequest {
@@ -28,6 +58,56 @@ pub struct CreateQuoteRequest {
     pub count: i64,
 }
 
+impl CreateQuoteRequest {
+    /// Create a new quote request.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `yes_price` is not between 1 and 99, or if `count`
+    /// is not positive. Use [`try_new`](Self::try_new) for fallible construction.
+    #[must_use]
+    pub fn new(
+        rfq_id: impl Into<String>,
+        ticker: impl Into<String>,
+        yes_price: i64,
+        count: i64,
+    ) -> Self {
+        debug_assert!(
+            (1..=99).contains(&yes_price),
+            "yes_price must be between 1 and 99, got {}",
+            yes_price
+        );
+        debug_assert!(count > 0, "count must be positive, got {}", count);
+        Self {
+            rfq_id: rfq_id.into(),
+            ticker: ticker.into(),
+            yes_price,
+            count,
+        }
+    }
+
+    /// Create a new quote request with validation.
+    pub fn try_new(
+        rfq_id: impl Into<String>,
+        ticker: impl Into<String>,
+        yes_price: i64,
+        count: i64,
+    ) -> crate::error::Result<Self> {
+        if !(1..=99).contains(&yes_price) {
+            return Err(crate::error::Error::InvalidPrice(yes_price));
+        }
+        if count <= 0 {
+            return Err(crate::error::Error::InvalidQuantity(count));
+        }
+        Ok(Self {
+            rfq_id: rfq_id.into(),
+            ticker: ticker.into(),
+            yes_price,
+            count,
+        })
+    }
+}
+
 /// Request body for POST /communications/quotes/{quote_id}/accept.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AcceptQuoteRequest {
@@ -35,6 +115,36 @@ pub struct AcceptQuoteRequest {
     pub yes_price: i64,
     /// Quantity to accept.
     pub count: i64,
+}
+
+impl AcceptQuoteRequest {
+    /// Create a new accept quote request.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `yes_price` is not between 1 and 99, or if `count`
+    /// is not positive. Use [`try_new`](Self::try_new) for fallible construction.
+    #[must_use]
+    pub fn new(yes_price: i64, count: i64) -> Self {
+        debug_assert!(
+            (1..=99).contains(&yes_price),
+            "yes_price must be between 1 and 99, got {}",
+            yes_price
+        );
+        debug_assert!(count > 0, "count must be positive, got {}", count);
+        Self { yes_price, count }
+    }
+
+    /// Create a new accept quote request with validation.
+    pub fn try_new(yes_price: i64, count: i64) -> crate::error::Result<Self> {
+        if !(1..=99).contains(&yes_price) {
+            return Err(crate::error::Error::InvalidPrice(yes_price));
+        }
+        if count <= 0 {
+            return Err(crate::error::Error::InvalidQuantity(count));
+        }
+        Ok(Self { yes_price, count })
+    }
 }
 
 /// Response from create RFQ.
@@ -117,4 +227,63 @@ pub struct ListQuotesResponse {
     pub quotes: Vec<Quote>,
     #[serde(default)]
     pub cursor: Option<String>,
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_rfq_validation() {
+        assert!(CreateRfqRequest::try_new("TICKER", 10, Side::Yes).is_ok());
+        assert!(matches!(
+            CreateRfqRequest::try_new("TICKER", 0, Side::Yes),
+            Err(crate::error::Error::InvalidQuantity(0))
+        ));
+        assert!(matches!(
+            CreateRfqRequest::try_new("TICKER", -5, Side::Yes),
+            Err(crate::error::Error::InvalidQuantity(-5))
+        ));
+    }
+
+    #[test]
+    fn test_create_quote_validation() {
+        assert!(CreateQuoteRequest::try_new("RFQ123", "TICKER", 50, 10).is_ok());
+
+        // Invalid price
+        assert!(matches!(
+            CreateQuoteRequest::try_new("RFQ123", "TICKER", 0, 10),
+            Err(crate::error::Error::InvalidPrice(0))
+        ));
+        assert!(matches!(
+            CreateQuoteRequest::try_new("RFQ123", "TICKER", 100, 10),
+            Err(crate::error::Error::InvalidPrice(100))
+        ));
+
+        // Invalid quantity
+        assert!(matches!(
+            CreateQuoteRequest::try_new("RFQ123", "TICKER", 50, 0),
+            Err(crate::error::Error::InvalidQuantity(0))
+        ));
+    }
+
+    #[test]
+    fn test_accept_quote_validation() {
+        assert!(AcceptQuoteRequest::try_new(50, 10).is_ok());
+
+        // Invalid price
+        assert!(matches!(
+            AcceptQuoteRequest::try_new(0, 10),
+            Err(crate::error::Error::InvalidPrice(0))
+        ));
+        assert!(matches!(
+            AcceptQuoteRequest::try_new(100, 10),
+            Err(crate::error::Error::InvalidPrice(100))
+        ));
+
+        // Invalid quantity
+        assert!(matches!(
+            AcceptQuoteRequest::try_new(50, 0),
+            Err(crate::error::Error::InvalidQuantity(0))
+        ));
+    }
 }
