@@ -7,10 +7,10 @@ use tokio::{
 
 use super::{
     ConnectStrategy,
-    actor::KalshiStreamSession,
     channel::Channel,
     command::{StreamCommand, SubscribeResult},
     message::StreamUpdate,
+    session::KalshiStreamSession,
 };
 use crate::{
     auth::KalshiConfig,
