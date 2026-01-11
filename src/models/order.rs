@@ -536,14 +536,40 @@ pub struct BatchCreateOrdersRequest {
 }
 
 impl BatchCreateOrdersRequest {
+    /// Create a new batch create request.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `orders.len() > 20`. In release builds,
+    /// oversized batches will be rejected by the API. Use [`try_new`](Self::try_new)
+    /// for fallible construction.
     #[must_use]
     pub fn new(orders: Vec<CreateOrderRequest>) -> Self {
         debug_assert!(
-            orders.len() <= 20,
-            "batch create supports max 20 orders, got {}",
+            orders.len() <= crate::error::MAX_BATCH_SIZE,
+            "batch create supports max {} orders, got {}",
+            crate::error::MAX_BATCH_SIZE,
             orders.len()
         );
         Self { orders }
+    }
+
+    /// Create a new batch create request with validation.
+    ///
+    /// Returns an error if the batch exceeds the maximum size of 20 orders.
+    pub fn try_new(orders: Vec<CreateOrderRequest>) -> crate::error::Result<Self> {
+        if orders.len() > crate::error::MAX_BATCH_SIZE {
+            return Err(crate::error::Error::BatchSizeExceeded(orders.len()));
+        }
+        Ok(Self { orders })
+    }
+}
+
+impl TryFrom<Vec<CreateOrderRequest>> for BatchCreateOrdersRequest {
+    type Error = crate::error::Error;
+
+    fn try_from(orders: Vec<CreateOrderRequest>) -> crate::error::Result<Self> {
+        Self::try_new(orders)
     }
 }
 
@@ -588,14 +614,40 @@ pub struct BatchCancelOrdersRequest {
 }
 
 impl BatchCancelOrdersRequest {
+    /// Create a new batch cancel request.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `ids.len() > 20`. In release builds,
+    /// oversized batches will be rejected by the API. Use [`try_new`](Self::try_new)
+    /// for fallible construction.
     #[must_use]
     pub fn new(ids: Vec<String>) -> Self {
         debug_assert!(
-            ids.len() <= 20,
-            "batch cancel supports max 20 orders, got {}",
+            ids.len() <= crate::error::MAX_BATCH_SIZE,
+            "batch cancel supports max {} orders, got {}",
+            crate::error::MAX_BATCH_SIZE,
             ids.len()
         );
         Self { ids }
+    }
+
+    /// Create a new batch cancel request with validation.
+    ///
+    /// Returns an error if the batch exceeds the maximum size of 20 orders.
+    pub fn try_new(ids: Vec<String>) -> crate::error::Result<Self> {
+        if ids.len() > crate::error::MAX_BATCH_SIZE {
+            return Err(crate::error::Error::BatchSizeExceeded(ids.len()));
+        }
+        Ok(Self { ids })
+    }
+}
+
+impl TryFrom<Vec<String>> for BatchCancelOrdersRequest {
+    type Error = crate::error::Error;
+
+    fn try_from(ids: Vec<String>) -> crate::error::Result<Self> {
+        Self::try_new(ids)
     }
 }
 
@@ -644,5 +696,33 @@ mod tests {
         assert_eq!(req.count, 10);
         assert_eq!(req.yes_price, Some(50));
         assert_eq!(req.post_only, Some(true));
+    }
+
+    #[test]
+    fn test_batch_create_validation() {
+        let orders: Vec<CreateOrderRequest> = (0..20)
+            .map(|i| CreateOrderRequest::new(format!("TICKER-{}", i), Side::Yes, Action::Buy, 1))
+            .collect();
+        assert!(BatchCreateOrdersRequest::try_new(orders).is_ok());
+
+        let too_many: Vec<CreateOrderRequest> = (0..21)
+            .map(|i| CreateOrderRequest::new(format!("TICKER-{}", i), Side::Yes, Action::Buy, 1))
+            .collect();
+        assert!(matches!(
+            BatchCreateOrdersRequest::try_new(too_many),
+            Err(crate::error::Error::BatchSizeExceeded(21))
+        ));
+    }
+
+    #[test]
+    fn test_batch_cancel_validation() {
+        let ids: Vec<String> = (0..20).map(|i| format!("order-{}", i)).collect();
+        assert!(BatchCancelOrdersRequest::try_new(ids).is_ok());
+
+        let too_many: Vec<String> = (0..21).map(|i| format!("order-{}", i)).collect();
+        assert!(matches!(
+            BatchCancelOrdersRequest::try_new(too_many),
+            Err(crate::error::Error::BatchSizeExceeded(21))
+        ));
     }
 }
