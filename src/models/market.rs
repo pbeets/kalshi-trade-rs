@@ -640,6 +640,253 @@ impl GetTradesParams {
     }
 }
 
+/// Candlestick period interval in minutes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[repr(i32)]
+pub enum CandlestickPeriod {
+    /// 1 minute candles.
+    OneMinute = 1,
+    /// 1 hour candles.
+    OneHour = 60,
+    /// 1 day candles.
+    OneDay = 1440,
+}
+
+impl CandlestickPeriod {
+    /// Get the period as minutes.
+    pub fn as_minutes(&self) -> i32 {
+        *self as i32
+    }
+}
+
+/// OHLC (Open/High/Low/Close) candlestick data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OhlcData {
+    /// Open price in cents.
+    #[serde(default)]
+    pub open: Option<i64>,
+    /// Open price in dollars.
+    #[serde(default)]
+    pub open_dollars: Option<String>,
+    /// Low price in cents.
+    #[serde(default)]
+    pub low: Option<i64>,
+    /// Low price in dollars.
+    #[serde(default)]
+    pub low_dollars: Option<String>,
+    /// High price in cents.
+    #[serde(default)]
+    pub high: Option<i64>,
+    /// High price in dollars.
+    #[serde(default)]
+    pub high_dollars: Option<String>,
+    /// Close price in cents.
+    #[serde(default)]
+    pub close: Option<i64>,
+    /// Close price in dollars.
+    #[serde(default)]
+    pub close_dollars: Option<String>,
+}
+
+/// Extended OHLC data with additional price fields for trade prices.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceOhlcData {
+    /// Open price in cents.
+    #[serde(default)]
+    pub open: Option<i64>,
+    /// Open price in dollars.
+    #[serde(default)]
+    pub open_dollars: Option<String>,
+    /// Low price in cents.
+    #[serde(default)]
+    pub low: Option<i64>,
+    /// Low price in dollars.
+    #[serde(default)]
+    pub low_dollars: Option<String>,
+    /// High price in cents.
+    #[serde(default)]
+    pub high: Option<i64>,
+    /// High price in dollars.
+    #[serde(default)]
+    pub high_dollars: Option<String>,
+    /// Close price in cents.
+    #[serde(default)]
+    pub close: Option<i64>,
+    /// Close price in dollars.
+    #[serde(default)]
+    pub close_dollars: Option<String>,
+    /// Mean price in cents.
+    #[serde(default)]
+    pub mean: Option<i64>,
+    /// Mean price in dollars.
+    #[serde(default)]
+    pub mean_dollars: Option<String>,
+    /// Previous close price in cents.
+    #[serde(default)]
+    pub previous: Option<i64>,
+    /// Previous close price in dollars.
+    #[serde(default)]
+    pub previous_dollars: Option<String>,
+    /// Min price in cents (alias for low).
+    #[serde(default)]
+    pub min: Option<i64>,
+    /// Min price in dollars.
+    #[serde(default)]
+    pub min_dollars: Option<String>,
+    /// Max price in cents (alias for high).
+    #[serde(default)]
+    pub max: Option<i64>,
+    /// Max price in dollars.
+    #[serde(default)]
+    pub max_dollars: Option<String>,
+}
+
+/// A single candlestick data point.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Candlestick {
+    /// End of the period (Unix timestamp in seconds).
+    pub end_period_ts: i64,
+    /// YES bid OHLC data.
+    #[serde(default)]
+    pub yes_bid: Option<OhlcData>,
+    /// YES ask OHLC data.
+    #[serde(default)]
+    pub yes_ask: Option<OhlcData>,
+    /// Trade price OHLC data.
+    #[serde(default)]
+    pub price: Option<PriceOhlcData>,
+    /// Trading volume during the period.
+    #[serde(default)]
+    pub volume: Option<i64>,
+    /// Open interest at end of period.
+    #[serde(default)]
+    pub open_interest: Option<i64>,
+}
+
+/// Response from GET /series/{series_ticker}/markets/{ticker}/candlesticks.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CandlesticksResponse {
+    /// Market ticker.
+    pub ticker: String,
+    /// Array of candlestick data.
+    pub candlesticks: Vec<Candlestick>,
+}
+
+/// Candlestick data for a single market in batch response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketCandlesticks {
+    /// Market ticker.
+    pub market_ticker: String,
+    /// Array of candlestick data.
+    pub candlesticks: Vec<Candlestick>,
+}
+
+/// Response from GET /markets/candlesticks (batch).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCandlesticksResponse {
+    /// Array of market candlestick data.
+    pub markets: Vec<MarketCandlesticks>,
+}
+
+/// Query parameters for GET /series/{series_ticker}/markets/{ticker}/candlesticks.
+#[derive(Debug, Clone, Serialize)]
+pub struct GetCandlesticksParams {
+    /// Start timestamp (Unix seconds).
+    pub start_ts: i64,
+    /// End timestamp (Unix seconds).
+    pub end_ts: i64,
+    /// Candlestick period interval.
+    pub period_interval: CandlestickPeriod,
+}
+
+impl GetCandlesticksParams {
+    /// Create new candlesticks query parameters.
+    #[must_use]
+    pub fn new(start_ts: i64, end_ts: i64, period_interval: CandlestickPeriod) -> Self {
+        Self {
+            start_ts,
+            end_ts,
+            period_interval,
+        }
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push("start_ts", self.start_ts);
+        qb.push("end_ts", self.end_ts);
+        qb.push("period_interval", self.period_interval.as_minutes());
+        qb.build()
+    }
+}
+
+/// Query parameters for GET /markets/candlesticks (batch).
+#[derive(Debug, Clone, Serialize)]
+pub struct GetBatchCandlesticksParams {
+    /// Comma-separated list of market tickers (max 100).
+    pub market_tickers: String,
+    /// Start timestamp (Unix seconds).
+    pub start_ts: i64,
+    /// End timestamp (Unix seconds).
+    pub end_ts: i64,
+    /// Candlestick period interval in minutes.
+    pub period_interval: i32,
+    /// Include synthetic candlestick before start_ts.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_latest_before_start: Option<bool>,
+}
+
+impl GetBatchCandlesticksParams {
+    /// Create new batch candlesticks query parameters.
+    #[must_use]
+    pub fn new(
+        market_tickers: impl Into<String>,
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> Self {
+        Self {
+            market_tickers: market_tickers.into(),
+            start_ts,
+            end_ts,
+            period_interval: period_interval.as_minutes(),
+            include_latest_before_start: None,
+        }
+    }
+
+    /// Create from a list of tickers.
+    #[must_use]
+    pub fn from_tickers(
+        tickers: &[&str],
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: CandlestickPeriod,
+    ) -> Self {
+        Self::new(tickers.join(","), start_ts, end_ts, period_interval)
+    }
+
+    /// Include synthetic candlestick before start_ts for price continuity.
+    #[must_use]
+    pub fn include_latest_before_start(mut self, include: bool) -> Self {
+        self.include_latest_before_start = Some(include);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push("market_tickers", &self.market_tickers);
+        qb.push("start_ts", self.start_ts);
+        qb.push("end_ts", self.end_ts);
+        qb.push("period_interval", self.period_interval);
+        qb.push_opt(
+            "include_latest_before_start",
+            self.include_latest_before_start,
+        );
+        qb.build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

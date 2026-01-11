@@ -385,7 +385,7 @@ impl StreamActor {
 
                 // All channels closed
                 else => {
-                    info!("StreamActor all channels closed, shutting down");
+                    info!("KalshiStreamSession all channels closed, shutting down");
                     disconnect_msg = Some(StreamMessage::Closed {
                         reason: "All channels closed".to_string(),
                     });
@@ -627,30 +627,30 @@ impl StreamActor {
                 debug!("Response for request {}: type={}", id, msg_type);
 
                 // Check if this is a response to a pending multi-channel subscription
-                if msg_type == "subscribed" {
-                    if let Some(collector) = self.pending_subscriptions.get_mut(&id) {
-                        // Extract channel and sid from the response
-                        let channel = msg
-                            .get("channel")
-                            .and_then(|c| c.as_str())
-                            .unwrap_or("unknown")
-                            .to_string();
-                        let sid = msg.get("sid").and_then(|s| s.as_i64()).unwrap_or(-1);
+                if msg_type == "subscribed"
+                    && let Some(collector) = self.pending_subscriptions.get_mut(&id)
+                {
+                    // Extract channel and sid from the response
+                    let channel = msg
+                        .get("channel")
+                        .and_then(|c| c.as_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let sid = msg.get("sid").and_then(|s| s.as_i64()).unwrap_or(-1);
 
-                        debug!(
-                            "Subscribe response for request {}: channel={}, sid={}",
-                            id, channel, sid
-                        );
+                    debug!(
+                        "Subscribe response for request {}: channel={}, sid={}",
+                        id, channel, sid
+                    );
 
-                        let is_complete = collector.add_success(channel, sid);
-                        if is_complete {
-                            // All responses received, send the final result
-                            if let Some(collector) = self.pending_subscriptions.remove(&id) {
-                                collector.finish();
-                            }
+                    let is_complete = collector.add_success(channel, sid);
+                    if is_complete {
+                        // All responses received, send the final result
+                        if let Some(collector) = self.pending_subscriptions.remove(&id) {
+                            collector.finish();
                         }
-                        return;
                     }
+                    return;
                 }
 
                 // Build the full response JSON including type and msg

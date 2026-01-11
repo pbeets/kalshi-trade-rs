@@ -1,7 +1,7 @@
 //! Markets API endpoints.
 //!
 //! This module provides functions for interacting with the Kalshi Markets API,
-//! including listing markets, getting market details, orderbooks, and trades.
+//! including listing markets, getting market details, orderbooks, trades, and candlesticks.
 
 use url::form_urlencoded;
 
@@ -9,8 +9,9 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        GetMarketsParams, GetOrderbookParams, GetTradesParams, MarketResponse, MarketsResponse,
-        OrderbookResponse, TradesResponse,
+        BatchCandlesticksResponse, CandlesticksResponse, GetBatchCandlesticksParams,
+        GetCandlesticksParams, GetMarketsParams, GetOrderbookParams, GetTradesParams,
+        MarketResponse, MarketsResponse, OrderbookResponse, TradesResponse,
     },
 };
 
@@ -54,5 +55,41 @@ pub async fn get_orderbook(
 /// Returns a list of executed trades on the exchange.
 pub async fn get_trades(http: &HttpClient, params: GetTradesParams) -> Result<TradesResponse> {
     let path = format!("/markets/trades{}", params.to_query_string());
+    http.get(&path).await
+}
+
+/// Get candlestick (OHLCV) data for a specific market.
+///
+/// Returns historical price data in candlestick format.
+///
+/// # Arguments
+///
+/// * `series_ticker` - The series ticker containing the market
+/// * `ticker` - The market ticker
+/// * `params` - Query parameters including time range and interval
+pub async fn get_candlesticks(
+    http: &HttpClient,
+    series_ticker: &str,
+    ticker: &str,
+    params: GetCandlesticksParams,
+) -> Result<CandlesticksResponse> {
+    let path = format!(
+        "/series/{}/markets/{}/candlesticks{}",
+        encode_ticker(series_ticker),
+        encode_ticker(ticker),
+        params.to_query_string()
+    );
+    http.get(&path).await
+}
+
+/// Get candlestick data for multiple markets in a single request.
+///
+/// Supports up to 100 market tickers per request.
+/// Returns up to 10,000 candlesticks total across all markets.
+pub async fn get_batch_candlesticks(
+    http: &HttpClient,
+    params: GetBatchCandlesticksParams,
+) -> Result<BatchCandlesticksResponse> {
+    let path = format!("/markets/candlesticks{}", params.to_query_string());
     http.get(&path).await
 }
