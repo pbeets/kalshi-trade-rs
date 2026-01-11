@@ -5,13 +5,15 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::{exchange, portfolio},
+    api::{exchange, markets, portfolio},
     auth::KalshiConfig,
     error::Result,
     models::{
         BalanceResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
-        ExchangeStatusResponse, FillsResponse, GetFillsParams, GetOrdersParams,
-        GetPositionsParams, OrdersResponse, PositionsResponse, UserDataTimestampResponse,
+        ExchangeStatusResponse, FillsResponse, GetFillsParams, GetMarketsParams, GetOrderbookParams,
+        GetOrdersParams, GetPositionsParams, GetTradesParams, MarketResponse, MarketsResponse,
+        OrderbookResponse, OrdersResponse, PositionsResponse, TradesResponse,
+        UserDataTimestampResponse,
     },
 };
 
@@ -308,5 +310,145 @@ impl KalshiClient {
     /// ```
     pub async fn get_user_data_timestamp(&self) -> Result<UserDataTimestampResponse> {
         exchange::get_user_data_timestamp(&self.http).await
+    }
+
+    // =========================================================================
+    // Markets API
+    // =========================================================================
+
+    /// Get a list of markets with default parameters.
+    ///
+    /// Returns up to 100 markets. Use `get_markets_with_params` for filtering
+    /// and pagination.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let markets = client.get_markets().await?;
+    /// for market in markets.markets {
+    ///     println!("{}: {}", market.ticker, market.title.unwrap_or_default());
+    /// }
+    /// ```
+    pub async fn get_markets(&self) -> Result<MarketsResponse> {
+        self.get_markets_with_params(GetMarketsParams::default())
+            .await
+    }
+
+    /// Get a list of markets with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::MarketFilterStatus;
+    ///
+    /// let params = GetMarketsParams::new()
+    ///     .status(MarketFilterStatus::Open)
+    ///     .limit(50);
+    /// let markets = client.get_markets_with_params(params).await?;
+    /// ```
+    pub async fn get_markets_with_params(
+        &self,
+        params: GetMarketsParams,
+    ) -> Result<MarketsResponse> {
+        markets::get_markets(&self.http, params).await
+    }
+
+    /// Get details for a specific market by ticker.
+    ///
+    /// # Arguments
+    ///
+    /// * `ticker` - The market ticker (e.g., "KXBTC-25JAN10-B50000")
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let market = client.get_market("KXBTC-25JAN10-B50000").await?;
+    /// println!("Status: {:?}", market.market.status);
+    /// println!("Last price: {}", market.market.last_price_dollars.unwrap_or_default());
+    /// ```
+    pub async fn get_market(&self, ticker: &str) -> Result<MarketResponse> {
+        markets::get_market(&self.http, ticker).await
+    }
+
+    /// Get the orderbook for a market with default depth.
+    ///
+    /// Returns all price levels in the orderbook.
+    ///
+    /// # Arguments
+    ///
+    /// * `ticker` - The market ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let orderbook = client.get_orderbook("KXBTC-25JAN10-B50000").await?;
+    /// for level in &orderbook.orderbook.yes {
+    ///     println!("YES: {} @ {} cents", level[1], level[0]);
+    /// }
+    /// ```
+    pub async fn get_orderbook(&self, ticker: &str) -> Result<OrderbookResponse> {
+        self.get_orderbook_with_params(ticker, GetOrderbookParams::default())
+            .await
+    }
+
+    /// Get the orderbook for a market with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `ticker` - The market ticker
+    /// * `params` - Query parameters (e.g., depth)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetOrderbookParams::new().depth(10);
+    /// let orderbook = client.get_orderbook_with_params("KXBTC-25JAN10-B50000", params).await?;
+    /// ```
+    pub async fn get_orderbook_with_params(
+        &self,
+        ticker: &str,
+        params: GetOrderbookParams,
+    ) -> Result<OrderbookResponse> {
+        markets::get_orderbook(&self.http, ticker, params).await
+    }
+
+    /// Get trades with default parameters.
+    ///
+    /// Returns the most recent trades on the exchange.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let trades = client.get_trades().await?;
+    /// for trade in trades.trades {
+    ///     println!("{}: {} contracts @ {} cents ({:?})",
+    ///         trade.ticker, trade.count, trade.yes_price, trade.taker_side);
+    /// }
+    /// ```
+    pub async fn get_trades(&self) -> Result<TradesResponse> {
+        self.get_trades_with_params(GetTradesParams::default())
+            .await
+    }
+
+    /// Get trades with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetTradesParams::new()
+    ///     .ticker("KXBTC-25JAN10-B50000")
+    ///     .limit(100);
+    /// let trades = client.get_trades_with_params(params).await?;
+    /// ```
+    pub async fn get_trades_with_params(&self, params: GetTradesParams) -> Result<TradesResponse> {
+        markets::get_trades(&self.http, params).await
     }
 }

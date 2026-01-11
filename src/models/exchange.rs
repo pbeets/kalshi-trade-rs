@@ -129,6 +129,7 @@ pub struct Announcement {
 /// Type of an announcement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum AnnouncementType {
     /// Informational announcement.
     Info,
@@ -136,16 +137,23 @@ pub enum AnnouncementType {
     Warning,
     /// Error/critical announcement.
     Error,
+    /// Unknown announcement type returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Status of an announcement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum AnnouncementStatus {
     /// Announcement is currently active.
     Active,
     /// Announcement is no longer active.
     Inactive,
+    /// Unknown announcement status returned by the API.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Response from the GET /exchange/user_data_timestamp endpoint.
@@ -156,4 +164,60 @@ pub enum AnnouncementStatus {
 pub struct UserDataTimestampResponse {
     /// Timestamp when user data was last updated (RFC3339).
     pub as_of_time: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_announcement_type_deserialize_unknown() {
+        let json = r#""critical""#;
+        let announcement_type: AnnouncementType = serde_json::from_str(json).unwrap();
+        assert_eq!(announcement_type, AnnouncementType::Unknown);
+    }
+
+    #[test]
+    fn test_announcement_status_deserialize_unknown() {
+        let json = r#""pending""#;
+        let status: AnnouncementStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status, AnnouncementStatus::Unknown);
+    }
+
+    #[test]
+    fn test_exchange_status_deserialize() {
+        let json = r#"{
+            "exchange_active": true,
+            "trading_active": false,
+            "exchange_estimated_resume_time": "2025-01-10T18:00:00Z"
+        }"#;
+        let status: ExchangeStatusResponse = serde_json::from_str(json).unwrap();
+        assert!(status.exchange_active);
+        assert!(!status.trading_active);
+        assert_eq!(
+            status.exchange_estimated_resume_time,
+            Some("2025-01-10T18:00:00Z".to_string())
+        );
+    }
+
+    #[test]
+    fn test_announcement_deserialize() {
+        let json = r#"{
+            "type": "info",
+            "message": "Scheduled maintenance tonight",
+            "delivery_time": "2025-01-10T12:00:00Z",
+            "status": "active"
+        }"#;
+        let announcement: Announcement = serde_json::from_str(json).unwrap();
+        assert_eq!(announcement.announcement_type, AnnouncementType::Info);
+        assert_eq!(announcement.status, AnnouncementStatus::Active);
+        assert_eq!(announcement.message, "Scheduled maintenance tonight");
+    }
+
+    #[test]
+    fn test_user_data_timestamp_deserialize() {
+        let json = r#"{"as_of_time": "2025-01-10T15:30:00Z"}"#;
+        let response: UserDataTimestampResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.as_of_time, "2025-01-10T15:30:00Z");
+    }
 }

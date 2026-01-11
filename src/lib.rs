@@ -52,10 +52,13 @@ pub use error::{Error, Result};
 pub use models::{
     Action, Announcement, AnnouncementStatus, AnnouncementType, BalanceResponse, EventPosition,
     ExchangeAnnouncementsResponse, ExchangeSchedule, ExchangeScheduleResponse,
-    ExchangeStatusResponse, Fill, FillsResponse, GetFillsParams, GetOrdersParams,
-    GetPositionsParams, MaintenanceWindow, MarketPosition, Order, OrderStatus, OrderType,
-    OrdersResponse, PositionsResponse, SelfTradePreventionType, Side, StandardHoursPeriod,
-    TradingSession, UserDataTimestampResponse, cents_to_dollars,
+    ExchangeStatusResponse, Fill, FillsResponse, GetFillsParams, GetMarketsParams,
+    GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetTradesParams, MaintenanceWindow,
+    Market, MarketFilterStatus, MarketPosition, MarketResponse, MarketResult, MarketStatus,
+    MarketType, MarketsResponse, MveFilter, Order, OrderStatus, OrderType, Orderbook,
+    OrderbookResponse, OrdersResponse, PositionsResponse, PriceLevelDollars, PriceRange,
+    SelfTradePreventionType, Side, StandardHoursPeriod, StrikeType, TakerSide, Trade,
+    TradesResponse, TradingSession, UserDataTimestampResponse, cents_to_dollars,
 };
 
 // Re-export WebSocket types for convenience
