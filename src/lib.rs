@@ -40,6 +40,7 @@
 
 mod api;
 pub mod auth;
+pub mod batch;
 pub mod client;
 pub mod error;
 pub mod models;
@@ -50,16 +51,20 @@ pub use auth::KalshiConfig;
 pub use client::{Environment, HttpClient, KalshiClient};
 pub use error::{Error, Result};
 pub use models::{
-    Action, Announcement, AnnouncementStatus, AnnouncementType, BalanceResponse, Event,
-    EventPosition, EventResponse, EventStatus, EventsResponse, ExchangeAnnouncementsResponse,
-    ExchangeSchedule, ExchangeScheduleResponse, ExchangeStatusResponse, Fill, FillsResponse,
-    GetEventParams, GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams,
-    GetOrdersParams, GetPositionsParams, GetTradesParams, MaintenanceWindow, Market,
-    MarketFilterStatus, MarketPosition, MarketResponse, MarketResult, MarketStatus, MarketType,
-    MarketsResponse, Milestone, MveFilter, Order, OrderStatus, OrderType, Orderbook,
-    OrderbookResponse, OrdersResponse, PositionsResponse, PriceLevelDollars, PriceRange,
-    SelfTradePreventionType, Side, StandardHoursPeriod, StrikeType, TakerSide, Trade,
-    TradesResponse, TradingSession, UserDataTimestampResponse, cents_to_dollars,
+    Action, AmendOrderRequest, AmendOrderResponse, Announcement, AnnouncementStatus,
+    AnnouncementType, BalanceResponse, BatchCancelOrderResult, BatchCancelOrdersRequest,
+    BatchCancelOrdersResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
+    BatchOrderError, BatchOrderResult, CancelOrderResponse, CreateOrderRequest,
+    DecreaseOrderRequest, Event, EventPosition, EventResponse, EventStatus, EventsResponse,
+    ExchangeAnnouncementsResponse, ExchangeSchedule, ExchangeScheduleResponse,
+    ExchangeStatusResponse, Fill, FillsResponse, GetEventParams, GetEventsParams, GetFillsParams,
+    GetMarketsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetTradesParams,
+    MaintenanceWindow, Market, MarketFilterStatus, MarketPosition, MarketResponse, MarketResult,
+    MarketStatus, MarketType, MarketsResponse, Milestone, MveFilter, Order, OrderResponse,
+    OrderStatus, OrderType, Orderbook, OrderbookResponse, OrdersResponse, PositionsResponse,
+    PriceLevelDollars, PriceRange, SelfTradePreventionType, Side, StandardHoursPeriod, StrikeType,
+    TakerSide, TimeInForce, Trade, TradesResponse, TradingSession, UserDataTimestampResponse,
+    cents_to_dollars,
 };
 
 // Re-export WebSocket types for convenience
@@ -67,3 +72,6 @@ pub use ws::{
     Channel, ConnectStrategy, KalshiStreamClient, KalshiStreamHandle, StreamMessage, StreamUpdate,
     SubscribeResult,
 };
+
+// Re-export batch management types
+pub use batch::{AggregatedCancelResponse, AggregatedCreateResponse, BatchManager, RateLimitTier};
