@@ -1,8 +1,6 @@
-//! Test: Multi-channel subscription behavior
+//! Test: Multi-channel subscription behavior.
 //!
-//! This example tests our multi-channel subscription implementation:
-//! 1. Sends ONE request with multiple channels
-//! 2. Verifies we receive multiple SIDs (one per channel)
+//! Demonstrates subscribing to multiple channels with a dynamically fetched market ticker.
 //!
 //! # Usage
 //!
@@ -13,7 +11,7 @@
 use std::time::Duration;
 
 use kalshi_trade_rs::{
-    auth::KalshiConfig,
+    GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
     ws::{Channel, KalshiStreamClient},
 };
 use tokio::time::timeout;
@@ -22,22 +20,37 @@ use tokio::time::timeout;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
-    // Initialize tracing so we can see debug output
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("kalshi_trade_rs::ws::actor=debug".parse().unwrap()),
+                .add_directive("kalshi_trade_rs::ws::actor=info".parse().unwrap()),
         )
         .init();
 
     let config = KalshiConfig::from_env()?;
+    println!("Environment: {:?}\n", config.environment);
 
-    println!("Connecting to Kalshi ({:?})...", config.environment);
+    // Fetch an active market ticker to subscribe to
+    let rest_client = KalshiClient::new(config.clone())?;
+    let params = GetMarketsParams::new()
+        .status(MarketFilterStatus::Open)
+        .limit(1);
+    let markets = rest_client.get_markets_with_params(params).await?;
+
+    let ticker = markets
+        .markets
+        .first()
+        .map(|m| m.ticker.clone())
+        .ok_or("No active markets found")?;
+
+    println!("Using market ticker: {ticker}\n");
+
+    // Connect to WebSocket
     let client = KalshiStreamClient::connect(&config).await?;
     let mut handle = client.handle();
-    println!("Connected!\n");
+    println!("Connected to WebSocket\n");
 
-    // Subscribe to multiple channels at once
+    // Subscribe to multiple channels for the same ticker
     let channels = [Channel::Ticker, Channel::Trade, Channel::OrderbookDelta];
     println!(
         "Subscribing to {} channels: {:?}",
@@ -45,21 +58,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         channels.iter().map(|c| c.as_str()).collect::<Vec<_>>()
     );
 
-    // Use timeout to avoid hanging forever
-    let result = match timeout(Duration::from_secs(10), handle.subscribe(&channels, None)).await {
+    let result = match timeout(
+        Duration::from_secs(10),
+        handle.subscribe(&channels, Some(&[ticker.as_str()])),
+    )
+    .await
+    {
         Ok(Ok(result)) => result,
         Ok(Err(e)) => {
-            println!("Subscribe error: {}", e);
             client.shutdown().await?;
             return Err(e.into());
         }
         Err(_) => {
-            println!("Subscribe timed out after 10 seconds!");
             client.shutdown().await?;
-            return Err("Timeout".into());
+            return Err("Subscribe timed out".into());
         }
     };
 
+    // Report results
     println!("\nResult:");
     println!("  Successful: {}", result.successful.len());
     for sub in &result.successful {
@@ -72,31 +88,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    println!();
-    if result.successful.len() == channels.len() {
-        println!(
-            "PASS: All {} channels subscribed successfully!",
-            channels.len()
-        );
+    let status = if result.successful.len() == channels.len() {
+        "PASS"
     } else {
-        println!(
-            "FAIL: Expected {} subscriptions, got {}",
-            channels.len(),
-            result.successful.len()
-        );
-    }
+        "FAIL"
+    };
+    println!(
+        "\n{status}: {}/{} channels subscribed",
+        result.successful.len(),
+        channels.len()
+    );
 
-    // Wait briefly for any updates to confirm connection is working
+    // Brief wait for updates
     println!("\nWaiting for updates (2 seconds)...");
-    let mut update_count = 0;
+    let mut count = 0;
     let start = std::time::Instant::now();
     while start.elapsed() < Duration::from_secs(2) {
-        match timeout(Duration::from_millis(100), handle.update_receiver.recv()).await {
-            Ok(Ok(_)) => update_count += 1,
-            _ => {}
+        if timeout(Duration::from_millis(100), handle.update_receiver.recv())
+            .await
+            .is_ok()
+        {
+            count += 1;
         }
     }
-    println!("Received {} updates", update_count);
+    println!("Received {count} updates");
 
     // Cleanup
     let sids = result.sids();

@@ -280,6 +280,21 @@ impl KalshiStreamHandle {
         channels: &[Channel],
         market_tickers: Option<&[&str]>,
     ) -> Result<SubscribeResult> {
+        // Validate: channels requiring market tickers must have at least one
+        let has_tickers = market_tickers.is_some_and(|t| !t.is_empty());
+
+        if !has_tickers {
+            let requiring: Vec<&str> = channels
+                .iter()
+                .filter(|c| c.requires_market_ticker())
+                .map(|c| c.as_str())
+                .collect();
+
+            if !requiring.is_empty() {
+                return Err(Error::MissingMarketTickers(requiring.join(", ")));
+            }
+        }
+
         let (tx, rx) = oneshot::channel();
 
         let channel_strings: Vec<String> =
