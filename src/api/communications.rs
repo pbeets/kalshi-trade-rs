@@ -6,9 +6,9 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        AcceptQuoteRequest, CreateQuoteRequest, CreateRfqRequest, GetQuoteResponse, GetRfqResponse,
-        ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, QuoteResponse,
-        RfqResponse,
+        AcceptQuoteRequest, CommunicationsIdResponse, CreateQuoteRequest, CreateRfqRequest,
+        GetQuoteResponse, GetRfqResponse, ListQuotesParams, ListQuotesResponse, ListRfqsParams,
+        ListRfqsResponse, QuoteResponse, RfqResponse,
     },
 };
 
@@ -84,4 +84,21 @@ pub async fn list_rfqs(http: &HttpClient, params: ListRfqsParams) -> Result<List
 pub async fn list_quotes(http: &HttpClient, params: ListQuotesParams) -> Result<ListQuotesResponse> {
     let path = format!("/communications/quotes{}", params.to_query_string());
     http.get(&path).await
+}
+
+/// Get the communications ID of the logged-in user.
+///
+/// Returns a public communications ID which is used to identify
+/// the user in RFQ/quote interactions.
+pub async fn get_communications_id(http: &HttpClient) -> Result<CommunicationsIdResponse> {
+    http.get("/communications/id").await
+}
+
+/// Confirm a quote.
+///
+/// Confirms a quote and starts a timer for order execution.
+/// Returns 204 No Content on success.
+pub async fn confirm_quote(http: &HttpClient, quote_id: &str) -> Result<()> {
+    let path = format!("/communications/quotes/{}/confirm", quote_id);
+    http.put_no_content(&path).await
 }

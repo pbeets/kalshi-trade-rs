@@ -419,6 +419,15 @@ pub struct ListQuotesResponse {
     pub cursor: Option<String>,
 }
 
+/// Response from GET /communications/id.
+///
+/// Returns the user's public communications ID for RFQ/quote functionality.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommunicationsIdResponse {
+    /// The user's public communications ID used to identify them in RFQ/quote interactions.
+    pub communications_id: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -476,5 +485,12 @@ mod tests {
             AcceptQuoteRequest::try_new(50, 0),
             Err(crate::error::Error::InvalidQuantity(0))
         ));
+    }
+
+    #[test]
+    fn test_communications_id_response_deserialize() {
+        let json = r#"{"communications_id": "comms-abc123"}"#;
+        let response: CommunicationsIdResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.communications_id, "comms-abc123");
     }
 }

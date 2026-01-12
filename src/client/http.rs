@@ -193,6 +193,18 @@ impl HttpClient {
         response.json::<T>().await.map_err(Error::Http)
     }
 
+    /// Make a PUT request with an empty body, expecting no response body.
+    ///
+    /// Suitable for endpoints that return 204 No Content.
+    ///
+    /// # Arguments
+    /// * `path` - The API path
+    pub async fn put_no_content(&self, path: &str) -> Result<()> {
+        let request = self.build_request(Method::PUT, path)?;
+        self.execute(request).await?;
+        Ok(())
+    }
+
     /// Get the base URL for this client.
     pub fn base_url(&self) -> &str {
         &self.base_url
