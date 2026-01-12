@@ -35,12 +35,12 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 | Search | 2 | 2 | 100% |
 | Live Data | 2 | 2 | 100% |
 | Multivariate Collections | 5 | 5 | 100% |
-| API Keys | 0 | 4 | 0% |
+| API Keys | 4 | 4 | 100% |
+| Milestones | 2 | 2 | 100% |
+| Structured Targets | 2 | 2 | 100% |
+| Incentive Programs | 1 | 1 | 100% |
 | FCM | 0 | 2 | 0% |
-| Structured Targets | 0 | 2 | 0% |
-| Milestones | 0 | 2 | 0% |
-| Incentive Programs | 0 | 1 | 0% |
-| **TOTAL** | **66** | **77** | **86%** |
+| **TOTAL** | **75** | **77** | **97%** |
 
 ---
 
@@ -221,17 +221,54 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 
 ---
 
+## API Keys API
+
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| ✅ | GET | `/api_keys` | `get_api_keys()` | List all API keys |
+| ✅ | POST | `/api_keys` | `create_api_key()` | Premier/Market Maker tier |
+| ✅ | POST | `/api_keys/generate` | `generate_api_key()` | Auto-generates keypair |
+| ✅ | DELETE | `/api_keys/{api_key}` | `delete_api_key()` | Permanent deletion |
+
+**Source file**: `src/api/api_keys.rs`
+
+**Notes**: API keys are typically managed via the Kalshi web UI, but these endpoints allow programmatic management.
+
+---
+
+## Milestones API
+
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| ✅ | GET | `/milestones` | `get_milestones()`, `get_milestones_with_params()` | Date filtering support |
+| ✅ | GET | `/milestones/{id}` | `get_milestone()` | |
+
+**Source file**: `src/api/milestones.rs`
+
+---
+
+## Structured Targets API
+
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| ✅ | GET | `/structured_targets` | `get_structured_targets()`, `get_structured_targets_with_params()` | Pagination (1-2000) |
+| ✅ | GET | `/structured_targets/{id}` | `get_structured_target()` | |
+
+**Source file**: `src/api/structured_targets.rs`
+
+---
+
+## Incentive Programs API
+
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| ✅ | GET | `/incentive_programs` | `get_incentive_programs()` | Rewards programs info |
+
+**Source file**: `src/api/incentive_programs.rs`
+
+---
+
 ## NOT IMPLEMENTED
-
-### API Keys Management (Low Priority)
-Usually managed via Kalshi web UI.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api_keys` | List all API keys |
-| POST | `/api_keys` | Create API key with public key |
-| POST | `/api_keys/generate` | Generate API key (auto-creates keypair) |
-| DELETE | `/api_keys/{api_key}` | Delete an API key |
 
 ### FCM (Futures Commission Merchant) (Low Priority)
 Specialized for FCM members only.
@@ -240,29 +277,6 @@ Specialized for FCM members only.
 |--------|----------|-------------|
 | GET | `/fcm/orders` | Get FCM orders by subtrader ID |
 | GET | `/fcm/positions` | Get FCM positions by subtrader ID |
-
-### Structured Targets (Low Priority)
-Specialized use case.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/structured_targets` | List structured targets |
-| GET | `/structured_targets/{id}` | Get specific structured target |
-
-### Milestones (Low Priority)
-Specialized use case.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/milestones` | List milestones with date filtering |
-| GET | `/milestones/{id}` | Get specific milestone |
-
-### Incentive Programs (Low Priority)
-Read-only info.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/incentive_programs` | List available incentive programs |
 
 ---
 
@@ -292,6 +306,10 @@ The following implemented endpoints need verification examples:
 - **Search**: `get_tags_by_categories()`, `get_filters_by_sport()`
 - **Live Data**: `get_live_data()`, `get_batch_live_data()`
 - **Multivariate Collections**: All 5 endpoints
+- **API Keys**: All 4 endpoints (`get_api_keys()`, `create_api_key()`, `generate_api_key()`, `delete_api_key()`)
+- **Milestones**: All 2 endpoints (`get_milestones()`, `get_milestone()`)
+- **Structured Targets**: All 2 endpoints (`get_structured_targets()`, `get_structured_target()`)
+- **Incentive Programs**: `get_incentive_programs()`
 
 ---
 
