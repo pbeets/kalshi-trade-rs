@@ -27,7 +27,11 @@ pub use communications::{
     Rfq, RfqResponse,
 };
 pub use event::{
-    Event, EventResponse, EventStatus, EventsResponse, GetEventParams, GetEventsParams, Milestone,
+    Event, EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+    EventResponse, EventStatus, EventsResponse, ForecastHistoryPoint, ForecastPeriod,
+    GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
+    GetEventsParams, GetMultivariateEventsParams, MarketDetail, Milestone,
+    MultivariateEventsResponse, PercentilePoint, SettlementSource, MAX_FORECAST_PERCENTILES,
 };
 pub use exchange::{
     Announcement, AnnouncementStatus, AnnouncementType, ExchangeAnnouncementsResponse,

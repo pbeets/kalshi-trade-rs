@@ -9,6 +9,9 @@ pub const MAX_BATCH_CANDLESTICKS_TICKERS: usize = 100;
 /// Maximum number of event tickers in comma-separated filter.
 pub const MAX_EVENT_TICKERS: usize = 10;
 
+/// Maximum number of percentiles in a forecast history request.
+pub const MAX_FORECAST_PERCENTILES: usize = 10;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("HTTP error: {0}")]
@@ -46,6 +49,15 @@ pub enum Error {
 
     #[error("Event tickers count {0} exceeds maximum of {MAX_EVENT_TICKERS}")]
     TooManyEventTickers(usize),
+
+    #[error("Percentiles count {0} exceeds maximum of {MAX_FORECAST_PERCENTILES}")]
+    TooManyPercentiles(usize),
+
+    #[error("Percentile value {0} out of range: must be between 0 and 10000")]
+    PercentileOutOfRange(i32),
+
+    #[error("Cannot specify both series_ticker and collection_ticker")]
+    MutuallyExclusiveParams,
 
     #[error("Invalid timestamp range: start_ts ({0}) must be less than end_ts ({1})")]
     InvalidTimestampRange(i64, i64),

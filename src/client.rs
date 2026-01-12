@@ -18,7 +18,10 @@ use crate::{
         CreateRfqRequest, DecreaseOrderRequest, EventResponse, EventsResponse,
         ExchangeAnnouncementsResponse, ExchangeScheduleResponse, ExchangeStatusResponse,
         FillsResponse, FiltersBySportResponse, GetBatchCandlesticksParams, GetCandlesticksParams,
-        GetEventParams, GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams,
+        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+        GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
+        GetEventsParams, GetFillsParams, GetMarketsParams, GetMultivariateEventsParams,
+        GetOrderbookParams, MultivariateEventsResponse,
         GetOrdersParams, GetPositionsParams, GetQueuePositionsParams, GetQuoteResponse,
         GetRfqResponse, GetSettlementsParams, GetTradesParams, ListQuotesParams,
         ListQuotesResponse, ListRfqsParams, ListRfqsResponse, MarketResponse, MarketsResponse,
@@ -548,6 +551,148 @@ impl KalshiClient {
         params: GetEventParams,
     ) -> Result<EventResponse> {
         events::get_event(&self.http, event_ticker, params).await
+    }
+
+    /// Get metadata for a specific event.
+    ///
+    /// Returns image URLs, market details, and settlement sources.
+    ///
+    /// # Arguments
+    ///
+    /// * `event_ticker` - The event ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let metadata = client.get_event_metadata("KXBTC-25JAN").await?;
+    /// println!("Image: {}", metadata.image_url);
+    /// for market in &metadata.market_details {
+    ///     println!("  {}: {}", market.market_ticker, market.color_code);
+    /// }
+    /// ```
+    pub async fn get_event_metadata(&self, event_ticker: &str) -> Result<EventMetadataResponse> {
+        events::get_event_metadata(&self.http, event_ticker).await
+    }
+
+    /// Get multivariate (combo) events with default parameters.
+    ///
+    /// Retrieves dynamically created events from multivariate event collections.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let events = client.get_multivariate_events().await?;
+    /// for event in events.events {
+    ///     println!("{}: {}", event.event_ticker, event.title);
+    /// }
+    /// ```
+    pub async fn get_multivariate_events(&self) -> Result<MultivariateEventsResponse> {
+        self.get_multivariate_events_with_params(GetMultivariateEventsParams::default())
+            .await
+    }
+
+    /// Get multivariate (combo) events with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetMultivariateEventsParams::new()
+    ///     .collection_ticker("COLL-123")
+    ///     .with_nested_markets(true);
+    /// let events = client.get_multivariate_events_with_params(params).await?;
+    /// ```
+    pub async fn get_multivariate_events_with_params(
+        &self,
+        params: GetMultivariateEventsParams,
+    ) -> Result<MultivariateEventsResponse> {
+        events::get_multivariate_events(&self.http, params).await
+    }
+
+    /// Get candlestick data aggregated across all markets in an event.
+    ///
+    /// Returns OHLCV data for each market in the event.
+    ///
+    /// # Arguments
+    ///
+    /// * `series_ticker` - The series ticker containing the event
+    /// * `event_ticker` - The event ticker
+    /// * `params` - Query parameters including time range and interval
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetEventCandlesticksParams, CandlestickPeriod};
+    ///
+    /// let now = std::time::SystemTime::now()
+    ///     .duration_since(std::time::UNIX_EPOCH)
+    ///     .unwrap()
+    ///     .as_secs() as i64;
+    /// let one_day_ago = now - 86400;
+    ///
+    /// let params = GetEventCandlesticksParams::new(one_day_ago, now, CandlestickPeriod::OneHour);
+    /// let response = client.get_event_candlesticks("KXBTC", "KXBTC-25JAN", params).await?;
+    /// for (ticker, candles) in response.market_tickers.iter().zip(&response.market_candlesticks) {
+    ///     println!("{}: {} candles", ticker, candles.len());
+    /// }
+    /// ```
+    pub async fn get_event_candlesticks(
+        &self,
+        series_ticker: &str,
+        event_ticker: &str,
+        params: GetEventCandlesticksParams,
+    ) -> Result<EventCandlesticksResponse> {
+        events::get_event_candlesticks(&self.http, series_ticker, event_ticker, params).await
+    }
+
+    /// Get forecast percentile history for an event.
+    ///
+    /// Returns historical forecast data at specific percentiles.
+    ///
+    /// # Arguments
+    ///
+    /// * `series_ticker` - The series ticker containing the event
+    /// * `event_ticker` - The event ticker
+    /// * `params` - Query parameters including percentiles, time range, and interval
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetEventForecastPercentileHistoryParams, ForecastPeriod};
+    ///
+    /// let now = std::time::SystemTime::now()
+    ///     .duration_since(std::time::UNIX_EPOCH)
+    ///     .unwrap()
+    ///     .as_secs() as i64;
+    /// let one_day_ago = now - 86400;
+    ///
+    /// let params = GetEventForecastPercentileHistoryParams::new(
+    ///     vec![2500, 5000, 7500], // 25th, 50th, 75th percentiles
+    ///     one_day_ago,
+    ///     now,
+    ///     ForecastPeriod::OneHour,
+    /// );
+    /// let response = client.get_event_forecast_percentile_history("KXBTC", "KXBTC-25JAN", params).await?;
+    /// for point in &response.forecast_history {
+    ///     println!("At {}: {:?}", point.end_period_ts, point.percentile_points);
+    /// }
+    /// ```
+    pub async fn get_event_forecast_percentile_history(
+        &self,
+        series_ticker: &str,
+        event_ticker: &str,
+        params: GetEventForecastPercentileHistoryParams,
+    ) -> Result<EventForecastPercentileHistoryResponse> {
+        events::get_event_forecast_percentile_history(
+            &self.http,
+            series_ticker,
+            event_ticker,
+            params,
+        )
+        .await
     }
 
     // =========================================================================
