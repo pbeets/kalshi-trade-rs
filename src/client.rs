@@ -6,7 +6,7 @@ pub use websocket::WebSocketClient;
 
 use crate::{
     api::{
-        api_keys, communications, events, exchange, incentive_programs, live_data, markets,
+        api_keys, communications, events, exchange, fcm, incentive_programs, live_data, markets,
         milestones, multivariate, order_groups, orders, portfolio, search, series,
         structured_targets, subaccounts,
     },
@@ -21,6 +21,7 @@ use crate::{
         CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderRequest,
         CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest, CreateSubaccountResponse,
         DecreaseOrderRequest, DeleteApiKeyResponse, EventCandlesticksResponse,
+        GetFcmOrdersParams, GetFcmPositionsParams,
         EventForecastPercentileHistoryResponse, EventMetadataResponse, EventResponse,
         EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
         ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
@@ -2170,5 +2171,61 @@ impl KalshiClient {
     /// ```
     pub async fn delete_api_key(&self, api_key_id: &str) -> Result<DeleteApiKeyResponse> {
         api_keys::delete_api_key(&self.http, api_key_id).await
+    }
+
+    // =========================================================================
+    // FCM API (Futures Commission Merchant)
+    // =========================================================================
+
+    /// Get FCM orders filtered by subtrader ID.
+    ///
+    /// This endpoint is for FCM members to retrieve orders for a specific subtrader.
+    /// Requires FCM member access level.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters including the required subtrader_id
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetFcmOrdersParams, OrderStatus};
+    ///
+    /// let params = GetFcmOrdersParams::new("subtrader-123")
+    ///     .status(OrderStatus::Resting)
+    ///     .limit(100);
+    /// let response = client.get_fcm_orders(params).await?;
+    /// for order in response.orders {
+    ///     println!("Order {}: {:?}", order.order_id, order.status);
+    /// }
+    /// ```
+    pub async fn get_fcm_orders(&self, params: GetFcmOrdersParams) -> Result<OrdersResponse> {
+        fcm::get_fcm_orders(&self.http, params).await
+    }
+
+    /// Get FCM positions filtered by subtrader ID.
+    ///
+    /// This endpoint is for FCM members to retrieve market positions for a specific subtrader.
+    /// Requires FCM member access level.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters including the required subtrader_id
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetFcmPositionsParams, SettlementStatus};
+    ///
+    /// let params = GetFcmPositionsParams::new("subtrader-123")
+    ///     .settlement_status(SettlementStatus::Unsettled)
+    ///     .limit(100);
+    /// let response = client.get_fcm_positions(params).await?;
+    /// for pos in response.market_positions {
+    ///     println!("{}: {} contracts", pos.ticker, pos.position);
+    /// }
+    /// ```
+    pub async fn get_fcm_positions(&self, params: GetFcmPositionsParams) -> Result<PositionsResponse> {
+        fcm::get_fcm_positions(&self.http, params).await
     }
 }

@@ -1,15 +1,14 @@
 # Rust Kalshi Trading API Client
 
-An unofficial Rust client library for connecting to the Kalshi trading API, enabling developers to stream live market data and manage trading operations on the Kalshi prediction market exchange.
+An unofficial Rust client library for connecting to the Kalshi prediction market.
 
 ## Key Features
 
 The library provides both REST API and WebSocket streaming capabilities:
 
-- **REST Client**: Full coverage of the Kalshi v2 API including portfolio management, order operations, market data, and exchange status
+- **REST Client**: Full coverage of the Kalshi API including portfolio management, order operations, market data, and exchange status
 - **WebSocket Streaming**: Real-time ticker, trade, orderbook, and fill updates with channel-based message delivery
 - **Batch Operations**: Rate-limited batch order creation and cancellation with automatic chunking and retry logic
-- **RSA-PSS Authentication**: Secure request signing using your API key and private key
 
 ## Getting Started
 
@@ -17,8 +16,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kalshi-trade-rs = { git = "https://github.com/pbeets/kalshi-trade-rs" }
-tokio = { version = "1", features = ["full"] }
+kalshi-trade-rs = "0.1.0"
 ```
 
 Configure environment variables:
@@ -95,7 +93,6 @@ Three connection strategies are available for WebSocket connections:
 
 - **Simple**: Fast-fail on connection errors
 - **Retry**: Exponential backoff with configurable attempts
-- **AlternateWithRetry**: Primary/alternate URL switching (for failover scenarios)
 
 The library requires implementing your own reconnection loop for handling disconnections. See the `stream_reconnect` example for the recommended pattern:
 
@@ -107,4 +104,4 @@ let client = KalshiStreamClient::connect_with_strategy(&config, ConnectStrategy:
 
 ## Licensing
 
-This project is dual-licensed under Apache License 2.0 or MIT license at your option.
+This project is licensed under the MIT License.
