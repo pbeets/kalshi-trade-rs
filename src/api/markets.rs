@@ -61,12 +61,6 @@ pub async fn get_trades(http: &HttpClient, params: GetTradesParams) -> Result<Tr
 /// Get candlestick (OHLCV) data for a specific market.
 ///
 /// Returns historical price data in candlestick format.
-///
-/// # Arguments
-///
-/// * `series_ticker` - The series ticker containing the market
-/// * `ticker` - The market ticker
-/// * `params` - Query parameters including time range and interval
 pub async fn get_candlesticks(
     http: &HttpClient,
     series_ticker: &str,

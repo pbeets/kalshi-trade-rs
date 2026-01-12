@@ -5,21 +5,27 @@ pub use http::HttpClient;
 pub use websocket::WebSocketClient;
 
 use crate::{
-    api::{events, exchange, markets, orders, portfolio, search},
+    api::{
+        communications, events, exchange, markets, order_groups, orders, portfolio, search, series,
+    },
     auth::KalshiConfig,
     error::Result,
     models::{
-        AmendOrderRequest, AmendOrderResponse, BalanceResponse, BatchCancelOrdersRequest,
-        BatchCancelOrdersResponse, BatchCandlesticksResponse, BatchCreateOrdersRequest,
-        BatchCreateOrdersResponse, CancelOrderResponse, CandlesticksResponse, CreateOrderRequest,
-        DecreaseOrderRequest, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
-        ExchangeScheduleResponse, ExchangeStatusResponse, FillsResponse, FiltersBySportResponse,
-        GetBatchCandlesticksParams, GetCandlesticksParams, GetEventParams, GetEventsParams,
-        GetFillsParams, GetMarketsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
-        GetQueuePositionsParams, GetSettlementsParams, GetTradesParams, MarketResponse,
-        MarketsResponse, OrderQueuePositionResponse, OrderResponse, OrderbookResponse,
-        OrdersResponse, PositionsResponse, QueuePositionsResponse, SettlementsResponse,
-        TagsByCategoriesResponse, TradesResponse, UserDataTimestampResponse,
+        AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, BalanceResponse,
+        BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCandlesticksResponse,
+        BatchCreateOrdersRequest, BatchCreateOrdersResponse, CancelOrderResponse,
+        CandlesticksResponse, CreateOrderGroupRequest, CreateOrderRequest, CreateQuoteRequest,
+        CreateRfqRequest, DecreaseOrderRequest, EventResponse, EventsResponse,
+        ExchangeAnnouncementsResponse, ExchangeScheduleResponse, ExchangeStatusResponse,
+        FillsResponse, FiltersBySportResponse, GetBatchCandlesticksParams, GetCandlesticksParams,
+        GetEventParams, GetEventsParams, GetFillsParams, GetMarketsParams, GetOrderbookParams,
+        GetOrdersParams, GetPositionsParams, GetQueuePositionsParams, GetQuoteResponse,
+        GetRfqResponse, GetSettlementsParams, GetTradesParams, ListQuotesParams,
+        ListQuotesResponse, ListRfqsParams, ListRfqsResponse, MarketResponse, MarketsResponse,
+        OrderGroupResponse, OrderQueuePositionResponse, OrderResponse, OrderbookResponse,
+        OrdersResponse, PositionsResponse, QueuePositionsResponse, QuoteResponse, RfqResponse,
+        SeriesListResponse, SeriesResponse, SettlementsResponse, TagsByCategoriesResponse,
+        TradesResponse, UpdateOrderGroupRequest, UserDataTimestampResponse,
     },
 };
 
@@ -792,6 +798,80 @@ impl KalshiClient {
     }
 
     // =========================================================================
+    // Order Groups API
+    // =========================================================================
+
+    /// Create a new order group.
+    ///
+    /// Creates multiple orders atomically as a group.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The order group creation request
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{CreateOrderGroupRequest, CreateOrderGroupOrder, Side, Action};
+    ///
+    /// let orders = vec![
+    ///     CreateOrderGroupOrder::new("KXBTC-25JAN", Side::Yes, Action::Buy, 10).yes_price(50),
+    ///     CreateOrderGroupOrder::new("KXETH-25JAN", Side::Yes, Action::Buy, 5).yes_price(40),
+    /// ];
+    /// let request = CreateOrderGroupRequest { orders };
+    /// let response = client.create_order_group(request).await?;
+    /// ```
+    pub async fn create_order_group(
+        &self,
+        request: CreateOrderGroupRequest,
+    ) -> Result<OrderGroupResponse> {
+        order_groups::create_order_group(&self.http, request).await
+    }
+
+    /// Get an order group by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to retrieve
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_order_group("og_123").await?;
+    /// ```
+    pub async fn get_order_group(&self, order_group_id: &str) -> Result<OrderGroupResponse> {
+        order_groups::get_order_group(&self.http, order_group_id).await
+    }
+
+    /// Update an existing order group.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to update
+    /// * `request` - The update request containing orders to update or add
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{UpdateOrderGroupRequest, UpdateOrderGroupOrder, Side, Action};
+    ///
+    /// let orders = vec![
+    ///     UpdateOrderGroupOrder::new("KXBTC-25JAN", Side::Yes, Action::Buy, 20)
+    ///         .order_id("order_123")
+    ///         .yes_price(55),
+    /// ];
+    /// let request = UpdateOrderGroupRequest { orders };
+    /// let response = client.update_order_group("og_123", request).await?;
+    /// ```
+    pub async fn update_order_group(
+        &self,
+        order_group_id: &str,
+        request: UpdateOrderGroupRequest,
+    ) -> Result<OrderGroupResponse> {
+        order_groups::update_order_group(&self.http, order_group_id, request).await
+    }
+
+    // =========================================================================
     // Candlesticks API
     // =========================================================================
 
@@ -951,5 +1031,270 @@ impl KalshiClient {
     /// ```
     pub async fn get_filters_by_sport(&self) -> Result<FiltersBySportResponse> {
         search::get_filters_by_sport(&self.http).await
+    }
+
+    // =========================================================================
+    // Series API
+    // =========================================================================
+
+    /// Get details for a specific series by ticker.
+    ///
+    /// # Arguments
+    ///
+    /// * `series_ticker` - The series ticker (e.g., "KXBTC")
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_series("KXBTC").await?;
+    /// println!("Series: {}", response.series.title);
+    /// ```
+    pub async fn get_series(&self, series_ticker: &str) -> Result<SeriesResponse> {
+        series::get_series(&self.http, series_ticker).await
+    }
+
+    /// Get a list of series with default parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_series_list().await?;
+    /// for s in response.series {
+    ///     println!("{} ({})", s.title, s.ticker);
+    /// }
+    /// ```
+    pub async fn get_series_list(&self) -> Result<SeriesListResponse> {
+        self.get_series_list_with_params(crate::models::GetSeriesParams::default())
+            .await
+    }
+
+    /// Get a list of series with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetSeriesParams;
+    ///
+    /// let params = GetSeriesParams::new().category("crypto").include_volume(true);
+    /// let response = client.get_series_list_with_params(params).await?;
+    /// ```
+    pub async fn get_series_list_with_params(
+        &self,
+        params: crate::models::GetSeriesParams,
+    ) -> Result<SeriesListResponse> {
+        series::get_series_list(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Communications API (RFQs and Quotes)
+    // =========================================================================
+
+    /// Create a new RFQ (Request for Quote).
+    ///
+    /// Submits an RFQ to the exchange to request quotes from market makers.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The RFQ creation request containing ticker, size, and side
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{CreateRfqRequest, Side};
+    ///
+    /// let request = CreateRfqRequest::new("KXBTC-25JAN", 100, Side::Yes);
+    /// let response = client.create_rfq(request).await?;
+    /// println!("RFQ ID: {}", response.rfq_id);
+    /// ```
+    pub async fn create_rfq(&self, request: CreateRfqRequest) -> Result<RfqResponse> {
+        communications::create_rfq(&self.http, request).await
+    }
+
+    /// Create a new quote for an RFQ.
+    ///
+    /// Submits a quote in response to an existing RFQ.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The quote creation request containing rfq_id, ticker, price, and count
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::CreateQuoteRequest;
+    ///
+    /// let request = CreateQuoteRequest::new("rfq_123", "KXBTC-25JAN", 50, 100);
+    /// let response = client.create_quote(request).await?;
+    /// println!("Quote ID: {}", response.quote_id);
+    /// ```
+    pub async fn create_quote(&self, request: CreateQuoteRequest) -> Result<QuoteResponse> {
+        communications::create_quote(&self.http, request).await
+    }
+
+    /// Accept a quote.
+    ///
+    /// Accepts a specific quote for an RFQ, executing the trade.
+    ///
+    /// # Arguments
+    ///
+    /// * `quote_id` - The ID of the quote to accept
+    /// * `request` - The acceptance request containing price and count
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::AcceptQuoteRequest;
+    ///
+    /// let request = AcceptQuoteRequest::new(50, 100);
+    /// let response = client.accept_quote("quote_123", request).await?;
+    /// ```
+    pub async fn accept_quote(
+        &self,
+        quote_id: &str,
+        request: AcceptQuoteRequest,
+    ) -> Result<QuoteResponse> {
+        communications::accept_quote(&self.http, quote_id, request).await
+    }
+
+    /// Cancel an RFQ.
+    ///
+    /// Cancels an existing RFQ that has not yet been filled.
+    ///
+    /// # Arguments
+    ///
+    /// * `rfq_id` - The ID of the RFQ to cancel
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.cancel_rfq("rfq_123").await?;
+    /// ```
+    pub async fn cancel_rfq(&self, rfq_id: &str) -> Result<RfqResponse> {
+        communications::cancel_rfq(&self.http, rfq_id).await
+    }
+
+    /// Cancel a quote.
+    ///
+    /// Cancels an existing quote that has not yet been accepted.
+    ///
+    /// # Arguments
+    ///
+    /// * `quote_id` - The ID of the quote to cancel
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.cancel_quote("quote_123").await?;
+    /// ```
+    pub async fn cancel_quote(&self, quote_id: &str) -> Result<QuoteResponse> {
+        communications::cancel_quote(&self.http, quote_id).await
+    }
+
+    /// Get details of an RFQ.
+    ///
+    /// # Arguments
+    ///
+    /// * `rfq_id` - The ID of the RFQ to retrieve
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_rfq("rfq_123").await?;
+    /// println!("RFQ market: {}", response.rfq.market_ticker);
+    /// ```
+    pub async fn get_rfq(&self, rfq_id: &str) -> Result<GetRfqResponse> {
+        communications::get_rfq(&self.http, rfq_id).await
+    }
+
+    /// Get details of a quote.
+    ///
+    /// # Arguments
+    ///
+    /// * `quote_id` - The ID of the quote to retrieve
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_quote("quote_123").await?;
+    /// println!("Quote yes bid: {}", response.quote.yes_bid);
+    /// ```
+    pub async fn get_quote(&self, quote_id: &str) -> Result<GetQuoteResponse> {
+        communications::get_quote(&self.http, quote_id).await
+    }
+
+    /// List RFQs with default parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.list_rfqs().await?;
+    /// for rfq in response.rfqs {
+    ///     println!("{}: {}", rfq.id, rfq.market_ticker);
+    /// }
+    /// ```
+    pub async fn list_rfqs(&self) -> Result<ListRfqsResponse> {
+        self.list_rfqs_with_params(ListRfqsParams::default()).await
+    }
+
+    /// List RFQs with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::ListRfqsParams;
+    ///
+    /// let params = ListRfqsParams::new()
+    ///     .market_ticker("KXBTC-25JAN")
+    ///     .limit(50);
+    /// let response = client.list_rfqs_with_params(params).await?;
+    /// ```
+    pub async fn list_rfqs_with_params(&self, params: ListRfqsParams) -> Result<ListRfqsResponse> {
+        communications::list_rfqs(&self.http, params).await
+    }
+
+    /// List quotes with default parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.list_quotes().await?;
+    /// for quote in response.quotes {
+    ///     println!("{}: {} @ {}", quote.quote_id, quote.market_ticker, quote.yes_bid);
+    /// }
+    /// ```
+    pub async fn list_quotes(&self) -> Result<ListQuotesResponse> {
+        self.list_quotes_with_params(ListQuotesParams::default())
+            .await
+    }
+
+    /// List quotes with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::ListQuotesParams;
+    ///
+    /// let params = ListQuotesParams::new()
+    ///     .rfq_id("rfq_123")
+    ///     .limit(100);
+    /// let response = client.list_quotes_with_params(params).await?;
+    /// ```
+    pub async fn list_quotes_with_params(
+        &self,
+        params: ListQuotesParams,
+    ) -> Result<ListQuotesResponse> {
+        communications::list_quotes(&self.http, params).await
     }
 }
