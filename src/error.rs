@@ -53,6 +53,12 @@ pub enum Error {
     #[error("Percentiles count {0} exceeds maximum of {MAX_FORECAST_PERCENTILES}")]
     TooManyPercentiles(usize),
 
+    #[error("Percentile value {0} out of range: must be between 0 and 10000")]
+    PercentileOutOfRange(i32),
+
+    #[error("Cannot specify both series_ticker and collection_ticker")]
+    MutuallyExclusiveParams,
+
     #[error("Invalid timestamp range: start_ts ({0}) must be less than end_ts ({1})")]
     InvalidTimestampRange(i64, i64),
 

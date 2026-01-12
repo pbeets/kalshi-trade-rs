@@ -329,6 +329,7 @@ impl GetMultivariateEventsParams {
         self
     }
 
+    /// Set the pagination cursor for fetching subsequent pages.
     #[must_use]
     pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
         self.cursor = Some(cursor.into());
@@ -358,6 +359,28 @@ impl GetMultivariateEventsParams {
     pub fn with_nested_markets(mut self, include: bool) -> Self {
         self.with_nested_markets = Some(include);
         self
+    }
+
+    /// Validate the parameters.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if both `series_ticker` and `collection_ticker` are set.
+    pub fn validate(&self) -> crate::error::Result<()> {
+        if self.series_ticker.is_some() && self.collection_ticker.is_some() {
+            return Err(crate::error::Error::MutuallyExclusiveParams);
+        }
+        Ok(())
+    }
+
+    /// Build the query string, validating parameters first.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if both `series_ticker` and `collection_ticker` are set.
+    pub fn try_to_query_string(&self) -> crate::error::Result<String> {
+        self.validate()?;
+        Ok(self.to_query_string())
     }
 
     #[must_use]
@@ -523,6 +546,7 @@ impl GetEventForecastPercentileHistoryParams {
     ///
     /// Panics in debug builds if:
     /// - More than 10 percentiles are provided
+    /// - Any percentile value is outside 0-10000
     /// - `start_ts >= end_ts`
     ///
     /// Use [`try_new`](Self::try_new) for fallible construction.
@@ -538,6 +562,10 @@ impl GetEventForecastPercentileHistoryParams {
             "forecast percentile history supports max {} percentiles, got {}",
             MAX_FORECAST_PERCENTILES,
             percentiles.len()
+        );
+        debug_assert!(
+            percentiles.iter().all(|&p| (0..=10000).contains(&p)),
+            "all percentile values must be between 0 and 10000"
         );
         debug_assert!(
             start_ts < end_ts,
@@ -559,6 +587,7 @@ impl GetEventForecastPercentileHistoryParams {
     ///
     /// Returns an error if:
     /// - More than 10 percentiles are provided
+    /// - Any percentile value is outside 0-10000
     /// - `start_ts >= end_ts`
     pub fn try_new(
         percentiles: Vec<i32>,
@@ -568,6 +597,9 @@ impl GetEventForecastPercentileHistoryParams {
     ) -> crate::error::Result<Self> {
         if percentiles.len() > MAX_FORECAST_PERCENTILES {
             return Err(crate::error::Error::TooManyPercentiles(percentiles.len()));
+        }
+        if let Some(&p) = percentiles.iter().find(|&&p| !(0..=10000).contains(&p)) {
+            return Err(crate::error::Error::PercentileOutOfRange(p));
         }
         if start_ts >= end_ts {
             return Err(crate::error::Error::InvalidTimestampRange(start_ts, end_ts));
@@ -751,5 +783,62 @@ mod tests {
             ForecastPeriod::OneHour,
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_get_forecast_percentile_history_range_validation() {
+        // Percentile below 0
+        let result = GetEventForecastPercentileHistoryParams::try_new(
+            vec![-1],
+            1000,
+            2000,
+            ForecastPeriod::OneHour,
+        );
+        assert!(result.is_err());
+
+        // Percentile above 10000
+        let result = GetEventForecastPercentileHistoryParams::try_new(
+            vec![10001],
+            1000,
+            2000,
+            ForecastPeriod::OneHour,
+        );
+        assert!(result.is_err());
+
+        // Boundary values (0 and 10000 should be valid)
+        let result = GetEventForecastPercentileHistoryParams::try_new(
+            vec![0, 10000],
+            1000,
+            2000,
+            ForecastPeriod::OneHour,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_multivariate_events_mutual_exclusivity() {
+        // Both series_ticker and collection_ticker set - should fail
+        let params = GetMultivariateEventsParams::new()
+            .series_ticker("SERIES-1")
+            .collection_ticker("COLL-1");
+        assert!(params.validate().is_err());
+
+        // Only series_ticker - should pass
+        let params = GetMultivariateEventsParams::new().series_ticker("SERIES-1");
+        assert!(params.validate().is_ok());
+
+        // Only collection_ticker - should pass
+        let params = GetMultivariateEventsParams::new().collection_ticker("COLL-1");
+        assert!(params.validate().is_ok());
+
+        // Neither set - should pass
+        let params = GetMultivariateEventsParams::new();
+        assert!(params.validate().is_ok());
+
+        // try_to_query_string should also validate
+        let params = GetMultivariateEventsParams::new()
+            .series_ticker("SERIES-1")
+            .collection_ticker("COLL-1");
+        assert!(params.try_to_query_string().is_err());
     }
 }
