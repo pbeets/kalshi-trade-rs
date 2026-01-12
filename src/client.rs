@@ -6,39 +6,44 @@ pub use websocket::WebSocketClient;
 
 use crate::{
     api::{
-        communications, events, exchange, live_data, markets, multivariate, order_groups, orders,
-        portfolio, search, series, subaccounts,
+        api_keys, communications, events, exchange, incentive_programs, live_data, markets,
+        milestones, multivariate, order_groups, orders, portfolio, search, series,
+        structured_targets, subaccounts,
     },
     auth::KalshiConfig,
     error::Result,
     models::{
-        AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, BalanceResponse,
+        AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, ApiKeysResponse, BalanceResponse,
         BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCandlesticksResponse,
         BatchCreateOrdersRequest, BatchCreateOrdersResponse, BatchLiveDataResponse,
         CancelOrderResponse, CandlesticksResponse, CommunicationsIdResponse,
-        CreateMarketInCollectionRequest, CreateMarketInCollectionResponse,
-        CreateOrderGroupRequest, CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest,
-        CreateSubaccountRequest, CreateSubaccountResponse, DecreaseOrderRequest,
-        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
-        EventResponse, EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        CreateApiKeyRequest, CreateApiKeyResponse, CreateMarketInCollectionRequest,
+        CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderRequest,
+        CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest, CreateSubaccountResponse,
+        DecreaseOrderRequest, DeleteApiKeyResponse, EventCandlesticksResponse,
+        EventForecastPercentileHistoryResponse, EventMetadataResponse, EventResponse,
+        EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
         ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
-        GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
-        GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
-        GetEventsParams, GetFeeChangesParams, GetFillsParams, GetLookupHistoryParams,
-        GetMarketsParams, GetMultivariateCollectionsParams, GetMultivariateEventsParams,
+        GenerateApiKeyRequest, GenerateApiKeyResponse, GetBatchCandlesticksParams,
+        GetBatchLiveDataParams, GetCandlesticksParams, GetEventCandlesticksParams,
+        GetEventForecastPercentileHistoryParams, GetEventParams, GetEventsParams,
+        GetFeeChangesParams, GetFillsParams, GetLookupHistoryParams, GetMarketsParams,
+        GetMilestonesParams, GetMultivariateCollectionsParams, GetMultivariateEventsParams,
         GetOrderGroupsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
         GetQueuePositionsParams, GetQuoteResponse, GetRfqResponse, GetSettlementsParams,
-        GetSubaccountTransfersParams, GetTradesParams, ListQuotesParams, ListQuotesResponse,
-        ListRfqsParams, ListRfqsResponse, LiveDataResponse, LookupHistoryResponse,
-        LookupTickersRequest, LookupTickersResponse, MarketResponse, MarketsResponse,
-        MultivariateCollectionResponse, MultivariateCollectionsResponse,
+        GetStructuredTargetsParams, GetSubaccountTransfersParams, GetTradesParams,
+        IncentiveProgramsResponse, ListQuotesParams, ListQuotesResponse, ListRfqsParams,
+        ListRfqsResponse, LiveDataResponse, LookupHistoryResponse, LookupTickersRequest,
+        LookupTickersResponse, MarketResponse, MarketsResponse, MilestoneResponse,
+        MilestonesResponse, MultivariateCollectionResponse, MultivariateCollectionsResponse,
         MultivariateEventsResponse, OrderGroupResponse, OrderGroupsResponse,
         OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
         PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
         RfqResponse, SeriesListResponse, SeriesResponse, SettlementsResponse,
-        SubaccountBalancesResponse, SubaccountTransfersResponse, TagsByCategoriesResponse,
-        TradesResponse, TransferBetweenSubaccountsRequest, TransferResponse,
-        UpdateOrderGroupRequest, UserDataTimestampResponse,
+        StructuredTargetResponse, StructuredTargetsResponse, SubaccountBalancesResponse,
+        SubaccountTransfersResponse, TagsByCategoriesResponse, TradesResponse,
+        TransferBetweenSubaccountsRequest, TransferResponse, UpdateOrderGroupRequest,
+        UserDataTimestampResponse,
     },
 };
 
@@ -1927,5 +1932,243 @@ impl KalshiClient {
         request: LookupTickersRequest,
     ) -> Result<LookupTickersResponse> {
         multivariate::lookup_tickers(&self.http, collection_ticker, request).await
+    }
+
+    // =========================================================================
+    // Incentive Programs API
+    // =========================================================================
+
+    /// List all available incentive programs.
+    ///
+    /// Incentive programs are rewards programs for trading activity on specific markets.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let programs = client.get_incentive_programs().await?;
+    /// for program in programs.incentive_programs {
+    ///     println!("{}: {:?}", program.name.unwrap_or_default(), program.status);
+    /// }
+    /// ```
+    pub async fn get_incentive_programs(&self) -> Result<IncentiveProgramsResponse> {
+        incentive_programs::get_incentive_programs(&self.http).await
+    }
+
+    // =========================================================================
+    // Milestones API
+    // =========================================================================
+
+    /// List milestones with default parameters.
+    ///
+    /// Returns all milestones without any filtering.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let milestones = client.get_milestones().await?;
+    /// for milestone in milestones.milestones {
+    ///     println!("{}: {:?}", milestone.milestone_id.unwrap_or_default(), milestone.value);
+    /// }
+    /// ```
+    pub async fn get_milestones(&self) -> Result<MilestonesResponse> {
+        self.get_milestones_with_params(GetMilestonesParams::default())
+            .await
+    }
+
+    /// List milestones with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering (min_start_date, limit, cursor)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetMilestonesParams;
+    ///
+    /// let params = GetMilestonesParams::new()
+    ///     .min_start_date("2025-01-01T00:00:00Z")
+    ///     .limit(100);
+    /// let milestones = client.get_milestones_with_params(params).await?;
+    /// ```
+    pub async fn get_milestones_with_params(
+        &self,
+        params: GetMilestonesParams,
+    ) -> Result<MilestonesResponse> {
+        milestones::get_milestones(&self.http, params).await
+    }
+
+    /// Get a specific milestone by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `milestone_id` - The unique identifier of the milestone
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let milestone = client.get_milestone("ms_123").await?;
+    /// println!("Milestone: {:?}", milestone.milestone.title);
+    /// ```
+    pub async fn get_milestone(&self, milestone_id: &str) -> Result<MilestoneResponse> {
+        milestones::get_milestone(&self.http, milestone_id).await
+    }
+
+    // =========================================================================
+    // Structured Targets API
+    // =========================================================================
+
+    /// List structured targets with default parameters.
+    ///
+    /// Returns all structured targets without any filtering.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let targets = client.get_structured_targets().await?;
+    /// for target in targets.structured_targets {
+    ///     println!("{}: {:?}", target.structured_target_id.unwrap_or_default(), target.title);
+    /// }
+    /// ```
+    pub async fn get_structured_targets(&self) -> Result<StructuredTargetsResponse> {
+        self.get_structured_targets_with_params(GetStructuredTargetsParams::default())
+            .await
+    }
+
+    /// List structured targets with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for pagination (limit, cursor)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetStructuredTargetsParams;
+    ///
+    /// let params = GetStructuredTargetsParams::new().limit(100);
+    /// let targets = client.get_structured_targets_with_params(params).await?;
+    /// ```
+    pub async fn get_structured_targets_with_params(
+        &self,
+        params: GetStructuredTargetsParams,
+    ) -> Result<StructuredTargetsResponse> {
+        structured_targets::get_structured_targets(&self.http, params).await
+    }
+
+    /// Get a specific structured target by ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `structured_target_id` - The unique identifier of the structured target
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let target = client.get_structured_target("st_123").await?;
+    /// println!("Target: {:?}", target.structured_target.title);
+    /// ```
+    pub async fn get_structured_target(
+        &self,
+        structured_target_id: &str,
+    ) -> Result<StructuredTargetResponse> {
+        structured_targets::get_structured_target(&self.http, structured_target_id).await
+    }
+
+    // =========================================================================
+    // API Keys API
+    // =========================================================================
+
+    /// List all API keys for the authenticated user.
+    ///
+    /// Returns all API keys associated with the account.
+    /// Note: API keys are typically managed via the Kalshi web UI.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let keys = client.get_api_keys().await?;
+    /// for key in keys.api_keys {
+    ///     println!("{}: {:?}", key.api_key.unwrap_or_default(), key.name);
+    /// }
+    /// ```
+    pub async fn get_api_keys(&self) -> Result<ApiKeysResponse> {
+        api_keys::get_api_keys(&self.http).await
+    }
+
+    /// Create a new API key with a user-provided public key.
+    ///
+    /// Creates an API key using the provided RSA public key.
+    /// Available for Premier/Market Maker tier users.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The API key creation request containing name and public key
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::CreateApiKeyRequest;
+    ///
+    /// let public_key = std::fs::read_to_string("my_public_key.pem")?;
+    /// let request = CreateApiKeyRequest::new("My Trading Bot", public_key);
+    /// let response = client.create_api_key(request).await?;
+    /// println!("Created API key: {:?}", response.api_key.api_key);
+    /// ```
+    pub async fn create_api_key(
+        &self,
+        request: CreateApiKeyRequest,
+    ) -> Result<CreateApiKeyResponse> {
+        api_keys::create_api_key(&self.http, request).await
+    }
+
+    /// Generate a new API key with platform-generated keypair.
+    ///
+    /// Creates an API key with a platform-generated RSA keypair.
+    /// The private key is returned only once and cannot be retrieved later.
+    ///
+    /// **Important**: Store the returned private key securely. It will not
+    /// be available again after this call.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The API key generation request containing the key name
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GenerateApiKeyRequest;
+    ///
+    /// let request = GenerateApiKeyRequest::new("My Trading Bot");
+    /// let response = client.generate_api_key(request).await?;
+    /// println!("API Key: {:?}", response.api_key.api_key);
+    /// // IMPORTANT: Save the private key securely!
+    /// std::fs::write("private_key.pem", &response.private_key)?;
+    /// ```
+    pub async fn generate_api_key(
+        &self,
+        request: GenerateApiKeyRequest,
+    ) -> Result<GenerateApiKeyResponse> {
+        api_keys::generate_api_key(&self.http, request).await
+    }
+
+    /// Delete an API key.
+    ///
+    /// Permanently deletes the specified API key. This action cannot be undone.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key_id` - The API key identifier to delete
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.delete_api_key("ak_123").await?;
+    /// if response.deleted.unwrap_or(false) {
+    ///     println!("API key deleted successfully");
+    /// }
+    /// ```
+    pub async fn delete_api_key(&self, api_key_id: &str) -> Result<DeleteApiKeyResponse> {
+        api_keys::delete_api_key(&self.http, api_key_id).await
     }
 }
