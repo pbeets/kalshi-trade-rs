@@ -23,7 +23,7 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 
 | Category | Implemented | Total | Coverage |
 |----------|-------------|-------|----------|
-| Exchange | 4 | 5 | 80% |
+| Exchange | 5 | 5 | 100% |
 | Orders | 10 | 10 | 100% |
 | Order Groups | 6 | 6 | 100% |
 | Portfolio | 5 | 5 | 100% |
@@ -31,7 +31,7 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 | Markets | 6 | 6 | 100% |
 | Events | 6 | 6 | 100% |
 | Series | 2 | 2 | 100% |
-| Communications (RFQ/Quotes) | 10 | 12 | 83% |
+| Communications (RFQ/Quotes) | 12 | 12 | 100% |
 | Search | 2 | 2 | 100% |
 | Live Data | 2 | 2 | 100% |
 | Multivariate Collections | 5 | 5 | 100% |
@@ -40,7 +40,7 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 | Structured Targets | 0 | 2 | 0% |
 | Milestones | 0 | 2 | 0% |
 | Incentive Programs | 0 | 1 | 0% |
-| **TOTAL** | **63** | **77** | **82%** |
+| **TOTAL** | **66** | **77** | **86%** |
 
 ---
 
@@ -52,9 +52,9 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 | ✅ | GET | `/exchange/schedule` | `get_exchange_schedule()` | Public endpoint |
 | ✅ | GET | `/exchange/announcements` | `get_exchange_announcements()` | Public endpoint |
 | ✅ | GET | `/exchange/user_data_timestamp` | `get_user_data_timestamp()` | Requires auth |
-| ❌ | GET | `/series/fee_changes` | - | Fee change notifications |
+| 🔲 | GET | `/series/fee_changes` | `get_fee_changes()`, `get_fee_changes_with_params()` | Fee change notifications |
 
-**Source file**: `src/api/exchange.rs`
+**Source files**: `src/api/exchange.rs`, `src/api/series.rs`
 
 ---
 
@@ -178,8 +178,8 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 | 🔲 | GET | `/communications/quotes/{id}` | `get_quote()` | |
 | 🔲 | DELETE | `/communications/quotes/{id}` | `cancel_quote()` | |
 | 🔲 | PUT | `/communications/quotes/{id}/accept` | `accept_quote()` | |
-| ❌ | PUT | `/communications/quotes/{id}/confirm` | - | Quote confirmation |
-| ❌ | GET | `/communications/id` | - | Get user's comms ID |
+| 🔲 | PUT | `/communications/quotes/{id}/confirm` | `confirm_quote()` | Starts order execution timer |
+| 🔲 | GET | `/communications/id` | `get_communications_id()` | Get user's comms ID |
 
 **Source file**: `src/api/communications.rs`
 
@@ -264,19 +264,6 @@ Read-only info.
 |--------|----------|-------------|
 | GET | `/incentive_programs` | List available incentive programs |
 
-### Exchange (Partial)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/series/fee_changes` | Get series fee change history |
-
-### Communications (Partial)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/communications/id` | Get user's communications identifier |
-| PUT | `/communications/quotes/{id}/confirm` | Confirm a quote |
-
 ---
 
 ## Test Coverage
@@ -298,10 +285,10 @@ The following implemented endpoints need verification examples:
 - **Candlesticks**: `get_candlesticks()`, `get_batch_candlesticks()`, `get_event_candlesticks()`
 - **Forecast**: `get_event_forecast_percentile_history()`
 - **Settlements**: `get_settlements()`
-- **Series**: `get_series()`, `get_series_list()`
+- **Series**: `get_series()`, `get_series_list()`, `get_fee_changes()`
 - **Order Groups**: All 6 endpoints
 - **Subaccounts**: All 5 endpoints
-- **Communications**: All 10 endpoints
+- **Communications**: All 12 endpoints (including `confirm_quote()`, `get_communications_id()`)
 - **Search**: `get_tags_by_categories()`, `get_filters_by_sport()`
 - **Live Data**: `get_live_data()`, `get_batch_live_data()`
 - **Multivariate Collections**: All 5 endpoints
