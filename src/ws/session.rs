@@ -349,7 +349,7 @@ impl KalshiStreamSession {
                     } else {
                         // Send a ping
                         let ping_data = b"health".to_vec();
-                        if let Err(e) = self.ws_writer.send(Message::Ping(ping_data)).await {
+                        if let Err(e) = self.ws_writer.send(Message::Ping(ping_data.into())).await {
                             error!("Failed to send ping: {}", e);
                             disconnect_msg = Some(StreamMessage::ConnectionLost {
                                 reason: format!("Failed to send ping: {}", e),
@@ -493,7 +493,7 @@ impl KalshiStreamSession {
                 );
 
                 // Send the subscribe message
-                if let Err(e) = self.ws_writer.send(Message::Text(msg)).await {
+                if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
                     error!("Failed to send subscribe message: {}", e);
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
@@ -517,7 +517,7 @@ impl KalshiStreamSession {
                 self.request_handler.register(request_id, tx);
 
                 // Send the unsubscribe message
-                if let Err(e) = self.ws_writer.send(Message::Text(msg)).await {
+                if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
                     error!("Failed to send unsubscribe message: {}", e);
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
