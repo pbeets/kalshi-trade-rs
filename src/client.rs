@@ -6,29 +6,37 @@ pub use websocket::WebSocketClient;
 
 use crate::{
     api::{
-        communications, events, exchange, markets, order_groups, orders, portfolio, search, series,
+        communications, events, exchange, live_data, markets, multivariate, order_groups, orders,
+        portfolio, search, series, subaccounts,
     },
     auth::KalshiConfig,
     error::Result,
     models::{
         AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, BalanceResponse,
         BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCandlesticksResponse,
-        BatchCreateOrdersRequest, BatchCreateOrdersResponse, CancelOrderResponse,
-        CandlesticksResponse, CreateOrderGroupRequest, CreateOrderRequest, CreateQuoteRequest,
-        CreateRfqRequest, DecreaseOrderRequest, EventResponse, EventsResponse,
-        ExchangeAnnouncementsResponse, ExchangeScheduleResponse, ExchangeStatusResponse,
-        FillsResponse, FiltersBySportResponse, GetBatchCandlesticksParams, GetCandlesticksParams,
-        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+        BatchCreateOrdersRequest, BatchCreateOrdersResponse, BatchLiveDataResponse,
+        CancelOrderResponse, CandlesticksResponse, CreateMarketInCollectionRequest,
+        CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderRequest,
+        CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest, CreateSubaccountResponse,
+        DecreaseOrderRequest, EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
+        EventMetadataResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
+        ExchangeScheduleResponse, ExchangeStatusResponse, FillsResponse, FiltersBySportResponse,
+        GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
         GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
-        GetEventsParams, GetFillsParams, GetMarketsParams, GetMultivariateEventsParams,
-        GetOrderbookParams, MultivariateEventsResponse,
-        GetOrdersParams, GetPositionsParams, GetQueuePositionsParams, GetQuoteResponse,
-        GetRfqResponse, GetSettlementsParams, GetTradesParams, ListQuotesParams,
-        ListQuotesResponse, ListRfqsParams, ListRfqsResponse, MarketResponse, MarketsResponse,
-        OrderGroupResponse, OrderQueuePositionResponse, OrderResponse, OrderbookResponse,
-        OrdersResponse, PositionsResponse, QueuePositionsResponse, QuoteResponse, RfqResponse,
-        SeriesListResponse, SeriesResponse, SettlementsResponse, TagsByCategoriesResponse,
-        TradesResponse, UpdateOrderGroupRequest, UserDataTimestampResponse,
+        GetEventsParams, GetFillsParams, GetLookupHistoryParams, GetMarketsParams,
+        GetMultivariateCollectionsParams, GetMultivariateEventsParams, GetOrderGroupsParams,
+        GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
+        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetSubaccountTransfersParams,
+        GetTradesParams, ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse,
+        LiveDataResponse, LookupHistoryResponse, LookupTickersRequest, LookupTickersResponse,
+        MarketResponse, MarketsResponse, MultivariateCollectionResponse,
+        MultivariateCollectionsResponse, MultivariateEventsResponse, OrderGroupResponse,
+        OrderGroupsResponse, OrderQueuePositionResponse, OrderResponse, OrderbookResponse,
+        OrdersResponse, PositionsResponse, QueuePositionsResponse, QuoteResponse,
+        RestingOrderValueResponse, RfqResponse, SeriesListResponse, SeriesResponse,
+        SettlementsResponse, SubaccountBalancesResponse, SubaccountTransfersResponse,
+        TagsByCategoriesResponse, TradesResponse, TransferBetweenSubaccountsRequest,
+        TransferResponse, UpdateOrderGroupRequest, UserDataTimestampResponse,
     },
 };
 
@@ -1016,6 +1024,80 @@ impl KalshiClient {
         order_groups::update_order_group(&self.http, order_group_id, request).await
     }
 
+    /// List all order groups with default parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let groups = client.list_order_groups().await?;
+    /// for group in groups.order_groups {
+    ///     println!("Group {}: {} orders", group.order_group_id, group.orders.len());
+    /// }
+    /// ```
+    pub async fn list_order_groups(&self) -> Result<OrderGroupsResponse> {
+        self.list_order_groups_with_params(GetOrderGroupsParams::default())
+            .await
+    }
+
+    /// List all order groups with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetOrderGroupsParams;
+    ///
+    /// let params = GetOrderGroupsParams::new().limit(10);
+    /// let groups = client.list_order_groups_with_params(params).await?;
+    /// ```
+    pub async fn list_order_groups_with_params(
+        &self,
+        params: GetOrderGroupsParams,
+    ) -> Result<OrderGroupsResponse> {
+        order_groups::list_order_groups(&self.http, params).await
+    }
+
+    /// Delete an order group.
+    ///
+    /// Deletes an order group and cancels all orders within it.
+    /// This permanently removes the group.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to delete
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.delete_order_group("og_123").await?;
+    /// println!("Deleted group: {}", response.order_group.order_group_id);
+    /// ```
+    pub async fn delete_order_group(&self, order_group_id: &str) -> Result<OrderGroupResponse> {
+        order_groups::delete_order_group(&self.http, order_group_id).await
+    }
+
+    /// Reset an order group.
+    ///
+    /// Resets the order group's matched contracts counter to zero,
+    /// allowing new orders to be placed again after the limit was hit.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to reset
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.reset_order_group("og_123").await?;
+    /// println!("Reset group: {}", response.order_group.order_group_id);
+    /// ```
+    pub async fn reset_order_group(&self, order_group_id: &str) -> Result<OrderGroupResponse> {
+        order_groups::reset_order_group(&self.http, order_group_id).await
+    }
+
     // =========================================================================
     // Candlesticks API
     // =========================================================================
@@ -1441,5 +1523,332 @@ impl KalshiClient {
         params: ListQuotesParams,
     ) -> Result<ListQuotesResponse> {
         communications::list_quotes(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Subaccounts API
+    // =========================================================================
+
+    /// Create a new subaccount.
+    ///
+    /// Creates a new numbered subaccount. Subaccounts are numbered sequentially
+    /// starting from 1, up to a maximum of 32 per user.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::CreateSubaccountRequest;
+    ///
+    /// let request = CreateSubaccountRequest::with_name("Trading Bot");
+    /// let response = client.create_subaccount(request).await?;
+    /// println!("Created subaccount: {}", response.subaccount.subaccount_id);
+    /// ```
+    pub async fn create_subaccount(
+        &self,
+        request: CreateSubaccountRequest,
+    ) -> Result<CreateSubaccountResponse> {
+        subaccounts::create_subaccount(&self.http, request).await
+    }
+
+    /// Transfer funds between subaccounts.
+    ///
+    /// Transfers funds between the authenticated user's subaccounts.
+    /// Use 0 for the primary account, or 1-32 for numbered subaccounts.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::TransferBetweenSubaccountsRequest;
+    ///
+    /// // Transfer $100 from primary (0) to subaccount 1
+    /// let request = TransferBetweenSubaccountsRequest::new(0, 1, 10000);
+    /// let response = client.transfer_between_subaccounts(request).await?;
+    /// println!("Transfer ID: {}", response.transfer.transfer_id);
+    /// ```
+    pub async fn transfer_between_subaccounts(
+        &self,
+        request: TransferBetweenSubaccountsRequest,
+    ) -> Result<TransferResponse> {
+        subaccounts::transfer_between_subaccounts(&self.http, request).await
+    }
+
+    /// Get balances for all subaccounts.
+    ///
+    /// Returns the balance for all subaccounts including the primary account.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let balances = client.get_subaccount_balances().await?;
+    /// for balance in balances.balances {
+    ///     println!("Subaccount {}: ${:.2}",
+    ///         balance.subaccount_id,
+    ///         balance.balance_dollars()
+    ///     );
+    /// }
+    /// ```
+    pub async fn get_subaccount_balances(&self) -> Result<SubaccountBalancesResponse> {
+        subaccounts::get_subaccount_balances(&self.http).await
+    }
+
+    /// Get subaccount transfer history with default parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let transfers = client.get_subaccount_transfers().await?;
+    /// for transfer in transfers.transfers {
+    ///     println!("{} -> {}: ${:.2}",
+    ///         transfer.from_subaccount,
+    ///         transfer.to_subaccount,
+    ///         transfer.amount_dollars()
+    ///     );
+    /// }
+    /// ```
+    pub async fn get_subaccount_transfers(&self) -> Result<SubaccountTransfersResponse> {
+        self.get_subaccount_transfers_with_params(GetSubaccountTransfersParams::default())
+            .await
+    }
+
+    /// Get subaccount transfer history with custom parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetSubaccountTransfersParams;
+    ///
+    /// let params = GetSubaccountTransfersParams::new()
+    ///     .from_subaccount(0)
+    ///     .limit(50);
+    /// let transfers = client.get_subaccount_transfers_with_params(params).await?;
+    /// ```
+    pub async fn get_subaccount_transfers_with_params(
+        &self,
+        params: GetSubaccountTransfersParams,
+    ) -> Result<SubaccountTransfersResponse> {
+        subaccounts::get_subaccount_transfers(&self.http, params).await
+    }
+
+    /// Get total resting order value.
+    ///
+    /// Returns the total value in cents of all resting orders.
+    /// This endpoint is primarily intended for FCM members.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let value = client.get_resting_order_value().await?;
+    /// println!("Total resting order value: ${:.2}",
+    ///     value.total_resting_order_value_dollars()
+    /// );
+    /// ```
+    pub async fn get_resting_order_value(&self) -> Result<RestingOrderValueResponse> {
+        subaccounts::get_resting_order_value(&self.http).await
+    }
+
+    // =========================================================================
+    // Live Data API
+    // =========================================================================
+
+    /// Get live data for a specific milestone.
+    ///
+    /// Returns current live data for a single milestone.
+    ///
+    /// # Arguments
+    ///
+    /// * `milestone_type` - The type of milestone (e.g., "price", "score")
+    /// * `milestone_id` - The unique milestone identifier
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let data = client.get_live_data("price", "btc-usd").await?;
+    /// if let Some(value) = data.live_data.value {
+    ///     println!("Current value: {}", value);
+    /// }
+    /// ```
+    pub async fn get_live_data(
+        &self,
+        milestone_type: &str,
+        milestone_id: &str,
+    ) -> Result<LiveDataResponse> {
+        live_data::get_live_data(&self.http, milestone_type, milestone_id).await
+    }
+
+    /// Get live data for multiple milestones in batch.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetBatchLiveDataParams;
+    ///
+    /// let params = GetBatchLiveDataParams::from_ids(&["ms1", "ms2", "ms3"]);
+    /// let data = client.get_batch_live_data(params).await?;
+    /// for entry in data.live_data {
+    ///     println!("{}: {:?}", entry.milestone_id, entry.value);
+    /// }
+    /// ```
+    pub async fn get_batch_live_data(
+        &self,
+        params: GetBatchLiveDataParams,
+    ) -> Result<BatchLiveDataResponse> {
+        live_data::get_batch_live_data(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Multivariate Event Collections API
+    // =========================================================================
+
+    /// List multivariate event collections with default parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let collections = client.get_multivariate_collections().await?;
+    /// for collection in collections.collections {
+    ///     println!("{}: {}", collection.collection_ticker, collection.title.unwrap_or_default());
+    /// }
+    /// ```
+    pub async fn get_multivariate_collections(&self) -> Result<MultivariateCollectionsResponse> {
+        self.get_multivariate_collections_with_params(GetMultivariateCollectionsParams::default())
+            .await
+    }
+
+    /// List multivariate event collections with custom parameters.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetMultivariateCollectionsParams;
+    ///
+    /// let params = GetMultivariateCollectionsParams::new()
+    ///     .series_ticker("KXBTC")
+    ///     .limit(50);
+    /// let collections = client.get_multivariate_collections_with_params(params).await?;
+    /// ```
+    pub async fn get_multivariate_collections_with_params(
+        &self,
+        params: GetMultivariateCollectionsParams,
+    ) -> Result<MultivariateCollectionsResponse> {
+        multivariate::get_multivariate_collections(&self.http, params).await
+    }
+
+    /// Get a specific multivariate event collection.
+    ///
+    /// # Arguments
+    ///
+    /// * `collection_ticker` - The collection ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let collection = client.get_multivariate_collection("KXBTC-STRIKES").await?;
+    /// if let Some(vars) = &collection.collection.variables {
+    ///     for var in vars {
+    ///         println!("Variable: {}", var.name);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_multivariate_collection(
+        &self,
+        collection_ticker: &str,
+    ) -> Result<MultivariateCollectionResponse> {
+        multivariate::get_multivariate_collection(&self.http, collection_ticker).await
+    }
+
+    /// Create a market in a multivariate event collection.
+    ///
+    /// Creates a new market with the specified variable combination.
+    /// If the market already exists, returns the existing ticker.
+    ///
+    /// # Arguments
+    ///
+    /// * `collection_ticker` - The collection ticker
+    /// * `request` - The market creation request with variable values
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::CreateMarketInCollectionRequest;
+    ///
+    /// let request = CreateMarketInCollectionRequest::empty()
+    ///     .variable("date", "2025-01-15")
+    ///     .variable("strike", 50000);
+    /// let response = client.create_market_in_collection("KXBTC-STRIKES", request).await?;
+    /// println!("Market ticker: {}", response.ticker);
+    /// ```
+    pub async fn create_market_in_collection(
+        &self,
+        collection_ticker: &str,
+        request: CreateMarketInCollectionRequest,
+    ) -> Result<CreateMarketInCollectionResponse> {
+        multivariate::create_market_in_collection(&self.http, collection_ticker, request).await
+    }
+
+    /// Get lookup history for a multivariate event collection with default parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `collection_ticker` - The collection ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let history = client.get_lookup_history("KXBTC-STRIKES").await?;
+    /// for entry in history.lookups {
+    ///     println!("{:?} -> {:?}", entry.variables, entry.ticker);
+    /// }
+    /// ```
+    pub async fn get_lookup_history(
+        &self,
+        collection_ticker: &str,
+    ) -> Result<LookupHistoryResponse> {
+        self.get_lookup_history_with_params(collection_ticker, GetLookupHistoryParams::default())
+            .await
+    }
+
+    /// Get lookup history for a multivariate event collection with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `collection_ticker` - The collection ticker
+    /// * `params` - Query parameters for pagination
+    pub async fn get_lookup_history_with_params(
+        &self,
+        collection_ticker: &str,
+        params: GetLookupHistoryParams,
+    ) -> Result<LookupHistoryResponse> {
+        multivariate::get_lookup_history(&self.http, collection_ticker, params).await
+    }
+
+    /// Lookup tickers for a variable combination.
+    ///
+    /// Looks up the market ticker for a given variable combination.
+    /// Returns 404 if the market doesn't exist.
+    ///
+    /// # Arguments
+    ///
+    /// * `collection_ticker` - The collection ticker
+    /// * `request` - The lookup request with variable values
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::LookupTickersRequest;
+    ///
+    /// let request = LookupTickersRequest::empty()
+    ///     .variable("date", "2025-01-15")
+    ///     .variable("strike", 50000);
+    /// let response = client.lookup_tickers("KXBTC-STRIKES", request).await?;
+    /// if let Some(ticker) = response.ticker {
+    ///     println!("Found market: {}", ticker);
+    /// }
+    /// ```
+    pub async fn lookup_tickers(
+        &self,
+        collection_ticker: &str,
+        request: LookupTickersRequest,
+    ) -> Result<LookupTickersResponse> {
+        multivariate::lookup_tickers(&self.http, collection_ticker, request).await
     }
 }

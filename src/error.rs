@@ -70,6 +70,15 @@ pub enum Error {
 
     #[error("Market tickers required for channels: {0}")]
     MissingMarketTickers(String),
+
+    #[error("Invalid subaccount ID {0}: must be between 0 and 32")]
+    InvalidSubaccountId(i32),
+
+    #[error("Cannot transfer between same subaccount")]
+    SameSubaccountTransfer,
+
+    #[error("Transfer amount must be positive, got {0}")]
+    InvalidTransferAmount(i64),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

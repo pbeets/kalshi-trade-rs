@@ -183,6 +183,16 @@ impl HttpClient {
         response.json::<T>().await.map_err(Error::Http)
     }
 
+    /// Make a PUT request with an empty body and deserialize the response.
+    ///
+    /// # Arguments
+    /// * `path` - The API path
+    pub async fn put_empty<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
+        let request = self.build_request(Method::PUT, path)?;
+        let response = self.execute(request).await?;
+        response.json::<T>().await.map_err(Error::Http)
+    }
+
     /// Get the base URL for this client.
     pub fn base_url(&self) -> &str {
         &self.base_url
