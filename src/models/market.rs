@@ -242,8 +242,9 @@ pub struct Market {
     pub cap_strike: Option<f64>,
     #[serde(default)]
     pub functional_strike: Option<String>,
+    /// Custom strike value - can be a string or an object depending on market type.
     #[serde(default)]
-    pub custom_strike: Option<String>,
+    pub custom_strike: Option<serde_json::Value>,
 
     #[serde(default)]
     pub mve_collection_ticker: Option<String>,
