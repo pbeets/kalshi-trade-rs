@@ -50,6 +50,12 @@ pub enum Error {
     #[error("Invalid timestamp range: start_ts ({0}) must be less than end_ts ({1})")]
     InvalidTimestampRange(i64, i64),
 
+    #[error("Invalid price {0}: must be between 1 and 99")]
+    InvalidPrice(i64),
+
+    #[error("Invalid quantity {0}: must be positive")]
+    InvalidQuantity(i64),
+
     #[error("Market tickers required for channels: {0}")]
     MissingMarketTickers(String),
 }
