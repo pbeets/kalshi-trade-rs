@@ -15,28 +15,30 @@ use crate::{
         AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, BalanceResponse,
         BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCandlesticksResponse,
         BatchCreateOrdersRequest, BatchCreateOrdersResponse, BatchLiveDataResponse,
-        CancelOrderResponse, CandlesticksResponse, CreateMarketInCollectionRequest,
-        CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderRequest,
-        CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest, CreateSubaccountResponse,
-        DecreaseOrderRequest, EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
-        EventMetadataResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
-        ExchangeScheduleResponse, ExchangeStatusResponse, FillsResponse, FiltersBySportResponse,
+        CancelOrderResponse, CandlesticksResponse, CommunicationsIdResponse,
+        CreateMarketInCollectionRequest, CreateMarketInCollectionResponse,
+        CreateOrderGroupRequest, CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest,
+        CreateSubaccountRequest, CreateSubaccountResponse, DecreaseOrderRequest,
+        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+        EventResponse, EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
         GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
         GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
-        GetEventsParams, GetFillsParams, GetLookupHistoryParams, GetMarketsParams,
-        GetMultivariateCollectionsParams, GetMultivariateEventsParams, GetOrderGroupsParams,
-        GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
-        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetSubaccountTransfersParams,
-        GetTradesParams, ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse,
-        LiveDataResponse, LookupHistoryResponse, LookupTickersRequest, LookupTickersResponse,
-        MarketResponse, MarketsResponse, MultivariateCollectionResponse,
-        MultivariateCollectionsResponse, MultivariateEventsResponse, OrderGroupResponse,
-        OrderGroupsResponse, OrderQueuePositionResponse, OrderResponse, OrderbookResponse,
-        OrdersResponse, PositionsResponse, QueuePositionsResponse, QuoteResponse,
-        RestingOrderValueResponse, RfqResponse, SeriesListResponse, SeriesResponse,
-        SettlementsResponse, SubaccountBalancesResponse, SubaccountTransfersResponse,
-        TagsByCategoriesResponse, TradesResponse, TransferBetweenSubaccountsRequest,
-        TransferResponse, UpdateOrderGroupRequest, UserDataTimestampResponse,
+        GetEventsParams, GetFeeChangesParams, GetFillsParams, GetLookupHistoryParams,
+        GetMarketsParams, GetMultivariateCollectionsParams, GetMultivariateEventsParams,
+        GetOrderGroupsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
+        GetQueuePositionsParams, GetQuoteResponse, GetRfqResponse, GetSettlementsParams,
+        GetSubaccountTransfersParams, GetTradesParams, ListQuotesParams, ListQuotesResponse,
+        ListRfqsParams, ListRfqsResponse, LiveDataResponse, LookupHistoryResponse,
+        LookupTickersRequest, LookupTickersResponse, MarketResponse, MarketsResponse,
+        MultivariateCollectionResponse, MultivariateCollectionsResponse,
+        MultivariateEventsResponse, OrderGroupResponse, OrderGroupsResponse,
+        OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
+        PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
+        RfqResponse, SeriesListResponse, SeriesResponse, SettlementsResponse,
+        SubaccountBalancesResponse, SubaccountTransfersResponse, TagsByCategoriesResponse,
+        TradesResponse, TransferBetweenSubaccountsRequest, TransferResponse,
+        UpdateOrderGroupRequest, UserDataTimestampResponse,
     },
 };
 
@@ -1316,6 +1318,47 @@ impl KalshiClient {
         series::get_series_list(&self.http, params).await
     }
 
+    /// Get series fee changes with default parameters.
+    ///
+    /// Returns upcoming fee changes for all series. By default,
+    /// historical fee changes are not included.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_fee_changes().await?;
+    /// for change in response.series_fee_change_arr {
+    ///     println!("{}: {:?} @ {}", change.series_ticker, change.fee_type, change.scheduled_ts);
+    /// }
+    /// ```
+    pub async fn get_fee_changes(&self) -> Result<FeeChangesResponse> {
+        self.get_fee_changes_with_params(GetFeeChangesParams::default())
+            .await
+    }
+
+    /// Get series fee changes with custom parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetFeeChangesParams;
+    ///
+    /// let params = GetFeeChangesParams::new()
+    ///     .series_ticker("KXBTC")
+    ///     .show_historical(true);
+    /// let response = client.get_fee_changes_with_params(params).await?;
+    /// ```
+    pub async fn get_fee_changes_with_params(
+        &self,
+        params: GetFeeChangesParams,
+    ) -> Result<FeeChangesResponse> {
+        series::get_fee_changes(&self.http, params).await
+    }
+
     // =========================================================================
     // Communications API (RFQs and Quotes)
     // =========================================================================
@@ -1523,6 +1566,40 @@ impl KalshiClient {
         params: ListQuotesParams,
     ) -> Result<ListQuotesResponse> {
         communications::list_quotes(&self.http, params).await
+    }
+
+    /// Get the communications ID of the logged-in user.
+    ///
+    /// Returns the user's public communications ID used to identify them
+    /// in RFQ/quote interactions.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let response = client.get_communications_id().await?;
+    /// println!("Communications ID: {}", response.communications_id);
+    /// ```
+    pub async fn get_communications_id(&self) -> Result<CommunicationsIdResponse> {
+        communications::get_communications_id(&self.http).await
+    }
+
+    /// Confirm a quote.
+    ///
+    /// Confirms a quote, starting a timer for order execution.
+    /// This is used in the RFQ workflow after a quote has been accepted.
+    ///
+    /// # Arguments
+    ///
+    /// * `quote_id` - The ID of the quote to confirm
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// client.confirm_quote("quote_123").await?;
+    /// println!("Quote confirmed!");
+    /// ```
+    pub async fn confirm_quote(&self, quote_id: &str) -> Result<()> {
+        communications::confirm_quote(&self.http, quote_id).await
     }
 
     // =========================================================================
