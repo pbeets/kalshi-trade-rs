@@ -25,9 +25,9 @@ mod subaccount;
 pub use balance::BalanceResponse;
 pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
 pub use communications::{
-    AcceptQuoteRequest, CreateQuoteRequest, CreateRfqRequest, GetQuoteResponse, GetRfqResponse,
-    ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, Quote, QuoteResponse,
-    Rfq, RfqResponse,
+    AcceptQuoteRequest, CommunicationsIdResponse, CreateQuoteRequest, CreateRfqRequest,
+    GetQuoteResponse, GetRfqResponse, ListQuotesParams, ListQuotesResponse, ListRfqsParams,
+    ListRfqsResponse, Quote, QuoteResponse, Rfq, RfqResponse,
 };
 pub use event::{
     Event, EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
@@ -74,7 +74,10 @@ pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsR
 pub use search::{
     CompetitionFilter, FiltersBySportResponse, SportFilter, TagsByCategoriesResponse,
 };
-pub use series::{GetSeriesParams, Series, SeriesListResponse, SeriesResponse};
+pub use series::{
+    FeeChangesResponse, FeeType, GetFeeChangesParams, GetSeriesParams, Series, SeriesFeeChange,
+    SeriesListResponse, SeriesResponse,
+};
 pub use settlement::{GetSettlementsParams, Settlement, SettlementsResponse};
 pub use subaccount::{
     CreateSubaccountRequest, CreateSubaccountResponse, GetSubaccountTransfersParams,
