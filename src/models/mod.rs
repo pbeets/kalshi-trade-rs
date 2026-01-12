@@ -23,7 +23,8 @@ pub use balance::BalanceResponse;
 pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
 pub use communications::{
     AcceptQuoteRequest, CreateQuoteRequest, CreateRfqRequest, GetQuoteResponse, GetRfqResponse,
-    ListQuotesResponse, ListRfqsResponse, Quote, QuoteResponse, Rfq, RfqResponse,
+    ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, Quote, QuoteResponse,
+    Rfq, RfqResponse,
 };
 pub use event::{
     Event, EventResponse, EventStatus, EventsResponse, GetEventParams, GetEventsParams, Milestone,

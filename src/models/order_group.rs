@@ -283,6 +283,7 @@ pub struct OrderGroup {
     pub created_at: i64,
     pub updated_at: i64,
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
