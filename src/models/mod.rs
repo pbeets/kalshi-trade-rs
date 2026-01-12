@@ -9,6 +9,7 @@ mod common;
 mod communications;
 mod event;
 mod exchange;
+mod fcm;
 mod fill;
 mod incentive_program;
 mod live_data;
@@ -49,6 +50,7 @@ pub use exchange::{
     ExchangeSchedule, ExchangeScheduleResponse, ExchangeStatusResponse, MaintenanceWindow,
     StandardHoursPeriod, TradingSession, UserDataTimestampResponse,
 };
+pub use fcm::{GetFcmOrdersParams, GetFcmPositionsParams, SettlementStatus};
 pub use fill::{Fill, FillsResponse, GetFillsParams};
 pub use incentive_program::{IncentiveProgram, IncentiveProgramsResponse};
 pub use live_data::{
