@@ -147,6 +147,196 @@ impl AcceptQuoteRequest {
     }
 }
 
+/// Query parameters for GET /communications/rfqs.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct ListRfqsParams {
+    /// Pagination cursor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    /// Filter by event ticker (comma-separated, max 10).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_ticker: Option<String>,
+    /// Filter by market ticker.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub market_ticker: Option<String>,
+    /// Number of results per page (1-100, default 100).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i32>,
+    /// Filter by RFQ status.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Filter by creator user ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_user_id: Option<String>,
+}
+
+impl ListRfqsParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[must_use]
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+
+    #[must_use]
+    pub fn event_ticker(mut self, event_ticker: impl Into<String>) -> Self {
+        self.event_ticker = Some(event_ticker.into());
+        self
+    }
+
+    #[must_use]
+    pub fn market_ticker(mut self, market_ticker: impl Into<String>) -> Self {
+        self.market_ticker = Some(market_ticker.into());
+        self
+    }
+
+    /// Set the number of results per page (clamped to 1-100).
+    #[must_use]
+    pub fn limit(mut self, limit: i32) -> Self {
+        self.limit = Some(limit.clamp(1, 100));
+        self
+    }
+
+    #[must_use]
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    #[must_use]
+    pub fn creator_user_id(mut self, creator_user_id: impl Into<String>) -> Self {
+        self.creator_user_id = Some(creator_user_id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        use crate::models::query::QueryBuilder;
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("event_ticker", self.event_ticker.as_ref());
+        qb.push_opt("market_ticker", self.market_ticker.as_ref());
+        qb.push_opt("limit", self.limit);
+        qb.push_opt("status", self.status.as_ref());
+        qb.push_opt("creator_user_id", self.creator_user_id.as_ref());
+        qb.build()
+    }
+}
+
+/// Query parameters for GET /communications/quotes.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct ListQuotesParams {
+    /// Pagination cursor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    /// Filter by event ticker (comma-separated, max 10).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_ticker: Option<String>,
+    /// Filter by market ticker.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub market_ticker: Option<String>,
+    /// Number of results per page (1-500, default 500).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i32>,
+    /// Filter by quote status.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Filter by quote creator user ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quote_creator_user_id: Option<String>,
+    /// Filter by RFQ creator user ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rfq_creator_user_id: Option<String>,
+    /// Filter by RFQ creator subtrader ID (FCM members only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rfq_creator_subtrader_id: Option<String>,
+    /// Filter by RFQ ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rfq_id: Option<String>,
+}
+
+impl ListQuotesParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[must_use]
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+
+    #[must_use]
+    pub fn event_ticker(mut self, event_ticker: impl Into<String>) -> Self {
+        self.event_ticker = Some(event_ticker.into());
+        self
+    }
+
+    #[must_use]
+    pub fn market_ticker(mut self, market_ticker: impl Into<String>) -> Self {
+        self.market_ticker = Some(market_ticker.into());
+        self
+    }
+
+    /// Set the number of results per page (clamped to 1-500).
+    #[must_use]
+    pub fn limit(mut self, limit: i32) -> Self {
+        self.limit = Some(limit.clamp(1, 500));
+        self
+    }
+
+    #[must_use]
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    #[must_use]
+    pub fn quote_creator_user_id(mut self, id: impl Into<String>) -> Self {
+        self.quote_creator_user_id = Some(id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn rfq_creator_user_id(mut self, id: impl Into<String>) -> Self {
+        self.rfq_creator_user_id = Some(id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn rfq_creator_subtrader_id(mut self, id: impl Into<String>) -> Self {
+        self.rfq_creator_subtrader_id = Some(id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn rfq_id(mut self, rfq_id: impl Into<String>) -> Self {
+        self.rfq_id = Some(rfq_id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        use crate::models::query::QueryBuilder;
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("event_ticker", self.event_ticker.as_ref());
+        qb.push_opt("market_ticker", self.market_ticker.as_ref());
+        qb.push_opt("limit", self.limit);
+        qb.push_opt("status", self.status.as_ref());
+        qb.push_opt("quote_creator_user_id", self.quote_creator_user_id.as_ref());
+        qb.push_opt("rfq_creator_user_id", self.rfq_creator_user_id.as_ref());
+        qb.push_opt("rfq_creator_subtrader_id", self.rfq_creator_subtrader_id.as_ref());
+        qb.push_opt("rfq_id", self.rfq_id.as_ref());
+        qb.build()
+    }
+}
+
 /// Response from create RFQ.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RfqResponse {
@@ -228,6 +418,7 @@ pub struct ListQuotesResponse {
     #[serde(default)]
     pub cursor: Option<String>,
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -7,7 +7,8 @@ use crate::{
     error::Result,
     models::{
         AcceptQuoteRequest, CreateQuoteRequest, CreateRfqRequest, GetQuoteResponse, GetRfqResponse,
-        ListQuotesResponse, ListRfqsResponse, QuoteResponse, RfqResponse,
+        ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, QuoteResponse,
+        RfqResponse,
     },
 };
 
@@ -69,16 +70,18 @@ pub async fn get_quote(http: &HttpClient, quote_id: &str) -> Result<GetQuoteResp
     http.get(&path).await
 }
 
-/// List RFQs.
+/// List RFQs with filtering and pagination.
 ///
-/// Returns a list of recent RFQs.
-pub async fn list_rfqs(http: &HttpClient) -> Result<ListRfqsResponse> {
-    http.get("/communications/rfqs").await
+/// Returns a list of RFQs matching the provided parameters.
+pub async fn list_rfqs(http: &HttpClient, params: ListRfqsParams) -> Result<ListRfqsResponse> {
+    let path = format!("/communications/rfqs{}", params.to_query_string());
+    http.get(&path).await
 }
 
-/// List quotes.
+/// List quotes with filtering and pagination.
 ///
-/// Returns a list of recent quotes.
-pub async fn list_quotes(http: &HttpClient) -> Result<ListQuotesResponse> {
-    http.get("/communications/quotes").await
+/// Returns a list of quotes matching the provided parameters.
+pub async fn list_quotes(http: &HttpClient, params: ListQuotesParams) -> Result<ListQuotesResponse> {
+    let path = format!("/communications/quotes{}", params.to_query_string());
+    http.get(&path).await
 }

@@ -32,18 +32,18 @@ pub struct SeriesListResponse {
 /// Query parameters for GET /series.
 #[derive(Debug, Default, Clone, Serialize)]
 pub struct GetSeriesParams {
-    /// Limit the number of results returned.
+    /// Filter by series category.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i64>,
-    /// Cursor for pagination.
+    pub category: Option<String>,
+    /// Filter by associated tags.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cursor: Option<String>,
-    /// Filter by event ticker.
+    pub tags: Option<String>,
+    /// If true, includes internal product metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub event_ticker: Option<String>,
-    /// Filter by series ticker.
+    pub include_product_metadata: Option<bool>,
+    /// If true, includes total volume traded across all events in each series.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub series_ticker: Option<String>,
+    pub include_volume: Option<bool>,
 }
 
 impl GetSeriesParams {
@@ -52,40 +52,41 @@ impl GetSeriesParams {
         Self::default()
     }
 
-    /// Set the maximum number of results to return.
-    ///
-    /// The value is clamped to the valid range of 1..=1000.
+    /// Filter results by series category.
     #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        self.limit = Some(limit.clamp(1, 1000));
+    pub fn category(mut self, category: impl Into<String>) -> Self {
+        self.category = Some(category.into());
         self
     }
 
+    /// Filter results by associated tags.
     #[must_use]
-    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
-        self.cursor = Some(cursor.into());
+    pub fn tags(mut self, tags: impl Into<String>) -> Self {
+        self.tags = Some(tags.into());
         self
     }
 
+    /// Include internal product metadata in results.
     #[must_use]
-    pub fn event_ticker(mut self, event_ticker: impl Into<String>) -> Self {
-        self.event_ticker = Some(event_ticker.into());
+    pub fn include_product_metadata(mut self, include: bool) -> Self {
+        self.include_product_metadata = Some(include);
         self
     }
 
+    /// Include total volume traded across all events in each series.
     #[must_use]
-    pub fn series_ticker(mut self, series_ticker: impl Into<String>) -> Self {
-        self.series_ticker = Some(series_ticker.into());
+    pub fn include_volume(mut self, include: bool) -> Self {
+        self.include_volume = Some(include);
         self
     }
 
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
-        qb.push_opt("limit", self.limit);
-        qb.push_opt("cursor", self.cursor.as_ref());
-        qb.push_opt("event_ticker", self.event_ticker.as_ref());
-        qb.push_opt("series_ticker", self.series_ticker.as_ref());
+        qb.push_opt("category", self.category.as_ref());
+        qb.push_opt("tags", self.tags.as_ref());
+        qb.push_opt("include_product_metadata", self.include_product_metadata);
+        qb.push_opt("include_volume", self.include_volume);
         qb.build()
     }
 }
