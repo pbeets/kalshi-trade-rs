@@ -3,14 +3,17 @@
 //! All monetary values are in cents unless noted otherwise.
 //! Fields ending in `_dollars` are fixed-point dollar strings.
 
+mod api_key;
 mod balance;
 mod common;
 mod communications;
 mod event;
 mod exchange;
 mod fill;
+mod incentive_program;
 mod live_data;
 mod market;
+mod milestone;
 mod multivariate;
 mod order;
 mod order_group;
@@ -19,9 +22,14 @@ pub(crate) mod query;
 mod search;
 mod series;
 mod settlement;
+mod structured_target;
 mod subaccount;
 
 // Re-export all public types
+pub use api_key::{
+    ApiKey, ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, DeleteApiKeyResponse,
+    GenerateApiKeyRequest, GenerateApiKeyResponse,
+};
 pub use balance::BalanceResponse;
 pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
 pub use communications::{
@@ -42,6 +50,7 @@ pub use exchange::{
     StandardHoursPeriod, TradingSession, UserDataTimestampResponse,
 };
 pub use fill::{Fill, FillsResponse, GetFillsParams};
+pub use incentive_program::{IncentiveProgram, IncentiveProgramsResponse};
 pub use live_data::{
     BatchLiveDataResponse, GetBatchLiveDataParams, LiveData, LiveDataResponse,
 };
@@ -51,6 +60,9 @@ pub use market::{
     GetTradesParams, Market, MarketCandlesticks, MarketFilterStatus, MarketResponse, MarketResult,
     MarketStatus, MarketType, MarketsResponse, MveFilter, OhlcData, Orderbook, OrderbookResponse,
     PriceLevelDollars, PriceOhlcData, PriceRange, StrikeType, TakerSide, Trade, TradesResponse,
+};
+pub use milestone::{
+    GetMilestonesParams, MilestoneInfo, MilestoneResponse, MilestonesResponse,
 };
 pub use multivariate::{
     CollectionVariable, CreateMarketInCollectionRequest, CreateMarketInCollectionResponse,
@@ -79,6 +91,10 @@ pub use series::{
     SeriesListResponse, SeriesResponse,
 };
 pub use settlement::{GetSettlementsParams, Settlement, SettlementsResponse};
+pub use structured_target::{
+    GetStructuredTargetsParams, StructuredTarget, StructuredTargetResponse,
+    StructuredTargetsResponse,
+};
 pub use subaccount::{
     CreateSubaccountRequest, CreateSubaccountResponse, GetSubaccountTransfersParams,
     RestingOrderValueResponse, Subaccount, SubaccountBalance, SubaccountBalancesResponse,
