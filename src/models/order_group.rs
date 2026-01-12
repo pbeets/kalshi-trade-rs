@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{common::OrderType, order::Order};
+use super::{common::OrderType, order::Order, query::QueryBuilder};
 
 /// Request body for POST /portfolio/order_groups.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -282,6 +282,64 @@ pub struct OrderGroup {
     pub orders: Vec<Order>,
     pub created_at: i64,
     pub updated_at: i64,
+    /// Whether the group has been auto-canceled due to hitting the contracts limit.
+    #[serde(default)]
+    pub auto_canceled: Option<bool>,
+    /// Total matched contracts in the group.
+    #[serde(default)]
+    pub total_matched_contracts: Option<i64>,
+    /// Maximum contracts allowed before auto-cancel.
+    #[serde(default)]
+    pub max_contracts: Option<i64>,
+}
+
+/// Query parameters for GET /portfolio/order_groups.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetOrderGroupsParams {
+    /// Pagination cursor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    /// Number of results per page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i32>,
+}
+
+impl GetOrderGroupsParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[must_use]
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+
+    /// Set the number of results per page.
+    #[must_use]
+    pub fn limit(mut self, limit: i32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("limit", self.limit);
+        qb.build()
+    }
+}
+
+/// Response from GET /portfolio/order_groups.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderGroupsResponse {
+    /// List of order groups.
+    pub order_groups: Vec<OrderGroup>,
+    /// Pagination cursor for next page.
+    #[serde(default)]
+    pub cursor: Option<String>,
 }
 
 #[cfg(test)]
@@ -313,5 +371,21 @@ mod tests {
 
         let order = UpdateOrderGroupOrder::new("TICKER", Side::Yes, Action::Buy, 10).yes_price(50);
         assert_eq!(order.yes_price, Some(50));
+    }
+
+    #[test]
+    fn test_get_order_groups_params_query_string() {
+        let params = GetOrderGroupsParams::new();
+        assert_eq!(params.to_query_string(), "");
+
+        let params = GetOrderGroupsParams::new().limit(50);
+        assert!(params.to_query_string().contains("limit=50"));
+
+        let params = GetOrderGroupsParams::new()
+            .cursor("abc123")
+            .limit(25);
+        let qs = params.to_query_string();
+        assert!(qs.contains("cursor=abc123"));
+        assert!(qs.contains("limit=25"));
     }
 }
