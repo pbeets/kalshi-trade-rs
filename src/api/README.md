@@ -39,8 +39,8 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 | Milestones | 2 | 2 | 100% |
 | Structured Targets | 2 | 2 | 100% |
 | Incentive Programs | 1 | 1 | 100% |
-| FCM | 0 | 2 | 0% |
-| **TOTAL** | **75** | **77** | **97%** |
+| FCM | 2 | 2 | 100% |
+| **TOTAL** | **77** | **77** | **100%** |
 
 ---
 
@@ -268,15 +268,18 @@ Comprehensive tracking of Kalshi API endpoints: implementation status, verificat
 
 ---
 
-## NOT IMPLEMENTED
+## FCM API (Futures Commission Merchant)
 
-### FCM (Futures Commission Merchant) (Low Priority)
 Specialized for FCM members only.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/fcm/orders` | Get FCM orders by subtrader ID |
-| GET | `/fcm/positions` | Get FCM positions by subtrader ID |
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| 🔲 | GET | `/fcm/orders` | `get_fcm_orders()` | Requires FCM access |
+| 🔲 | GET | `/fcm/positions` | `get_fcm_positions()` | Requires FCM access |
+
+**Source file**: `src/api/fcm.rs`
+
+**Notes**: These endpoints require FCM member access level. They allow filtering orders and positions by subtrader ID.
 
 ---
 
@@ -310,6 +313,7 @@ The following implemented endpoints need verification examples:
 - **Milestones**: All 2 endpoints (`get_milestones()`, `get_milestone()`)
 - **Structured Targets**: All 2 endpoints (`get_structured_targets()`, `get_structured_target()`)
 - **Incentive Programs**: `get_incentive_programs()`
+- **FCM**: All 2 endpoints (`get_fcm_orders()`, `get_fcm_positions()`) - requires FCM member access
 
 ---
 
