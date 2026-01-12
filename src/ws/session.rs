@@ -108,7 +108,7 @@ impl SubscribeCollector {
 ///
 /// The actor owns the WebSocket connection (split into reader and writer),
 /// processes commands from clients, and broadcasts updates to subscribers.
-pub struct StreamActor {
+pub struct KalshiStreamSession {
     /// Configuration for authentication.
     #[allow(dead_code)]
     config: KalshiConfig,
@@ -137,7 +137,7 @@ pub struct StreamActor {
     last_server_ping: Option<Instant>,
 }
 
-impl StreamActor {
+impl KalshiStreamSession {
     /// Connect to the Kalshi WebSocket API with the specified strategy.
     ///
     /// # Arguments
@@ -294,7 +294,7 @@ impl StreamActor {
     /// shutdowns) or `StreamMessage::ConnectionLost` (for errors) is broadcast
     /// to all subscribers.
     pub async fn run(mut self) {
-        info!("StreamActor starting main loop");
+        info!("KalshiStreamSession starting main loop");
 
         // Set up ping interval for health monitoring
         let ping_start = Instant::now() + self.health_config.ping_interval;
@@ -307,7 +307,7 @@ impl StreamActor {
                 // Handle commands from client handles
                 Some(command) = self.cmd_receiver.recv() => {
                     if self.handle_command(command).await {
-                        info!("StreamActor received close command, shutting down");
+                        info!("KalshiStreamSession received close command, shutting down");
                         disconnect_msg = Some(StreamMessage::Closed {
                             reason: "Client requested close".to_string(),
                         });
@@ -422,7 +422,7 @@ impl StreamActor {
         // Drop pending subscriptions (their senders will be dropped, causing recv errors)
         self.pending_subscriptions.clear();
         let _ = self.ws_writer.close().await;
-        info!("StreamActor shutdown complete");
+        info!("KalshiStreamSession shutdown complete");
     }
 
     /// Handle a command from a client handle.
@@ -764,9 +764,9 @@ impl StreamActor {
     }
 }
 
-impl std::fmt::Debug for StreamActor {
+impl std::fmt::Debug for KalshiStreamSession {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StreamActor")
+        f.debug_struct("KalshiStreamSession")
             .field("next_request_id", &self.next_request_id)
             .field("pending_requests", &self.request_handler.pending_count())
             .field("pending_subscriptions", &self.pending_subscriptions.len())
