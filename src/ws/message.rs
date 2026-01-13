@@ -57,6 +57,8 @@ pub enum StreamMessage {
     MarketLifecycle(MarketLifecycleData),
     /// RFQ or quote communication.
     Communication(CommunicationData),
+    /// Multivariate collection lookup notification.
+    MultivariateLookup(MultivariateLookupData),
     /// Connection was closed cleanly.
     ///
     /// This is a local event, not received from the server.
@@ -320,7 +322,7 @@ pub enum CommunicationData {
     QuoteAccepted(QuoteAcceptedData),
 }
 
-/// Leg definition for multivariate RFQs.
+/// Leg definition for multivariate RFQs and lookups.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MveLeg {
     /// Event ticker.
@@ -332,6 +334,21 @@ pub struct MveLeg {
     /// Side of the leg.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub side: Option<Side>,
+}
+
+/// Multivariate lookup notification data.
+///
+/// Sent when a multivariate collection is referenced or looked up.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MultivariateLookupData {
+    /// Collection ticker identifier.
+    pub collection_ticker: String,
+    /// Event ticker identifier.
+    pub event_ticker: String,
+    /// Market ticker identifier.
+    pub market_ticker: String,
+    /// Selected markets in this multivariate lookup.
+    pub selected_markets: Vec<MveLeg>,
 }
 
 /// RFQ (Request for Quote) data.
@@ -518,6 +535,11 @@ impl StreamMessage {
             "quote_accepted" => {
                 serde_json::from_value::<QuoteAcceptedData>(value)
                     .map(|data| StreamMessage::Communication(CommunicationData::QuoteAccepted(data)))
+            }
+            // Multivariate lookup notifications
+            "multivariate_lookup" => {
+                serde_json::from_value::<MultivariateLookupData>(value)
+                    .map(StreamMessage::MultivariateLookup)
             }
             _ => {
                 // Fallback to untagged deserialization for unknown types
