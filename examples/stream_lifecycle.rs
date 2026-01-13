@@ -147,11 +147,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         );
                     }
                 }
+                StreamMessage::MultivariateLookup(mv) => {
+                    println!(
+                        "[MULTIVARIATE] collection={} | event={} | market={}",
+                        mv.collection_ticker, mv.event_ticker, mv.market_ticker
+                    );
+                    for leg in &mv.selected_markets {
+                        println!(
+                            "  leg: market={:?} | side={:?}",
+                            leg.market_ticker, leg.side
+                        );
+                    }
+                }
                 StreamMessage::Unsubscribed => {
                     println!("[UNSUBSCRIBED] sid={}", update.sid);
                 }
                 _ => {
-                    // Multivariate and other updates
+                    // Other updates
                     println!(
                         "[{}] sid={} | {:?}",
                         update.channel.to_uppercase(),
