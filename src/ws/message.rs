@@ -379,6 +379,12 @@ pub struct RfqDeletedData {
     /// Event ticker.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub event_ticker: Option<String>,
+    /// Target cost in centi-cents.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_cost: Option<i64>,
+    /// Target cost in dollars.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_cost_dollars: Option<String>,
 }
 
 /// Quote data for quote created events.
@@ -460,6 +466,65 @@ pub struct QuoteAcceptedData {
     /// Side that was accepted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accepted_side: Option<Side>,
+}
+
+impl StreamMessage {
+    /// Parse a message payload based on the channel type.
+    ///
+    /// This is used instead of untagged deserialization to correctly route
+    /// messages based on the `type` field from the wire protocol.
+    pub fn from_type_and_value(
+        msg_type: &str,
+        value: serde_json::Value,
+    ) -> Result<Self, serde_json::Error> {
+        match msg_type {
+            "orderbook_snapshot" => {
+                serde_json::from_value::<OrderbookSnapshotData>(value).map(StreamMessage::OrderbookSnapshot)
+            }
+            "orderbook_delta" => {
+                serde_json::from_value::<OrderbookDeltaData>(value).map(StreamMessage::OrderbookDelta)
+            }
+            "ticker" => {
+                serde_json::from_value::<TickerData>(value).map(StreamMessage::Ticker)
+            }
+            "trade" => {
+                serde_json::from_value::<TradeData>(value).map(StreamMessage::Trade)
+            }
+            "fill" => {
+                serde_json::from_value::<FillData>(value).map(StreamMessage::Fill)
+            }
+            "market_position" | "market_positions" => {
+                serde_json::from_value::<MarketPositionData>(value).map(StreamMessage::MarketPosition)
+            }
+            "market_lifecycle" | "market_lifecycle_v2" => {
+                serde_json::from_value::<MarketLifecycleData>(value).map(StreamMessage::MarketLifecycle)
+            }
+            "communication" | "communications" => {
+                serde_json::from_value::<CommunicationData>(value).map(StreamMessage::Communication)
+            }
+            // RFQ/Quote messages come with specific type names, not "communication"
+            "rfq_created" => {
+                serde_json::from_value::<RfqData>(value)
+                    .map(|data| StreamMessage::Communication(CommunicationData::RfqCreated(data)))
+            }
+            "rfq_deleted" => {
+                serde_json::from_value::<RfqDeletedData>(value)
+                    .map(|data| StreamMessage::Communication(CommunicationData::RfqDeleted(data)))
+            }
+            "quote_created" => {
+                serde_json::from_value::<QuoteData>(value)
+                    .map(|data| StreamMessage::Communication(CommunicationData::QuoteCreated(data)))
+            }
+            "quote_accepted" => {
+                serde_json::from_value::<QuoteAcceptedData>(value)
+                    .map(|data| StreamMessage::Communication(CommunicationData::QuoteAccepted(data)))
+            }
+            _ => {
+                // Fallback to untagged deserialization for unknown types
+                serde_json::from_value::<StreamMessage>(value)
+            }
+        }
+    }
 }
 
 #[cfg(test)]
