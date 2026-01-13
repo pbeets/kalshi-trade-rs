@@ -700,13 +700,15 @@ impl KalshiStreamSession {
                     return;
                 }
 
-                // Try to parse as StreamUpdate
-                match serde_json::from_value::<StreamUpdate>(serde_json::json!({
-                    "type": msg_type,
-                    "sid": sid,
-                    "msg": msg,
-                })) {
-                    Ok(update) => {
+                // Parse the message using type-based routing
+                match StreamMessage::from_type_and_value(&msg_type, msg) {
+                    Ok(stream_msg) => {
+                        let update = StreamUpdate {
+                            channel: msg_type,
+                            sid,
+                            seq: None,
+                            msg: stream_msg,
+                        };
                         if let Err(e) = self.update_sender.send(update) {
                             // No receivers - this is okay, they might subscribe later
                             debug!("No update receivers: {}", e);
