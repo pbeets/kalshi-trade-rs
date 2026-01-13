@@ -135,6 +135,17 @@ pub struct PriceRange {
     pub step: String,
 }
 
+/// A selected leg in a multivariate event market.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MveSelectedLeg {
+    /// The event ticker for this leg.
+    pub event_ticker: String,
+    /// The market ticker for this leg.
+    pub market_ticker: String,
+    /// The side of the leg (e.g., "yes" or "no").
+    pub side: String,
+}
+
 /// A market on the Kalshi exchange.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Market {
@@ -249,7 +260,7 @@ pub struct Market {
     #[serde(default)]
     pub mve_collection_ticker: Option<String>,
     #[serde(default)]
-    pub mve_selected_legs: Option<Vec<String>>,
+    pub mve_selected_legs: Option<Vec<MveSelectedLeg>>,
     #[serde(default)]
     pub primary_participant_key: Option<String>,
     #[serde(default)]

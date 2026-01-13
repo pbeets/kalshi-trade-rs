@@ -60,8 +60,9 @@ pub use market::{
     BatchCandlesticksResponse, Candlestick, CandlestickPeriod, CandlesticksResponse,
     GetBatchCandlesticksParams, GetCandlesticksParams, GetMarketsParams, GetOrderbookParams,
     GetTradesParams, Market, MarketCandlesticks, MarketFilterStatus, MarketResponse, MarketResult,
-    MarketStatus, MarketType, MarketsResponse, MveFilter, OhlcData, Orderbook, OrderbookResponse,
-    PriceLevelDollars, PriceOhlcData, PriceRange, StrikeType, TakerSide, Trade, TradesResponse,
+    MarketStatus, MarketType, MarketsResponse, MveFilter, MveSelectedLeg, OhlcData, Orderbook,
+    OrderbookResponse, PriceLevelDollars, PriceOhlcData, PriceRange, StrikeType, TakerSide, Trade,
+    TradesResponse,
 };
 pub use milestone::{
     GetMilestonesParams, MilestoneInfo, MilestoneResponse, MilestonesResponse,
