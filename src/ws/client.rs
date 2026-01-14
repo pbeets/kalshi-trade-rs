@@ -8,7 +8,7 @@ use tokio::{
 use super::{
     ConnectStrategy,
     channel::Channel,
-    command::{StreamCommand, SubscribeResult},
+    command::{StreamCommand, SubscribeResult, UnsubscribeResult},
     message::StreamUpdate,
     session::KalshiStreamSession,
 };
@@ -328,6 +328,11 @@ impl KalshiStreamHandle {
     /// * `sids` - The subscription IDs to unsubscribe from, as returned
     ///   by [`subscribe`](Self::subscribe).
     ///
+    /// # Returns
+    ///
+    /// Returns an [`UnsubscribeResult`] containing the subscription IDs that
+    /// were successfully unsubscribed.
+    ///
     /// # Errors
     ///
     /// Returns an error if:
@@ -340,11 +345,12 @@ impl KalshiStreamHandle {
     /// # use kalshi_trade_rs::ws::KalshiStreamHandle;
     /// # async fn example(handle: &KalshiStreamHandle) -> Result<(), Box<dyn std::error::Error>> {
     /// // Unsubscribe from specific subscription IDs
-    /// handle.unsubscribe(&[123, 456]).await?;
+    /// let result = handle.unsubscribe(&[123, 456]).await?;
+    /// println!("Unsubscribed from {} subscriptions", result.count());
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn unsubscribe(&self, sids: &[i64]) -> Result<()> {
+    pub async fn unsubscribe(&self, sids: &[i64]) -> Result<UnsubscribeResult> {
         let (tx, rx) = oneshot::channel();
 
         let cmd = StreamCommand::Unsubscribe {
@@ -359,9 +365,7 @@ impl KalshiStreamHandle {
 
         rx.await
             .map_err(|_| Error::Api("Response channel closed".to_string()))?
-            .map_err(Error::Api)?;
-
-        Ok(())
+            .map_err(Error::Api)
     }
 
     /// Request graceful close of the connection.

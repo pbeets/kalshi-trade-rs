@@ -19,6 +19,7 @@ use std::time::Duration;
 use tokio::time::timeout;
 
 use kalshi_trade_rs::{
+    GetMarketsParams, KalshiClient, MarketFilterStatus,
     auth::KalshiConfig,
     ws::{Channel, KalshiStreamClient, StreamMessage},
 };
@@ -44,19 +45,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.environment
     );
 
+    // First, fetch open markets via REST API and select the most active ones
+    println!("Fetching open markets...");
+
+    let rest_client = KalshiClient::new(config.clone())?;
+
+    let params = GetMarketsParams::new()
+        .status(MarketFilterStatus::Open)
+        .limit(200);
+
+    let markets_response = rest_client.get_markets_with_params(params).await?;
+
+    // Sort by volume (descending) and take the top 5 most active markets
+    let mut markets = markets_response.markets;
+
+    if markets.is_empty() {
+        println!("No open markets found!");
+        return Ok(());
+    }
+
+    markets.sort_by(|a, b| b.volume.unwrap_or(0).cmp(&a.volume.unwrap_or(0)));
+
+    let selected_markets: Vec<_> = markets.into_iter().take(5).collect();
+
+    println!(
+        "Selected {} markets to subscribe to:",
+        selected_markets.len()
+    );
+
+    for market in &selected_markets {
+        println!(
+            "  - {} (vol: {})",
+            market.ticker,
+            market.volume.unwrap_or(0)
+        );
+    }
+
+    let market_tickers: Vec<String> = selected_markets.iter().map(|m| m.ticker.clone()).collect();
+
     // Connect to WebSocket
     let client = KalshiStreamClient::connect(&config).await?;
     let mut handle = client.handle();
 
-    println!("Connected! Subscribing to ticker updates...");
+    println!("\nConnected! Subscribing to ticker updates...");
 
-    // Subscribe to ticker and trade channels
-    // You can specify market tickers or omit for all markets
+    // Subscribe to ticker and trade channels for the markets we found
+    let ticker_refs: Vec<&str> = market_tickers.iter().map(|s| s.as_str()).collect();
+
     let result = handle
-        .subscribe(
-            &[Channel::Ticker, Channel::Trade],
-            None, // Subscribe to all markets
-        )
+        .subscribe(&[Channel::Ticker, Channel::Trade], Some(&ticker_refs))
         .await?;
 
     println!("Subscribed with SIDs: {:?}", result.sids());
