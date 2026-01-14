@@ -106,6 +106,9 @@ pub struct GetOrdersParams {
     pub limit: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
+    /// Filter by subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl GetOrdersParams {
@@ -148,21 +151,38 @@ impl GetOrdersParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `limit` is not in the range 1..=1000.
+    /// Panics if `limit` is not in the range 1..=200.
+    /// Use [`try_limit`](Self::try_limit) for fallible construction.
     #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 1000,
-            "limit must be between 1 and 1000, got {}",
-            limit
-        );
+    pub fn limit(self, limit: i64) -> Self {
+        self.try_limit(limit).expect("invalid limit")
+    }
+
+    /// Set the maximum number of results to return with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `limit` is not in the range 1..=200.
+    pub fn try_limit(mut self, limit: i64) -> crate::error::Result<Self> {
+        if limit <= 0 || limit > 200 {
+            return Err(crate::error::Error::InvalidLimit(limit, 1, 200));
+        }
         self.limit = Some(limit);
-        self
+        Ok(self)
     }
 
     #[must_use]
     pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
         self.cursor = Some(cursor.into());
+        self
+    }
+
+    /// Filter by subaccount number.
+    ///
+    /// Use 0 for the primary account, or 1-32 for numbered subaccounts.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
         self
     }
 
@@ -176,6 +196,7 @@ impl GetOrdersParams {
         qb.push_opt("status", self.status.map(|s| s.as_str()));
         qb.push_opt("limit", self.limit);
         qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("subaccount", self.subaccount);
         qb.build()
     }
 }
@@ -298,27 +319,51 @@ impl CreateOrderRequest {
     }
 
     /// Set yes price in cents (1-99).
+    ///
+    /// # Panics
+    ///
+    /// Panics if price is not between 1 and 99.
+    /// Use [`try_yes_price`](Self::try_yes_price) for fallible construction.
     #[must_use]
-    pub fn yes_price(mut self, price: i64) -> Self {
-        debug_assert!(
-            (1..=99).contains(&price),
-            "yes_price must be between 1 and 99, got {}",
-            price
-        );
+    pub fn yes_price(self, price: i64) -> Self {
+        self.try_yes_price(price).expect("invalid yes price")
+    }
+
+    /// Set yes price in cents (1-99) with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if price is not between 1 and 99.
+    pub fn try_yes_price(mut self, price: i64) -> crate::error::Result<Self> {
+        if !(1..=99).contains(&price) {
+            return Err(crate::error::Error::InvalidPrice(price));
+        }
         self.yes_price = Some(price);
-        self
+        Ok(self)
     }
 
     /// Set no price in cents (1-99).
+    ///
+    /// # Panics
+    ///
+    /// Panics if price is not between 1 and 99.
+    /// Use [`try_no_price`](Self::try_no_price) for fallible construction.
     #[must_use]
-    pub fn no_price(mut self, price: i64) -> Self {
-        debug_assert!(
-            (1..=99).contains(&price),
-            "no_price must be between 1 and 99, got {}",
-            price
-        );
+    pub fn no_price(self, price: i64) -> Self {
+        self.try_no_price(price).expect("invalid no price")
+    }
+
+    /// Set no price in cents (1-99) with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if price is not between 1 and 99.
+    pub fn try_no_price(mut self, price: i64) -> crate::error::Result<Self> {
+        if !(1..=99).contains(&price) {
+            return Err(crate::error::Error::InvalidPrice(price));
+        }
         self.no_price = Some(price);
-        self
+        Ok(self)
     }
 
     /// Set yes price in fixed-point dollars (e.g., "0.56").
@@ -540,18 +585,11 @@ impl BatchCreateOrdersRequest {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `orders.len() > 20`. In release builds,
-    /// oversized batches will be rejected by the API. Use [`try_new`](Self::try_new)
+    /// Panics if `orders.len() > 20`. Use [`try_new`](Self::try_new)
     /// for fallible construction.
     #[must_use]
     pub fn new(orders: Vec<CreateOrderRequest>) -> Self {
-        debug_assert!(
-            orders.len() <= crate::error::MAX_BATCH_SIZE,
-            "batch create supports max {} orders, got {}",
-            crate::error::MAX_BATCH_SIZE,
-            orders.len()
-        );
-        Self { orders }
+        Self::try_new(orders).expect("batch size exceeded")
     }
 
     /// Create a new batch create request with validation.
@@ -618,18 +656,11 @@ impl BatchCancelOrdersRequest {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `ids.len() > 20`. In release builds,
-    /// oversized batches will be rejected by the API. Use [`try_new`](Self::try_new)
+    /// Panics if `ids.len() > 20`. Use [`try_new`](Self::try_new)
     /// for fallible construction.
     #[must_use]
     pub fn new(ids: Vec<String>) -> Self {
-        debug_assert!(
-            ids.len() <= crate::error::MAX_BATCH_SIZE,
-            "batch cancel supports max {} orders, got {}",
-            crate::error::MAX_BATCH_SIZE,
-            ids.len()
-        );
-        Self { ids }
+        Self::try_new(ids).expect("batch size exceeded")
     }
 
     /// Create a new batch cancel request with validation.

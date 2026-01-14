@@ -52,7 +52,7 @@ pub use exchange::{
 };
 pub use fcm::{GetFcmOrdersParams, GetFcmPositionsParams, SettlementStatus};
 pub use fill::{Fill, FillsResponse, GetFillsParams};
-pub use incentive_program::{IncentiveProgram, IncentiveProgramsResponse};
+pub use incentive_program::{GetIncentiveProgramsParams, IncentiveProgram, IncentiveProgramsResponse};
 pub use live_data::{
     BatchLiveDataResponse, GetBatchLiveDataParams, LiveData, LiveDataResponse,
 };

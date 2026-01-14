@@ -67,7 +67,7 @@ pub use models::{
     GetMarketsParams, GetMilestonesParams, GetOrderGroupsParams,
     GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
     GetQuoteResponse, GetRfqResponse, GetSeriesParams, GetSettlementsParams,
-    GetStructuredTargetsParams, GetTradesParams, IncentiveProgram, IncentiveProgramsResponse,
+    GetStructuredTargetsParams, GetTradesParams, GetIncentiveProgramsParams, IncentiveProgram, IncentiveProgramsResponse,
     ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, MaintenanceWindow,
     Market, MarketCandlesticks, MarketFilterStatus, MarketPosition, MarketResponse, MarketResult,
     MarketStatus, MarketType, MarketsResponse, Milestone, MilestoneInfo, MilestoneResponse,
