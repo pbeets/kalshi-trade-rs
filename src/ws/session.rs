@@ -27,10 +27,9 @@ use tokio_tungstenite::{
 use super::{
     BACKOFF_BASE, CONNECT_TIMEOUT, ConnectStrategy, HealthConfig, MAX_BACKOFF,
     channel::Channel,
-    command::{ChannelError, ChannelSubscription, StreamCommand, SubscribeResult},
+    command::{ChannelError, ChannelSubscription, StreamCommand, SubscribeResult, UnsubscribeResult},
     message::{StreamMessage, StreamUpdate},
     protocol::{self, IncomingMessage},
-    request_handler::RequestHandler,
 };
 
 use crate::{
@@ -104,6 +103,53 @@ impl SubscribeCollector {
     }
 }
 
+/// Collects multiple responses for a single multi-SID unsubscribe request.
+///
+/// When unsubscribing from N SIDs, Kalshi sends N responses (all with the same
+/// request ID but different `sid` values). This collector accumulates those
+/// responses until all expected responses are received.
+struct UnsubscribeCollector {
+    /// Number of responses we expect to receive.
+    expected: usize,
+    /// SIDs that have been successfully unsubscribed.
+    unsubscribed: Vec<i64>,
+    /// Channel to send the final result when all responses are collected.
+    sender: oneshot::Sender<std::result::Result<UnsubscribeResult, String>>,
+}
+
+impl UnsubscribeCollector {
+    /// Create a new collector expecting `expected` responses.
+    fn new(
+        expected: usize,
+        sender: oneshot::Sender<std::result::Result<UnsubscribeResult, String>>,
+    ) -> Self {
+        Self {
+            expected,
+            unsubscribed: Vec::with_capacity(expected),
+            sender,
+        }
+    }
+
+    /// Record an unsubscribed SID. Returns `true` if all expected responses have been received.
+    fn add_unsubscribed(&mut self, sid: i64) -> bool {
+        self.unsubscribed.push(sid);
+        self.is_complete()
+    }
+
+    /// Check if we've received all expected responses.
+    fn is_complete(&self) -> bool {
+        self.unsubscribed.len() >= self.expected
+    }
+
+    /// Consume the collector and send the result.
+    fn finish(self) {
+        let result = UnsubscribeResult {
+            sids: self.unsubscribed,
+        };
+        let _ = self.sender.send(Ok(result));
+    }
+}
+
 /// The WebSocket stream actor that manages the connection lifecycle.
 ///
 /// The actor owns the WebSocket connection (split into reader and writer),
@@ -120,10 +166,10 @@ pub struct KalshiStreamSession {
     ws_reader: SplitStream<WsStream>,
     /// WebSocket writer half.
     ws_writer: SplitSink<WsStream, Message>,
-    /// Handler for mapping request IDs to response channels (for simple 1:1 request/response).
-    request_handler: RequestHandler,
     /// Pending multi-channel subscribe requests awaiting multiple responses.
     pending_subscriptions: HashMap<u64, SubscribeCollector>,
+    /// Pending multi-SID unsubscribe requests awaiting multiple responses.
+    pending_unsubscriptions: HashMap<u64, UnsubscribeCollector>,
     /// Next request ID to use for outgoing messages.
     next_request_id: u64,
     /// Health monitoring configuration.
@@ -189,8 +235,8 @@ impl KalshiStreamSession {
             update_sender,
             ws_reader,
             ws_writer,
-            request_handler: RequestHandler::new(),
             pending_subscriptions: HashMap::new(),
+            pending_unsubscriptions: HashMap::new(),
             next_request_id: 1,
             health_config,
             last_pong: Instant::now(),
@@ -417,10 +463,9 @@ impl KalshiStreamSession {
             );
         }
 
-        // Clean up: cancel pending requests and close connection
-        self.request_handler.cancel_all();
-        // Drop pending subscriptions (their senders will be dropped, causing recv errors)
+        // Clean up: drop pending requests (their senders will be dropped, causing recv errors)
         self.pending_subscriptions.clear();
+        self.pending_unsubscriptions.clear();
         let _ = self.ws_writer.close().await;
         info!("KalshiStreamSession shutdown complete");
     }
@@ -508,13 +553,13 @@ impl KalshiStreamSession {
                 let request_id = self.next_request_id;
                 self.next_request_id += 1;
 
+                let num_sids = sids.len();
                 let msg = protocol::build_unsubscribe(request_id, &sids);
 
-                debug!("Sending unsubscribe request {}: {}", request_id, msg);
-
-                // Register the response handler
-                let (tx, rx) = tokio::sync::oneshot::channel();
-                self.request_handler.register(request_id, tx);
+                debug!(
+                    "Sending unsubscribe request {} for {} SIDs: {}",
+                    request_id, num_sids, msg
+                );
 
                 // Send the unsubscribe message
                 if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
@@ -523,17 +568,9 @@ impl KalshiStreamSession {
                     return false;
                 }
 
-                // Wait for response and forward it
-                tokio::spawn(async move {
-                    match rx.await {
-                        Ok(json) => {
-                            let _ = response.send(Ok(json));
-                        }
-                        Err(_) => {
-                            let _ = response.send(Err("Request cancelled".to_string()));
-                        }
-                    }
-                });
+                // Register a collector to accumulate all N responses
+                let collector = UnsubscribeCollector::new(num_sids, response);
+                self.pending_unsubscriptions.insert(request_id, collector);
             }
 
             StreamCommand::Close => {
@@ -653,16 +690,10 @@ impl KalshiStreamSession {
                     return;
                 }
 
-                // Build the full response JSON including type and msg
-                let full_response = serde_json::json!({
-                    "id": id,
-                    "type": msg_type,
-                    "msg": msg,
-                });
-
                 if msg_type == "unsubscribed" {
                     // Also broadcast this as an update to let the client know the stream is closed
-                    if let Some(sid) = msg.get("sid").and_then(|s| s.as_i64()) {
+                    let sid = msg.get("sid").and_then(|s| s.as_i64());
+                    if let Some(sid) = sid {
                         let update = StreamUpdate {
                             channel: msg_type.clone(),
                             sid,
@@ -674,11 +705,23 @@ impl KalshiStreamSession {
                             debug!("No update receivers for unsubscribed event: {}", e);
                         }
                     }
+
+                    // Check for pending unsubscribe collector
+                    if let Some(collector) = self.pending_unsubscriptions.get_mut(&id) {
+                        let sid = sid.unwrap_or(-1);
+                        debug!("Unsubscribe response for request {}: sid={}", id, sid);
+                        if collector.add_unsubscribed(sid) {
+                            // All responses received, finish the collector
+                            if let Some(collector) = self.pending_unsubscriptions.remove(&id) {
+                                collector.finish();
+                            }
+                        }
+                    }
+                    return;
                 }
 
-                if !self.request_handler.handle_response(id, full_response) {
-                    warn!("No handler for response id {}", id);
-                }
+                // Unexpected response type with no handler
+                warn!("Unexpected response id {} type {}", id, msg_type);
             }
 
             Ok(IncomingMessage::Update { msg_type, sid, msg }) => {
@@ -742,20 +785,22 @@ impl KalshiStreamSession {
                         return;
                     }
 
-                    // Fall through to regular request handler
-                    let error_response = serde_json::json!({
-                        "id": request_id,
-                        "error": {
-                            "code": code,
-                            "message": message,
-                        }
-                    });
-                    if !self
-                        .request_handler
-                        .handle_response(request_id, error_response)
-                    {
-                        warn!("No handler for error response id {}", request_id);
+                    // Check if this is an error for a pending unsubscribe
+                    // Note: unsubscribe errors are rare, but we should handle them
+                    if self.pending_unsubscriptions.contains_key(&request_id) {
+                        warn!(
+                            "Unsubscribe error for request {}: code={}, message={}",
+                            request_id, code, message
+                        );
+                        // Remove the collector and let the sender error out
+                        self.pending_unsubscriptions.remove(&request_id);
+                        return;
                     }
+
+                    warn!(
+                        "Unhandled error response id {}: code={}, message={}",
+                        request_id, code, message
+                    );
                 }
             }
 
@@ -770,8 +815,8 @@ impl std::fmt::Debug for KalshiStreamSession {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("KalshiStreamSession")
             .field("next_request_id", &self.next_request_id)
-            .field("pending_requests", &self.request_handler.pending_count())
             .field("pending_subscriptions", &self.pending_subscriptions.len())
+            .field("pending_unsubscriptions", &self.pending_unsubscriptions.len())
             .field("ping_pending", &self.ping_pending)
             .finish()
     }

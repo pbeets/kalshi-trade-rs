@@ -3,7 +3,6 @@
 //! This module defines the commands that can be sent through the WebSocket
 //! connection to subscribe/unsubscribe from market data channels.
 
-use serde_json::Value as JsonValue;
 use tokio::sync::oneshot;
 
 /// A successful channel subscription.
@@ -56,6 +55,27 @@ impl SubscribeResult {
     }
 }
 
+/// Result of an unsubscription operation.
+///
+/// Contains the subscription IDs that were successfully unsubscribed.
+#[derive(Debug, Clone)]
+pub struct UnsubscribeResult {
+    /// Subscription IDs that were unsubscribed.
+    pub sids: Vec<i64>,
+}
+
+impl UnsubscribeResult {
+    /// Returns the subscription IDs that were unsubscribed.
+    pub fn sids(&self) -> &[i64] {
+        &self.sids
+    }
+
+    /// Returns the number of subscriptions that were unsubscribed.
+    pub fn count(&self) -> usize {
+        self.sids.len()
+    }
+}
+
 /// Commands that can be sent to the WebSocket stream handler.
 #[derive(Debug)]
 pub enum StreamCommand {
@@ -74,7 +94,7 @@ pub enum StreamCommand {
         /// Subscription IDs to unsubscribe from.
         sids: Vec<i64>,
         /// Oneshot channel to receive the unsubscription result.
-        response: oneshot::Sender<Result<JsonValue, String>>,
+        response: oneshot::Sender<Result<UnsubscribeResult, String>>,
     },
 
     /// Close the WebSocket connection gracefully.

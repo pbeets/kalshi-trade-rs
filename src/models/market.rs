@@ -488,14 +488,42 @@ mod price_level_serde {
     }
 }
 
+/// Custom deserializer for orderbook that handles null as empty.
+mod orderbook_serde {
+    use super::Orderbook;
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Orderbook, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<Orderbook> = Option::deserialize(deserializer)?;
+        Ok(opt.unwrap_or_default())
+    }
+}
+
+/// Custom deserializer for Vec that treats null as empty.
+mod null_as_empty_vec {
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: Deserialize<'de>,
+    {
+        let opt: Option<Vec<T>> = Option::deserialize(deserializer)?;
+        Ok(opt.unwrap_or_default())
+    }
+}
+
 /// An orderbook for a market.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Orderbook {
     /// YES price levels as [price_cents, quantity] pairs.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
     pub yes: Vec<Vec<i64>>,
     /// NO price levels as [price_cents, quantity] pairs.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
     pub no: Vec<Vec<i64>>,
     /// YES price levels with dollar pricing.
     #[serde(default, with = "price_level_serde")]
@@ -508,6 +536,8 @@ pub struct Orderbook {
 /// Response from GET /markets/{ticker}/orderbook.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderbookResponse {
+    /// The orderbook. Empty if the market has no orders (API returns null).
+    #[serde(deserialize_with = "orderbook_serde::deserialize")]
     pub orderbook: Orderbook,
 }
 
@@ -1127,6 +1157,24 @@ mod tests {
         assert!(orderbook.yes.is_empty());
         assert!(orderbook.no.is_empty());
         assert!(orderbook.yes_dollars.is_none());
+    }
+
+    #[test]
+    fn test_orderbook_response_null() {
+        // API returns null for markets with no orders
+        let json = r#"{"orderbook": null}"#;
+        let response: OrderbookResponse = serde_json::from_str(json).unwrap();
+        assert!(response.orderbook.yes.is_empty());
+        assert!(response.orderbook.no.is_empty());
+    }
+
+    #[test]
+    fn test_orderbook_null_fields() {
+        // API can return null for yes/no fields within orderbook
+        let json = r#"{"orderbook": {"yes": null, "no": null}}"#;
+        let response: OrderbookResponse = serde_json::from_str(json).unwrap();
+        assert!(response.orderbook.yes.is_empty());
+        assert!(response.orderbook.no.is_empty());
     }
 
     #[test]
