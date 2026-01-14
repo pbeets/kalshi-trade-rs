@@ -8,8 +8,8 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        CreateOrderGroupRequest, GetOrderGroupsParams, OrderGroupResponse, OrderGroupsResponse,
-        UpdateOrderGroupRequest,
+        CreateOrderGroupRequest, CreateOrderGroupResponse, GetOrderGroupResponse,
+        GetOrderGroupsParams, OrderGroupsResponse,
     },
 };
 
@@ -20,35 +20,25 @@ fn encode_id(id: &str) -> String {
 
 /// Create a new order group.
 ///
-/// Creates multiple orders atomically as a group.
+/// Creates multiple orders atomically as a group with a contracts limit.
+/// When the limit is hit, all orders in the group are cancelled and no new
+/// orders can be placed until reset.
 pub async fn create_order_group(
     http: &HttpClient,
     request: CreateOrderGroupRequest,
-) -> Result<OrderGroupResponse> {
-    http.post("/portfolio/order_groups", &request).await
+) -> Result<CreateOrderGroupResponse> {
+    http.post("/portfolio/order_groups/create", &request).await
 }
 
 /// Get an order group by ID.
 ///
-/// Returns details about a specific order group and its contained orders.
+/// Returns details about a specific order group including order IDs and auto-cancel status.
 pub async fn get_order_group(
     http: &HttpClient,
     order_group_id: &str,
-) -> Result<OrderGroupResponse> {
+) -> Result<GetOrderGroupResponse> {
     let path = format!("/portfolio/order_groups/{}", encode_id(order_group_id));
     http.get(&path).await
-}
-
-/// Update an existing order group.
-///
-/// Modifies orders within an existing group.
-pub async fn update_order_group(
-    http: &HttpClient,
-    order_group_id: &str,
-    request: UpdateOrderGroupRequest,
-) -> Result<OrderGroupResponse> {
-    let path = format!("/portfolio/order_groups/{}", encode_id(order_group_id));
-    http.put(&path, &request).await
 }
 
 /// List all order groups.
@@ -66,22 +56,16 @@ pub async fn list_order_groups(
 ///
 /// Deletes an order group and cancels all orders within it.
 /// This permanently removes the group.
-pub async fn delete_order_group(
-    http: &HttpClient,
-    order_group_id: &str,
-) -> Result<OrderGroupResponse> {
+pub async fn delete_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
     let path = format!("/portfolio/order_groups/{}", encode_id(order_group_id));
-    http.delete_with_response(&path).await
+    http.delete(&path).await
 }
 
 /// Reset an order group.
 ///
 /// Resets the order group's matched contracts counter to zero,
 /// allowing new orders to be placed again after the limit was hit.
-pub async fn reset_order_group(
-    http: &HttpClient,
-    order_group_id: &str,
-) -> Result<OrderGroupResponse> {
+pub async fn reset_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
     let path = format!("/portfolio/order_groups/{}/reset", encode_id(order_group_id));
-    http.put_empty(&path).await
+    http.put_empty_json(&path).await
 }

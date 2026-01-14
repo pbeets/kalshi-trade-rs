@@ -37,14 +37,13 @@ use crate::{
         ListRfqsResponse, LiveDataResponse, LookupHistoryResponse, LookupTickersRequest,
         LookupTickersResponse, MarketResponse, MarketsResponse, MilestoneResponse,
         MilestonesResponse, MultivariateCollectionResponse, MultivariateCollectionsResponse,
-        MultivariateEventsResponse, OrderGroupResponse, OrderGroupsResponse,
+        MultivariateEventsResponse, CreateOrderGroupResponse, GetOrderGroupResponse, OrderGroupsResponse,
         OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
         PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
         RfqResponse, SeriesListResponse, SeriesResponse, SettlementsResponse,
         StructuredTargetResponse, StructuredTargetsResponse, SubaccountBalancesResponse,
         SubaccountTransfersResponse, TagsByCategoriesResponse, TradesResponse,
-        TransferBetweenSubaccountsRequest, TransferResponse, UpdateOrderGroupRequest,
-        UserDataTimestampResponse,
+        TransferBetweenSubaccountsRequest, TransferResponse, UserDataTimestampResponse,
     },
 };
 
@@ -964,32 +963,38 @@ impl KalshiClient {
 
     /// Create a new order group.
     ///
-    /// Creates multiple orders atomically as a group.
+    /// Creates an empty order group with a contracts limit. When the limit is hit,
+    /// all orders in the group are cancelled. Orders are associated with the group
+    /// by including the `order_group_id` when creating them via `create_order`.
     ///
     /// # Arguments
     ///
-    /// * `request` - The order group creation request
+    /// * `request` - The order group creation request with contracts limit
     ///
     /// # Example
     ///
     /// ```ignore
-    /// use kalshi_trade_rs::{CreateOrderGroupRequest, CreateOrderGroupOrder, Side, Action};
+    /// use kalshi_trade_rs::CreateOrderGroupRequest;
     ///
-    /// let orders = vec![
-    ///     CreateOrderGroupOrder::new("KXBTC-25JAN", Side::Yes, Action::Buy, 10).yes_price(50),
-    ///     CreateOrderGroupOrder::new("KXETH-25JAN", Side::Yes, Action::Buy, 5).yes_price(40),
-    /// ];
-    /// let request = CreateOrderGroupRequest { orders };
+    /// // Create a group that auto-cancels after 100 contracts
+    /// let request = CreateOrderGroupRequest::new(100);
     /// let response = client.create_order_group(request).await?;
+    /// println!("Created order group: {}", response.order_group_id);
+    ///
+    /// // Now create orders with this group ID
+    /// let order = CreateOrderRequest::new("TICKER", Side::Yes, Action::Buy, 10)
+    ///     .order_group_id(&response.order_group_id);
     /// ```
     pub async fn create_order_group(
         &self,
         request: CreateOrderGroupRequest,
-    ) -> Result<OrderGroupResponse> {
+    ) -> Result<CreateOrderGroupResponse> {
         order_groups::create_order_group(&self.http, request).await
     }
 
     /// Get an order group by ID.
+    ///
+    /// Returns details about a specific order group including order IDs and auto-cancel status.
     ///
     /// # Arguments
     ///
@@ -999,37 +1004,11 @@ impl KalshiClient {
     ///
     /// ```ignore
     /// let response = client.get_order_group("og_123").await?;
+    /// println!("Auto-cancel enabled: {}", response.is_auto_cancel_enabled);
+    /// println!("Orders: {:?}", response.orders);
     /// ```
-    pub async fn get_order_group(&self, order_group_id: &str) -> Result<OrderGroupResponse> {
+    pub async fn get_order_group(&self, order_group_id: &str) -> Result<GetOrderGroupResponse> {
         order_groups::get_order_group(&self.http, order_group_id).await
-    }
-
-    /// Update an existing order group.
-    ///
-    /// # Arguments
-    ///
-    /// * `order_group_id` - The ID of the order group to update
-    /// * `request` - The update request containing orders to update or add
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// use kalshi_trade_rs::{UpdateOrderGroupRequest, UpdateOrderGroupOrder, Side, Action};
-    ///
-    /// let orders = vec![
-    ///     UpdateOrderGroupOrder::new("KXBTC-25JAN", Side::Yes, Action::Buy, 20)
-    ///         .order_id("order_123")
-    ///         .yes_price(55),
-    /// ];
-    /// let request = UpdateOrderGroupRequest { orders };
-    /// let response = client.update_order_group("og_123", request).await?;
-    /// ```
-    pub async fn update_order_group(
-        &self,
-        order_group_id: &str,
-        request: UpdateOrderGroupRequest,
-    ) -> Result<OrderGroupResponse> {
-        order_groups::update_order_group(&self.http, order_group_id, request).await
     }
 
     /// List all order groups with default parameters.
@@ -1039,7 +1018,7 @@ impl KalshiClient {
     /// ```ignore
     /// let groups = client.list_order_groups().await?;
     /// for group in groups.order_groups {
-    ///     println!("Group {}: {} orders", group.order_group_id, group.orders.len());
+    ///     println!("Group {}: auto_cancel={}", group.id, group.is_auto_cancel_enabled);
     /// }
     /// ```
     pub async fn list_order_groups(&self) -> Result<OrderGroupsResponse> {
@@ -1080,10 +1059,10 @@ impl KalshiClient {
     /// # Example
     ///
     /// ```ignore
-    /// let response = client.delete_order_group("og_123").await?;
-    /// println!("Deleted group: {}", response.order_group.order_group_id);
+    /// client.delete_order_group("og_123").await?;
+    /// println!("Deleted order group");
     /// ```
-    pub async fn delete_order_group(&self, order_group_id: &str) -> Result<OrderGroupResponse> {
+    pub async fn delete_order_group(&self, order_group_id: &str) -> Result<()> {
         order_groups::delete_order_group(&self.http, order_group_id).await
     }
 
@@ -1099,10 +1078,10 @@ impl KalshiClient {
     /// # Example
     ///
     /// ```ignore
-    /// let response = client.reset_order_group("og_123").await?;
-    /// println!("Reset group: {}", response.order_group.order_group_id);
+    /// client.reset_order_group("og_123").await?;
+    /// println!("Reset order group");
     /// ```
-    pub async fn reset_order_group(&self, order_group_id: &str) -> Result<OrderGroupResponse> {
+    pub async fn reset_order_group(&self, order_group_id: &str) -> Result<()> {
         order_groups::reset_order_group(&self.http, order_group_id).await
     }
 
