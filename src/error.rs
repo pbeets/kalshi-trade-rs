@@ -79,6 +79,21 @@ pub enum Error {
 
     #[error("Transfer amount must be positive, got {0}")]
     InvalidTransferAmount(i64),
+
+    #[error("Invalid limit {0}: must be between {1} and {2}")]
+    InvalidLimit(i64, i64, i64),
+
+    #[error("Invalid contracts limit {0}: must be at least 1")]
+    InvalidContractsLimit(i64),
+
+    #[error("Invalid contracts {0}: must be positive")]
+    InvalidContracts(i64),
+
+    #[error("Invalid target cost {0}: must be positive")]
+    InvalidTargetCost(i64),
+
+    #[error("Invalid target cost dollars {0}: must be positive")]
+    InvalidTargetCostDollars(f64),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

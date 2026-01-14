@@ -28,6 +28,29 @@ pub struct CreateRfqRequest {
 }
 
 impl CreateRfqRequest {
+    /// Create a new RFQ request with contracts, with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `contracts` is not positive.
+    pub fn try_with_contracts(
+        market_ticker: impl Into<String>,
+        contracts: i64,
+        rest_remainder: bool,
+    ) -> crate::error::Result<Self> {
+        if contracts <= 0 {
+            return Err(crate::error::Error::InvalidContracts(contracts));
+        }
+        Ok(Self {
+            market_ticker: market_ticker.into(),
+            contracts: Some(contracts),
+            target_cost_centi_cents: None,
+            rest_remainder,
+            replace_existing: None,
+            subtrader_id: None,
+        })
+    }
+
     /// Create a new RFQ request with contracts.
     ///
     /// # Arguments
@@ -38,22 +61,38 @@ impl CreateRfqRequest {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `contracts` is not positive.
+    /// Panics if `contracts` is not positive.
     #[must_use]
     pub fn with_contracts(
         market_ticker: impl Into<String>,
         contracts: i64,
         rest_remainder: bool,
     ) -> Self {
-        debug_assert!(contracts > 0, "contracts must be positive, got {}", contracts);
-        Self {
+        Self::try_with_contracts(market_ticker, contracts, rest_remainder)
+            .expect("invalid RFQ contracts")
+    }
+
+    /// Create a new RFQ request with target cost, with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `target_cost_centi_cents` is not positive.
+    pub fn try_with_target_cost(
+        market_ticker: impl Into<String>,
+        target_cost_centi_cents: i64,
+        rest_remainder: bool,
+    ) -> crate::error::Result<Self> {
+        if target_cost_centi_cents <= 0 {
+            return Err(crate::error::Error::InvalidTargetCost(target_cost_centi_cents));
+        }
+        Ok(Self {
             market_ticker: market_ticker.into(),
-            contracts: Some(contracts),
-            target_cost_centi_cents: None,
+            contracts: None,
+            target_cost_centi_cents: Some(target_cost_centi_cents),
             rest_remainder,
             replace_existing: None,
             subtrader_id: None,
-        }
+        })
     }
 
     /// Create a new RFQ request with target cost.
@@ -66,26 +105,41 @@ impl CreateRfqRequest {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `target_cost_centi_cents` is not positive.
+    /// Panics if `target_cost_centi_cents` is not positive.
     #[must_use]
     pub fn with_target_cost(
         market_ticker: impl Into<String>,
         target_cost_centi_cents: i64,
         rest_remainder: bool,
     ) -> Self {
-        debug_assert!(
-            target_cost_centi_cents > 0,
-            "target_cost_centi_cents must be positive, got {}",
-            target_cost_centi_cents
-        );
-        Self {
+        Self::try_with_target_cost(market_ticker, target_cost_centi_cents, rest_remainder)
+            .expect("invalid RFQ target cost")
+    }
+
+    /// Create a new RFQ request with target cost in dollars, with validation.
+    ///
+    /// Converts the dollar amount to centi-cents for the API.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `target_cost_dollars` is not positive.
+    pub fn try_with_target_cost_dollars(
+        market_ticker: impl Into<String>,
+        target_cost_dollars: f64,
+        rest_remainder: bool,
+    ) -> crate::error::Result<Self> {
+        if target_cost_dollars <= 0.0 {
+            return Err(crate::error::Error::InvalidTargetCostDollars(target_cost_dollars));
+        }
+        let centi_cents = (target_cost_dollars * 10000.0).round() as i64;
+        Ok(Self {
             market_ticker: market_ticker.into(),
             contracts: None,
-            target_cost_centi_cents: Some(target_cost_centi_cents),
+            target_cost_centi_cents: Some(centi_cents),
             rest_remainder,
             replace_existing: None,
             subtrader_id: None,
-        }
+        })
     }
 
     /// Create a new RFQ request with target cost in dollars.
@@ -100,27 +154,15 @@ impl CreateRfqRequest {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `target_cost_dollars` is not positive.
+    /// Panics if `target_cost_dollars` is not positive.
     #[must_use]
     pub fn with_target_cost_dollars(
         market_ticker: impl Into<String>,
         target_cost_dollars: f64,
         rest_remainder: bool,
     ) -> Self {
-        debug_assert!(
-            target_cost_dollars > 0.0,
-            "target_cost_dollars must be positive, got {}",
-            target_cost_dollars
-        );
-        let centi_cents = (target_cost_dollars * 10000.0).round() as i64;
-        Self {
-            market_ticker: market_ticker.into(),
-            contracts: None,
-            target_cost_centi_cents: Some(centi_cents),
-            rest_remainder,
-            replace_existing: None,
-            subtrader_id: None,
-        }
+        Self::try_with_target_cost_dollars(market_ticker, target_cost_dollars, rest_remainder)
+            .expect("invalid RFQ target cost dollars")
     }
 
     /// Set whether to replace existing RFQs.
@@ -175,6 +217,24 @@ impl CreateQuoteRequest {
         }
     }
 
+    /// Create a quote request from cent values with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `yes_price_cents` is not between 1 and 99.
+    pub fn try_from_cents(rfq_id: impl Into<String>, yes_price_cents: i64, rest_remainder: bool) -> crate::error::Result<Self> {
+        if !(1..=99).contains(&yes_price_cents) {
+            return Err(crate::error::Error::InvalidPrice(yes_price_cents));
+        }
+        let no_price_cents = 100 - yes_price_cents;
+        Ok(Self {
+            rfq_id: rfq_id.into(),
+            yes_bid: format!("{:.4}", yes_price_cents as f64 / 100.0),
+            no_bid: format!("{:.4}", no_price_cents as f64 / 100.0),
+            rest_remainder,
+        })
+    }
+
     /// Create a quote request from cent values.
     ///
     /// Converts cent prices (1-99) to dollar strings for the API.
@@ -187,21 +247,11 @@ impl CreateQuoteRequest {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `yes_price_cents` is not between 1 and 99.
+    /// Panics if `yes_price_cents` is not between 1 and 99.
     #[must_use]
     pub fn from_cents(rfq_id: impl Into<String>, yes_price_cents: i64, rest_remainder: bool) -> Self {
-        debug_assert!(
-            (1..=99).contains(&yes_price_cents),
-            "yes_price_cents must be between 1 and 99, got {}",
-            yes_price_cents
-        );
-        let no_price_cents = 100 - yes_price_cents;
-        Self {
-            rfq_id: rfq_id.into(),
-            yes_bid: format!("{:.4}", yes_price_cents as f64 / 100.0),
-            no_bid: format!("{:.4}", no_price_cents as f64 / 100.0),
-            rest_remainder,
-        }
+        Self::try_from_cents(rfq_id, yes_price_cents, rest_remainder)
+            .expect("invalid quote price")
     }
 }
 

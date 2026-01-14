@@ -1918,7 +1918,7 @@ impl KalshiClient {
     // Incentive Programs API
     // =========================================================================
 
-    /// List all available incentive programs.
+    /// List all available incentive programs with default parameters.
     ///
     /// Incentive programs are rewards programs for trading activity on specific markets.
     ///
@@ -1931,7 +1931,32 @@ impl KalshiClient {
     /// }
     /// ```
     pub async fn get_incentive_programs(&self) -> Result<IncentiveProgramsResponse> {
-        incentive_programs::get_incentive_programs(&self.http).await
+        self.get_incentive_programs_with_params(crate::models::GetIncentiveProgramsParams::default())
+            .await
+    }
+
+    /// List incentive programs with optional filtering and pagination.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetIncentiveProgramsParams;
+    ///
+    /// // Get only active liquidity programs
+    /// let params = GetIncentiveProgramsParams::new()
+    ///     .status("active")
+    ///     .program_type("liquidity")
+    ///     .limit(50);
+    /// let programs = client.get_incentive_programs_with_params(params).await?;
+    /// for program in programs.incentive_programs {
+    ///     println!("{}: {:?}", program.name.unwrap_or_default(), program.status);
+    /// }
+    /// ```
+    pub async fn get_incentive_programs_with_params(
+        &self,
+        params: crate::models::GetIncentiveProgramsParams,
+    ) -> Result<IncentiveProgramsResponse> {
+        incentive_programs::get_incentive_programs(&self.http, params).await
     }
 
     // =========================================================================

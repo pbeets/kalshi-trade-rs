@@ -21,14 +21,26 @@ impl CreateOrderGroupRequest {
     /// # Arguments
     ///
     /// * `contracts_limit` - Maximum contracts before auto-cancel (must be >= 1)
+    ///
+    /// # Panics
+    ///
+    /// Panics if `contracts_limit` is less than 1.
+    /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
     pub fn new(contracts_limit: i64) -> Self {
-        debug_assert!(
-            contracts_limit >= 1,
-            "contracts_limit must be at least 1, got {}",
-            contracts_limit
-        );
-        Self { contracts_limit }
+        Self::try_new(contracts_limit).expect("invalid contracts limit")
+    }
+
+    /// Create a new order group request with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `contracts_limit` is less than 1.
+    pub fn try_new(contracts_limit: i64) -> crate::error::Result<Self> {
+        if contracts_limit < 1 {
+            return Err(crate::error::Error::InvalidContractsLimit(contracts_limit));
+        }
+        Ok(Self { contracts_limit })
     }
 }
 

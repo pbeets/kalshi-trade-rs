@@ -63,6 +63,9 @@ pub struct GetFillsParams {
     pub limit: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
+    /// Filter by subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl GetFillsParams {
@@ -99,21 +102,38 @@ impl GetFillsParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `limit` is not in the range 1..=1000.
+    /// Panics if `limit` is not in the range 1..=200.
+    /// Use [`try_limit`](Self::try_limit) for fallible construction.
     #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 1000,
-            "limit must be between 1 and 1000, got {}",
-            limit
-        );
+    pub fn limit(self, limit: i64) -> Self {
+        self.try_limit(limit).expect("invalid limit")
+    }
+
+    /// Set the maximum number of results to return with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `limit` is not in the range 1..=200.
+    pub fn try_limit(mut self, limit: i64) -> crate::error::Result<Self> {
+        if limit <= 0 || limit > 200 {
+            return Err(crate::error::Error::InvalidLimit(limit, 1, 200));
+        }
         self.limit = Some(limit);
-        self
+        Ok(self)
     }
 
     #[must_use]
     pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
         self.cursor = Some(cursor.into());
+        self
+    }
+
+    /// Filter by subaccount number.
+    ///
+    /// Use 0 for the primary account, or 1-32 for numbered subaccounts.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
         self
     }
 
@@ -126,6 +146,7 @@ impl GetFillsParams {
         qb.push_opt("max_ts", self.max_ts);
         qb.push_opt("limit", self.limit);
         qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("subaccount", self.subaccount);
         qb.build()
     }
 }

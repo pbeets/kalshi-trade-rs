@@ -97,20 +97,11 @@ impl GetSettlementsParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if more than 10 event tickers are provided.
+    /// Panics if more than 10 event tickers are provided.
     /// Use [`try_event_ticker`](Self::try_event_ticker) for fallible construction.
     #[must_use]
-    pub fn event_ticker(mut self, event_ticker: impl Into<String>) -> Self {
-        let tickers = event_ticker.into();
-        let count = tickers.split(',').filter(|s| !s.is_empty()).count();
-        debug_assert!(
-            count <= crate::error::MAX_EVENT_TICKERS,
-            "max {} event tickers allowed, got {}",
-            crate::error::MAX_EVENT_TICKERS,
-            count
-        );
-        self.event_ticker = Some(tickers);
-        self
+    pub fn event_ticker(self, event_ticker: impl Into<String>) -> Self {
+        self.try_event_ticker(event_ticker).expect("too many event tickers")
     }
 
     /// Filter by event ticker with validation (comma-separated for multiple, max 10).

@@ -846,21 +846,12 @@ impl GetCandlesticksParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `start_ts >= end_ts`.
+    /// Panics if `start_ts >= end_ts`.
     /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
     pub fn new(start_ts: i64, end_ts: i64, period_interval: CandlestickPeriod) -> Self {
-        debug_assert!(
-            start_ts < end_ts,
-            "start_ts ({}) must be less than end_ts ({})",
-            start_ts,
-            end_ts
-        );
-        Self {
-            start_ts,
-            end_ts,
-            period_interval,
-        }
+        Self::try_new(start_ts, end_ts, period_interval)
+            .expect("invalid candlestick parameters")
     }
 
     /// Create new candlesticks query parameters with validation.
@@ -914,7 +905,7 @@ impl GetBatchCandlesticksParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if:
+    /// Panics if:
     /// - More than 100 market tickers are provided (count by splitting on commas)
     /// - `start_ts >= end_ts`
     ///
@@ -926,27 +917,8 @@ impl GetBatchCandlesticksParams {
         end_ts: i64,
         period_interval: CandlestickPeriod,
     ) -> Self {
-        let tickers = market_tickers.into();
-        let ticker_count = tickers.split(',').filter(|s| !s.is_empty()).count();
-        debug_assert!(
-            ticker_count <= crate::error::MAX_BATCH_CANDLESTICKS_TICKERS,
-            "batch candlesticks supports max {} tickers, got {}",
-            crate::error::MAX_BATCH_CANDLESTICKS_TICKERS,
-            ticker_count
-        );
-        debug_assert!(
-            start_ts < end_ts,
-            "start_ts ({}) must be less than end_ts ({})",
-            start_ts,
-            end_ts
-        );
-        Self {
-            market_tickers: tickers,
-            start_ts,
-            end_ts,
-            period_interval: period_interval.as_minutes(),
-            include_latest_before_start: None,
-        }
+        Self::try_new(market_tickers, start_ts, end_ts, period_interval)
+            .expect("invalid batch candlestick parameters")
     }
 
     /// Create new batch candlesticks query parameters with validation.
@@ -983,7 +955,7 @@ impl GetBatchCandlesticksParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if more than 100 tickers are provided or if
+    /// Panics if more than 100 tickers are provided or if
     /// `start_ts >= end_ts`. Use [`try_from_tickers`](Self::try_from_tickers) for
     /// fallible construction.
     #[must_use]

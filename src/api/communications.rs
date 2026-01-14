@@ -35,7 +35,7 @@ pub async fn accept_quote(
     request: AcceptQuoteRequest,
 ) -> Result<QuoteResponse> {
     let path = format!("/communications/quotes/{}/accept", quote_id);
-    http.post(&path, &request).await
+    http.put(&path, &request).await
 }
 
 /// Cancel an RFQ.

@@ -133,16 +133,24 @@ impl GetFcmOrdersParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `limit` is not in the range 1..=1000.
+    /// Panics if `limit` is not in the range 1..=1000.
+    /// Use [`try_limit`](Self::try_limit) for fallible construction.
     #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 1000,
-            "limit must be between 1 and 1000, got {}",
-            limit
-        );
+    pub fn limit(self, limit: i64) -> Self {
+        self.try_limit(limit).expect("invalid limit")
+    }
+
+    /// Set the maximum number of results to return with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `limit` is not in the range 1..=1000.
+    pub fn try_limit(mut self, limit: i64) -> crate::error::Result<Self> {
+        if limit <= 0 || limit > 1000 {
+            return Err(crate::error::Error::InvalidLimit(limit, 1, 1000));
+        }
         self.limit = Some(limit);
-        self
+        Ok(self)
     }
 
     #[must_use]
@@ -247,16 +255,24 @@ impl GetFcmPositionsParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `limit` is not in the range 1..=1000.
+    /// Panics if `limit` is not in the range 1..=1000.
+    /// Use [`try_limit`](Self::try_limit) for fallible construction.
     #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        debug_assert!(
-            limit > 0 && limit <= 1000,
-            "limit must be between 1 and 1000, got {}",
-            limit
-        );
+    pub fn limit(self, limit: i64) -> Self {
+        self.try_limit(limit).expect("invalid limit")
+    }
+
+    /// Set the maximum number of results to return with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `limit` is not in the range 1..=1000.
+    pub fn try_limit(mut self, limit: i64) -> crate::error::Result<Self> {
+        if limit <= 0 || limit > 1000 {
+            return Err(crate::error::Error::InvalidLimit(limit, 1, 1000));
+        }
         self.limit = Some(limit);
-        self
+        Ok(self)
     }
 
     /// Set the pagination cursor.

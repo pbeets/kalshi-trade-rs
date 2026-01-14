@@ -432,21 +432,12 @@ impl GetEventCandlesticksParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if `start_ts >= end_ts`.
+    /// Panics if `start_ts >= end_ts`.
     /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
     pub fn new(start_ts: i64, end_ts: i64, period_interval: super::market::CandlestickPeriod) -> Self {
-        debug_assert!(
-            start_ts < end_ts,
-            "start_ts ({}) must be less than end_ts ({})",
-            start_ts,
-            end_ts
-        );
-        Self {
-            start_ts,
-            end_ts,
-            period_interval: period_interval.as_minutes(),
-        }
+        Self::try_new(start_ts, end_ts, period_interval)
+            .expect("invalid event candlestick parameters")
     }
 
     /// Create new event candlesticks query parameters with validation.
@@ -544,7 +535,7 @@ impl GetEventForecastPercentileHistoryParams {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds if:
+    /// Panics if:
     /// - More than 10 percentiles are provided
     /// - Any percentile value is outside 0-10000
     /// - `start_ts >= end_ts`
@@ -557,28 +548,8 @@ impl GetEventForecastPercentileHistoryParams {
         end_ts: i64,
         period_interval: ForecastPeriod,
     ) -> Self {
-        debug_assert!(
-            percentiles.len() <= MAX_FORECAST_PERCENTILES,
-            "forecast percentile history supports max {} percentiles, got {}",
-            MAX_FORECAST_PERCENTILES,
-            percentiles.len()
-        );
-        debug_assert!(
-            percentiles.iter().all(|&p| (0..=10000).contains(&p)),
-            "all percentile values must be between 0 and 10000"
-        );
-        debug_assert!(
-            start_ts < end_ts,
-            "start_ts ({}) must be less than end_ts ({})",
-            start_ts,
-            end_ts
-        );
-        Self {
-            percentiles,
-            start_ts,
-            end_ts,
-            period_interval: period_interval.as_minutes(),
-        }
+        Self::try_new(percentiles, start_ts, end_ts, period_interval)
+            .expect("invalid forecast percentile history parameters")
     }
 
     /// Create new forecast percentile history query parameters with validation.

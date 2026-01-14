@@ -163,27 +163,34 @@ impl SubaccountTransfer {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubaccountBalancesResponse {
     /// List of balances for all subaccounts.
-    pub balances: Vec<SubaccountBalance>,
+    pub subaccount_balances: Vec<SubaccountBalance>,
 }
 
 /// Balance for a single subaccount.
+///
+/// **Note:** This endpoint returns balance in **centicents** (1/100th of a cent),
+/// which differs from `GET /portfolio/balance` which returns balance in cents.
+/// Use [`balance_dollars()`](Self::balance_dollars) for convenient conversion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubaccountBalance {
     /// Subaccount number (0 for primary, 1-32 for subaccounts).
-    pub subaccount_id: i32,
-    /// Available balance in cents.
+    pub subaccount_number: i32,
+    /// Available balance in centicents (1/100th of a cent).
+    /// Divide by 10,000 to get dollars.
     pub balance: i64,
-    /// Optional subaccount name.
+    /// Last update timestamp (Unix seconds).
     #[serde(default)]
-    pub name: Option<String>,
+    pub updated_ts: Option<i64>,
 }
 
 impl SubaccountBalance {
     /// Returns the balance in dollars.
+    ///
+    /// Converts from centicents (API unit) to dollars by dividing by 10,000.
     #[inline]
     #[must_use]
     pub fn balance_dollars(&self) -> f64 {
-        self.balance as f64 / 100.0
+        self.balance as f64 / 10000.0
     }
 }
 
@@ -323,10 +330,11 @@ mod tests {
 
     #[test]
     fn test_balance_dollars() {
+        // Balance is in centicents (1/100th of a cent), so 5000000 centicents = $500
         let balance = SubaccountBalance {
-            subaccount_id: 0,
-            balance: 50000,
-            name: None,
+            subaccount_number: 0,
+            balance: 5000000,
+            updated_ts: None,
         };
         assert!((balance.balance_dollars() - 500.0).abs() < f64::EPSILON);
     }
