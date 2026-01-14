@@ -205,6 +205,18 @@ impl HttpClient {
         Ok(())
     }
 
+    /// Make a PUT request with an empty JSON body, expecting no response body.
+    ///
+    /// Suitable for endpoints that require a Content-Type header but return empty response.
+    ///
+    /// # Arguments
+    /// * `path` - The API path
+    pub async fn put_empty_json(&self, path: &str) -> Result<()> {
+        let request = self.build_request(Method::PUT, path)?.json(&serde_json::json!({}));
+        self.execute(request).await?;
+        Ok(())
+    }
+
     /// Get the base URL for this client.
     pub fn base_url(&self) -> &str {
         &self.base_url

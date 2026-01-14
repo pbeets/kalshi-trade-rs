@@ -82,8 +82,8 @@ pub use order::{
     QueuePositionsResponse, TimeInForce,
 };
 pub use order_group::{
-    CreateOrderGroupOrder, CreateOrderGroupRequest, GetOrderGroupsParams, OrderGroup,
-    OrderGroupResponse, OrderGroupsResponse, UpdateOrderGroupOrder, UpdateOrderGroupRequest,
+    CreateOrderGroupRequest, CreateOrderGroupResponse, GetOrderGroupResponse, GetOrderGroupsParams,
+    OrderGroupSummary, OrderGroupsResponse,
 };
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};
 pub use search::{
