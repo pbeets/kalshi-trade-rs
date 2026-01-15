@@ -108,10 +108,7 @@ pub async fn generate_api_key(
 ///     println!("API key deleted successfully");
 /// }
 /// ```
-pub async fn delete_api_key(
-    http: &HttpClient,
-    api_key_id: &str,
-) -> Result<DeleteApiKeyResponse> {
+pub async fn delete_api_key(http: &HttpClient, api_key_id: &str) -> Result<DeleteApiKeyResponse> {
     let path = format!("/api_keys/{}", encode_path_segment(api_key_id));
     http.delete_with_response(&path).await
 }

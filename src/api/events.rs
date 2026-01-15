@@ -8,9 +8,9 @@ use crate::{
     error::Result,
     models::{
         EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
-        EventResponse, EventsResponse, GetEventCandlesticksParams, GetEventParams,
-        GetEventForecastPercentileHistoryParams, GetEventsParams, GetMultivariateEventsParams,
-        MultivariateEventsResponse,
+        EventResponse, EventsResponse, GetEventCandlesticksParams,
+        GetEventForecastPercentileHistoryParams, GetEventParams, GetEventsParams,
+        GetMultivariateEventsParams, MultivariateEventsResponse,
     },
 };
 
