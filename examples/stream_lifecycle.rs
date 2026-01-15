@@ -64,10 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  {} -> sid={}", sub.channel, sub.sid);
     }
     for err in &mv_result.failed {
-        println!(
-            "  {:?} FAILED: {} - {}",
-            err.channel, err.code, err.message
-        );
+        println!("  {:?} FAILED: {} - {}", err.channel, err.code, err.message);
     }
     all_sids.extend(mv_result.sids());
 
@@ -95,10 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("  {} -> sid={}", sub.channel, sub.sid);
         }
         for err in &lc_result.failed {
-            println!(
-                "  {:?} FAILED: {} - {}",
-                err.channel, err.code, err.message
-            );
+            println!("  {:?} FAILED: {} - {}", err.channel, err.code, err.message);
         }
         all_sids.extend(lc_result.sids());
     }
@@ -141,10 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         lifecycle.result
                     );
                     if let Some(meta) = &lifecycle.additional_metadata {
-                        println!(
-                            "            name={:?} | title={:?}",
-                            meta.name, meta.title
-                        );
+                        println!("            name={:?} | title={:?}", meta.name, meta.title);
                     }
                 }
                 StreamMessage::MultivariateLookup(mv) => {
@@ -180,9 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break;
             }
             Err(_) => {
-                println!(
-                    "[INFO] No lifecycle events in last 30 seconds (this is normal)..."
-                );
+                println!("[INFO] No lifecycle events in last 30 seconds (this is normal)...");
             }
         }
     }

@@ -54,18 +54,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for (tier, name, desc) in &tiers {
-        println!(
-            "  {} ({}):",
-            name, desc
-        );
-        println!(
-            "    Reads:  {:>3}/sec",
-            tier.reads_per_second() as i32
-        );
-        println!(
-            "    Writes: {:>3}/sec",
-            tier.writes_per_second() as i32
-        );
+        println!("  {} ({}):", name, desc);
+        println!("    Reads:  {:>3}/sec", tier.reads_per_second() as i32);
+        println!("    Writes: {:>3}/sec", tier.writes_per_second() as i32);
     }
     println!();
 
