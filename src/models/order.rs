@@ -722,7 +722,9 @@ pub struct QueuePosition {
 /// Response from GET /portfolio/orders/queue_positions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuePositionsResponse {
-    pub queue_positions: Vec<QueuePosition>,
+    /// Queue positions (may be null if no orders have queue positions).
+    #[serde(default)]
+    pub queue_positions: Option<Vec<QueuePosition>>,
 }
 
 /// Response from GET /portfolio/orders/{order_id}/queue_position.

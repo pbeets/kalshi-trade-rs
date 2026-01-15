@@ -136,9 +136,7 @@ mod tests {
         let params = GetOrderGroupsParams::new().limit(50);
         assert!(params.to_query_string().contains("limit=50"));
 
-        let params = GetOrderGroupsParams::new()
-            .cursor("abc123")
-            .limit(25);
+        let params = GetOrderGroupsParams::new().cursor("abc123").limit(25);
         let qs = params.to_query_string();
         assert!(qs.contains("cursor=abc123"));
         assert!(qs.contains("limit=25"));

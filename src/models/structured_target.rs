@@ -11,37 +11,22 @@ use crate::models::query::QueryBuilder;
 pub struct StructuredTarget {
     /// The unique identifier for the structured target.
     #[serde(default)]
-    pub structured_target_id: Option<String>,
-    /// The title or name.
+    pub id: Option<String>,
+    /// The name of the structured target.
     #[serde(default)]
-    pub title: Option<String>,
-    /// The description.
-    #[serde(default)]
-    pub description: Option<String>,
-    /// The target type.
-    #[serde(default)]
+    pub name: Option<String>,
+    /// The target type (e.g., "ufc_competitor", "soccer_team", "basketball_team").
+    #[serde(default, rename = "type")]
     pub target_type: Option<String>,
-    /// The associated series ticker.
+    /// The source identifier.
     #[serde(default)]
-    pub series_ticker: Option<String>,
-    /// The associated event ticker.
+    pub source_id: Option<String>,
+    /// Additional details/configuration.
     #[serde(default)]
-    pub event_ticker: Option<String>,
-    /// The target value.
+    pub details: Option<serde_json::Value>,
+    /// Last update timestamp (RFC3339).
     #[serde(default)]
-    pub target_value: Option<f64>,
-    /// The target value as a string.
-    #[serde(default)]
-    pub target_value_string: Option<String>,
-    /// Additional configuration.
-    #[serde(default)]
-    pub config: Option<serde_json::Value>,
-    /// Creation timestamp.
-    #[serde(default)]
-    pub created_ts: Option<String>,
-    /// Last update timestamp.
-    #[serde(default)]
-    pub updated_ts: Option<String>,
+    pub last_updated_ts: Option<String>,
 }
 
 /// Query parameters for GET /structured_targets.

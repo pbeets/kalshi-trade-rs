@@ -289,7 +289,10 @@ impl GetFcmPositionsParams {
         qb.push_opt("ticker", self.ticker.as_ref());
         qb.push_opt("event_ticker", self.event_ticker.as_ref());
         qb.push_opt("count_filter", self.count_filter.as_ref());
-        qb.push_opt("settlement_status", self.settlement_status.map(|s| s.as_str()));
+        qb.push_opt(
+            "settlement_status",
+            self.settlement_status.map(|s| s.as_str()),
+        );
         qb.push_opt("limit", self.limit);
         qb.push_opt("cursor", self.cursor.as_ref());
         qb.build()
@@ -303,10 +306,7 @@ mod tests {
     #[test]
     fn test_fcm_orders_params_required_only() {
         let params = GetFcmOrdersParams::new("subtrader-123");
-        assert_eq!(
-            params.to_query_string(),
-            "?subtrader_id=subtrader-123"
-        );
+        assert_eq!(params.to_query_string(), "?subtrader_id=subtrader-123");
     }
 
     #[test]
@@ -325,10 +325,7 @@ mod tests {
     #[test]
     fn test_fcm_positions_params_required_only() {
         let params = GetFcmPositionsParams::new("subtrader-456");
-        assert_eq!(
-            params.to_query_string(),
-            "?subtrader_id=subtrader-456"
-        );
+        assert_eq!(params.to_query_string(), "?subtrader_id=subtrader-456");
     }
 
     #[test]

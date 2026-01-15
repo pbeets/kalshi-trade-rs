@@ -10,7 +10,8 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagsByCategoriesResponse {
     /// Mapping of series categories to their associated tags.
-    pub tags_by_categories: HashMap<String, Vec<String>>,
+    /// Some categories may have null/empty tags.
+    pub tags_by_categories: HashMap<String, Option<Vec<String>>>,
 }
 
 /// Competition filter details within a sport.
@@ -55,12 +56,20 @@ mod tests {
         let json = r#"{
             "tags_by_categories": {
                 "Politics": ["US Elections", "Congress", "Presidential"],
-                "Sports": ["NFL", "NBA", "MLB"]
+                "Sports": ["NFL", "NBA", "MLB"],
+                "Empty": null
             }
         }"#;
         let response: TagsByCategoriesResponse = serde_json::from_str(json).unwrap();
         assert!(response.tags_by_categories.contains_key("Politics"));
-        assert_eq!(response.tags_by_categories["Sports"].len(), 3);
+        assert_eq!(
+            response.tags_by_categories["Sports"]
+                .as_ref()
+                .unwrap()
+                .len(),
+            3
+        );
+        assert!(response.tags_by_categories["Empty"].is_none());
     }
 
     #[test]
