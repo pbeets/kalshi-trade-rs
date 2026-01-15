@@ -5,6 +5,15 @@
 
 use tokio::sync::oneshot;
 
+/// Action for updating a subscription's market list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateAction {
+    /// Add markets to the subscription.
+    AddMarkets,
+    /// Remove markets from the subscription.
+    DeleteMarkets,
+}
+
 /// A successful channel subscription.
 #[derive(Debug, Clone)]
 pub struct ChannelSubscription {
@@ -95,6 +104,18 @@ pub enum StreamCommand {
         sids: Vec<i64>,
         /// Oneshot channel to receive the unsubscription result.
         response: oneshot::Sender<Result<UnsubscribeResult, String>>,
+    },
+
+    /// Update markets for an existing subscription.
+    UpdateSubscription {
+        /// Subscription ID to update.
+        sid: i64,
+        /// Markets to add or remove.
+        markets: Vec<String>,
+        /// Action to perform.
+        action: UpdateAction,
+        /// Oneshot channel to receive the updated markets list.
+        response: oneshot::Sender<Result<Vec<String>, String>>,
     },
 
     /// Close the WebSocket connection gracefully.

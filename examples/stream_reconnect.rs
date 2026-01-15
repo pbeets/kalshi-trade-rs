@@ -52,7 +52,8 @@ async fn run_stream(config: &KalshiConfig) -> Result<String, Box<dyn std::error:
     let client = KalshiStreamClient::connect_with_strategy(config, ConnectStrategy::Retry).await?;
     let mut handle = client.handle();
 
-    handle.subscribe(&[Channel::Ticker], None).await?;
+    // Subscribe to Fill channel (authenticated, no market ticker required)
+    handle.subscribe(Channel::Fill, &[]).await?;
 
     loop {
         match handle.update_receiver.recv().await {
@@ -61,8 +62,8 @@ async fn run_stream(config: &KalshiConfig) -> Result<String, Box<dyn std::error:
                 StreamMessage::ConnectionLost { reason } => {
                     return Err(format!("Connection lost: {reason}").into());
                 }
-                StreamMessage::Ticker(t) => {
-                    println!("[TICKER] {} @ {}¢", t.market_ticker, t.price);
+                StreamMessage::Fill(f) => {
+                    println!("[FILL] {} @ {}¢ x{}", f.market_ticker, f.yes_price, f.count);
                 }
                 _ => {}
             },

@@ -4,9 +4,12 @@
 //! to Kalshi's streaming API. The actor owns the WebSocket connection and handles
 //! all communication in a single async task.
 
-use std::collections::HashMap;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tracing::{debug, error, info, warn};
+
+use std::{
+    collections::HashMap,
+    time::{Instant, SystemTime, UNIX_EPOCH},
+};
 
 use futures_util::{
     SinkExt, StreamExt,
@@ -172,6 +175,9 @@ pub struct KalshiStreamSession {
     pending_subscriptions: HashMap<u64, SubscribeCollector>,
     /// Pending multi-SID unsubscribe requests awaiting multiple responses.
     pending_unsubscriptions: HashMap<u64, UnsubscribeCollector>,
+    /// Pending update_subscription requests awaiting single response.
+    /// Returns the updated list of markets for the subscription.
+    pending_updates: HashMap<u64, oneshot::Sender<std::result::Result<Vec<String>, String>>>,
     /// Next request ID to use for outgoing messages.
     next_request_id: u64,
     /// Health monitoring configuration.
@@ -239,6 +245,7 @@ impl KalshiStreamSession {
             ws_writer,
             pending_subscriptions: HashMap::new(),
             pending_unsubscriptions: HashMap::new(),
+            pending_updates: HashMap::new(),
             next_request_id: 1,
             health_config,
             last_pong: Instant::now(),
@@ -468,6 +475,7 @@ impl KalshiStreamSession {
         // Clean up: drop pending requests (their senders will be dropped, causing recv errors)
         self.pending_subscriptions.clear();
         self.pending_unsubscriptions.clear();
+        self.pending_updates.clear();
         let _ = self.ws_writer.close().await;
         info!("KalshiStreamSession shutdown complete");
     }
@@ -573,6 +581,35 @@ impl KalshiStreamSession {
                 // Register a collector to accumulate all N responses
                 let collector = UnsubscribeCollector::new(num_sids, response);
                 self.pending_unsubscriptions.insert(request_id, collector);
+            }
+
+            StreamCommand::UpdateSubscription {
+                sid,
+                markets,
+                action,
+                response,
+            } => {
+                let request_id = self.next_request_id;
+                self.next_request_id += 1;
+
+                let market_strs: Vec<&str> = markets.iter().map(|s| s.as_str()).collect();
+                let msg =
+                    protocol::build_update_subscription(request_id, sid, &market_strs, action);
+
+                debug!(
+                    "Sending update_subscription request {} for SID {}: {}",
+                    request_id, sid, msg
+                );
+
+                // Send the update_subscription message
+                if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
+                    error!("Failed to send update_subscription message: {}", e);
+                    let _ = response.send(Err(format!("WebSocket send error: {}", e)));
+                    return false;
+                }
+
+                // Register pending request (single response expected)
+                self.pending_updates.insert(request_id, response);
             }
 
             StreamCommand::Close => {
@@ -722,6 +759,29 @@ impl KalshiStreamSession {
                     return;
                 }
 
+                // Check if this is a response to a pending update_subscription
+                if msg_type == "ok"
+                    && let Some(response) = self.pending_updates.remove(&id)
+                {
+                    let markets: Vec<String> = msg
+                        .get("market_tickers")
+                        .and_then(|t| t.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    debug!(
+                        "Update subscription response for request {}: markets={:?}",
+                        id, markets
+                    );
+
+                    let _ = response.send(Ok(markets));
+                    return;
+                }
+
                 // Unexpected response type with no handler
                 warn!("Unexpected response id {} type {}", id, msg_type);
             }
@@ -799,6 +859,16 @@ impl KalshiStreamSession {
                         return;
                     }
 
+                    // Check if this is an error for a pending update_subscription
+                    if let Some(response) = self.pending_updates.remove(&request_id) {
+                        warn!(
+                            "Update subscription error for request {}: code={}, message={}",
+                            request_id, code, message
+                        );
+                        let _ = response.send(Err(format!("{}: {}", code, message)));
+                        return;
+                    }
+
                     warn!(
                         "Unhandled error response id {}: code={}, message={}",
                         request_id, code, message
@@ -822,6 +892,7 @@ impl std::fmt::Debug for KalshiStreamSession {
                 "pending_unsubscriptions",
                 &self.pending_unsubscriptions.len(),
             )
+            .field("pending_updates", &self.pending_updates.len())
             .field("ping_pending", &self.ping_pending)
             .finish()
     }

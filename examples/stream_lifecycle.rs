@@ -50,23 +50,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut handle = client.handle();
     println!("Connected!\n");
 
-    // Collect all subscription IDs
-    let mut all_sids: Vec<i64> = Vec::new();
-
     // MarketLifecycle requires market tickers, Multivariate does not
     // We'll subscribe to them separately to handle this correctly
 
     // First, subscribe to Multivariate (no tickers needed)
     println!("Subscribing to Multivariate channel (all collections)...");
-    let mv_result = handle.subscribe(&[Channel::Multivariate], None).await?;
-
-    for sub in &mv_result.successful {
-        println!("  {} -> sid={}", sub.channel, sub.sid);
-    }
-    for err in &mv_result.failed {
-        println!("  {:?} FAILED: {} - {}", err.channel, err.code, err.message);
-    }
-    all_sids.extend(mv_result.sids());
+    handle.subscribe(Channel::Multivariate, &[]).await?;
+    println!("  Multivariate -> subscribed");
 
     // For MarketLifecycle, we need to specify market tickers
     println!("\nSubscribing to MarketLifecycle channel...");
@@ -83,25 +73,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         let tickers: Vec<&str> = markets.markets.iter().map(|m| m.ticker.as_str()).collect();
         println!("  Subscribing to {} markets: {:?}", tickers.len(), tickers);
-
-        let lc_result = handle
-            .subscribe(&[Channel::MarketLifecycle], Some(&tickers))
-            .await?;
-
-        for sub in &lc_result.successful {
-            println!("  {} -> sid={}", sub.channel, sub.sid);
-        }
-        for err in &lc_result.failed {
-            println!("  {:?} FAILED: {} - {}", err.channel, err.code, err.message);
-        }
-        all_sids.extend(lc_result.sids());
+        handle.subscribe(Channel::MarketLifecycle, &tickers).await?;
+        println!("  MarketLifecycle -> subscribed");
     }
 
-    if all_sids.is_empty() {
+    // Check what we're subscribed to
+    let subs = handle.subscriptions();
+    if subs.is_empty() {
         println!("\nNo channels subscribed successfully. Exiting.");
         client.shutdown().await?;
         return Ok(());
     }
+    println!(
+        "\nActive subscriptions: {:?}",
+        subs.keys().collect::<Vec<_>>()
+    );
 
     println!("\nWaiting for lifecycle events (120 seconds)...");
     println!("Note: These events are infrequent - markets don't change state often\n");
@@ -177,8 +163,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("Unsubscribing...");
-    if !all_sids.is_empty() {
-        handle.unsubscribe(&all_sids).await?;
+    if handle.is_subscribed(Channel::Multivariate) {
+        handle.unsubscribe_all(Channel::Multivariate).await?;
+    }
+    if handle.is_subscribed(Channel::MarketLifecycle) {
+        handle.unsubscribe_all(Channel::MarketLifecycle).await?;
     }
 
     println!("Shutting down...");

@@ -20,11 +20,14 @@
 //!
 //! let mut handle = client.handle();
 //!
-//! // Subscribe to ticker updates
-//! let result = handle.subscribe(
-//!     &[Channel::Ticker],
-//!     Some(&["INXD-25JAN17-B5955"]),
-//! ).await?;
+//! // Subscribe to ticker updates for specific markets
+//! handle.subscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
+//!
+//! // Add more markets (automatically uses add_markets under the hood)
+//! handle.subscribe(Channel::Ticker, &["KXBTC-25DEC31-100000"]).await?;
+//!
+//! // Check what markets we're subscribed to
+//! println!("Ticker markets: {:?}", handle.markets(Channel::Ticker));
 //!
 //! // Process updates - handle disconnection events
 //! while let Ok(update) = handle.update_receiver.recv().await {
@@ -40,6 +43,12 @@
 //!         _ => println!("Update: {:?}", update),
 //!     }
 //! }
+//!
+//! // Unsubscribe from specific markets
+//! handle.unsubscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
+//!
+//! // Or unsubscribe from entire channel
+//! handle.unsubscribe_all(Channel::Ticker).await?;
 //! # Ok(())
 //! # }
 //! ```

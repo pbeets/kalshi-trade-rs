@@ -58,44 +58,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         channels.iter().map(|c| c.as_str()).collect::<Vec<_>>()
     );
 
-    let result = match timeout(
-        Duration::from_secs(10),
-        handle.subscribe(&channels, Some(&[ticker.as_str()])),
-    )
-    .await
-    {
-        Ok(Ok(result)) => result,
-        Ok(Err(e)) => {
-            client.shutdown().await?;
-            return Err(e.into());
+    for channel in &channels {
+        match timeout(
+            Duration::from_secs(10),
+            handle.subscribe(*channel, &[ticker.as_str()]),
+        )
+        .await
+        {
+            Ok(Ok(())) => {
+                println!("  {} -> subscribed", channel.as_str());
+            }
+            Ok(Err(e)) => {
+                println!("  {} -> FAILED: {}", channel.as_str(), e);
+            }
+            Err(_) => {
+                println!("  {} -> TIMEOUT", channel.as_str());
+            }
         }
-        Err(_) => {
-            client.shutdown().await?;
-            return Err("Subscribe timed out".into());
-        }
-    };
+    }
 
     // Report results
+    let subs = handle.subscriptions();
     println!("\nResult:");
-    println!("  Successful: {}", result.successful.len());
-    for sub in &result.successful {
-        println!("    - {}: sid={}", sub.channel, sub.sid);
-    }
-    if !result.failed.is_empty() {
-        println!("  Failed: {}", result.failed.len());
-        for err in &result.failed {
-            println!("    - {:?}: {} - {}", err.channel, err.code, err.message);
-        }
+    println!("  Subscribed channels: {}", subs.len());
+    for (channel, markets) in &subs {
+        println!("    - {:?}: {:?}", channel, markets);
     }
 
-    let status = if result.successful.len() == channels.len() {
+    let status = if subs.len() == channels.len() {
         "PASS"
     } else {
         "FAIL"
     };
     println!(
         "\n{status}: {}/{} channels subscribed",
-        result.successful.len(),
+        subs.len(),
         channels.len()
     );
 
@@ -114,9 +111,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Received {count} updates");
 
     // Cleanup
-    let sids = result.sids();
-    if !sids.is_empty() {
-        handle.unsubscribe(&sids).await?;
+    for channel in &channels {
+        if handle.is_subscribed(*channel) {
+            handle.unsubscribe_all(*channel).await?;
+        }
     }
     client.shutdown().await?;
 

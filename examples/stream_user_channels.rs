@@ -54,33 +54,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Subscribe to all user-scoped channels
     // These don't require market tickers - they receive all user events
-    let channels = [
-        Channel::Fill,
-        Channel::MarketPositions,
-        Channel::Communications,
-    ];
+    println!("Subscribing to user channels...");
 
-    println!(
-        "Subscribing to {} user channels: {:?}",
-        channels.len(),
-        channels.iter().map(|c| c.as_str()).collect::<Vec<_>>()
-    );
+    handle.subscribe(Channel::Fill, &[]).await?;
+    println!("  Fill -> subscribed");
 
-    let result = handle.subscribe(&channels, None).await?;
+    handle.subscribe(Channel::MarketPositions, &[]).await?;
+    println!("  MarketPositions -> subscribed");
 
-    println!("\nSubscription results:");
-    for sub in &result.successful {
-        println!("  {} -> sid={}", sub.channel, sub.sid);
-    }
-    for err in &result.failed {
-        println!("  {:?} FAILED: {} - {}", err.channel, err.code, err.message);
-    }
-
-    if result.successful.is_empty() {
-        println!("\nNo channels subscribed successfully. Exiting.");
-        client.shutdown().await?;
-        return Ok(());
-    }
+    handle.subscribe(Channel::Communications, &[]).await?;
+    println!("  Communications -> subscribed");
 
     println!("\nWaiting for updates (60 seconds)...");
     println!("Tip: Create/fill orders in another terminal to see Fill updates\n");
@@ -149,7 +132,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("Unsubscribing...");
-    handle.unsubscribe(&result.sids()).await?;
+    handle.unsubscribe_all(Channel::Fill).await?;
+    handle.unsubscribe_all(Channel::MarketPositions).await?;
+    handle.unsubscribe_all(Channel::Communications).await?;
 
     println!("Shutting down...");
     client.shutdown().await?;

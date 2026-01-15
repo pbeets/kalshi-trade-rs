@@ -204,15 +204,26 @@ let client = KalshiStreamClient::connect(&config).await?;
 let mut handle = client.handle();
 
 // Subscribe to ticker updates for specific markets
-let result = handle.subscribe(
-    &[Channel::Ticker],
-    Some(&["INXD-25JAN17-B5955"]),
-).await?;
+handle.subscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
 
 // Process updates
 while let Ok(update) = handle.update_receiver.recv().await {
     println!("{:?}", update.msg);
 }
+```
+
+### Adding Markets to Existing Subscription
+
+```rust
+// Initial subscription
+handle.subscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
+
+// Add more markets later (automatically uses add_markets under the hood)
+handle.subscribe(Channel::Ticker, &["KXBTC-25DEC31-100000"]).await?;
+
+// Check what markets we're subscribed to
+println!("Ticker markets: {:?}", handle.markets(Channel::Ticker));
+// ["INXD-25JAN17-B5955", "KXBTC-25DEC31-100000"]
 ```
 
 ### Production Reconnection Pattern
@@ -244,16 +255,26 @@ loop {
 ### Multi-Channel Subscription
 
 ```rust
-let result = handle.subscribe(
-    &[Channel::Ticker, Channel::Trade, Channel::OrderbookDelta],
-    Some(&["AAPL-25JAN17"]),
-).await?;
+// Subscribe to different channels for same markets
+handle.subscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
+handle.subscribe(Channel::OrderbookDelta, &["INXD-25JAN17-B5955"]).await?;
+handle.subscribe(Channel::Trade, &["INXD-25JAN17-B5955"]).await?;
 
-// Check results
-println!("Subscribed to {} channels", result.successful.len());
-for sub in &result.successful {
-    println!("  {} → sid={}", sub.channel, sub.sid);
+// Check all subscriptions
+let subs = handle.subscriptions();
+for (channel, markets) in subs {
+    println!("{:?} → {:?}", channel, markets);
 }
+```
+
+### Unsubscribing
+
+```rust
+// Remove specific markets from a channel
+handle.unsubscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
+
+// Unsubscribe from entire channel
+handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 ```
 
 ---

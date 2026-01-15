@@ -92,11 +92,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Subscribe to ticker and trade channels for the markets we found
     let ticker_refs: Vec<&str> = market_tickers.iter().map(|s| s.as_str()).collect();
 
-    let result = handle
-        .subscribe(&[Channel::Ticker, Channel::Trade], Some(&ticker_refs))
-        .await?;
+    handle.subscribe(Channel::Ticker, &ticker_refs).await?;
+    handle.subscribe(Channel::Trade, &ticker_refs).await?;
 
-    println!("Subscribed with SIDs: {:?}", result.sids());
+    println!(
+        "Subscribed to {} markets",
+        handle.markets(Channel::Ticker).len()
+    );
     println!("Waiting for updates (Ctrl+C to exit)...\n");
 
     // Process updates for 60 seconds or until interrupted
@@ -155,7 +157,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Unsubscribe and shut down
     println!("Unsubscribing...");
-    handle.unsubscribe(&result.sids()).await?;
+    handle.unsubscribe_all(Channel::Ticker).await?;
+    handle.unsubscribe_all(Channel::Trade).await?;
 
     println!("Shutting down...");
     client.shutdown().await?;

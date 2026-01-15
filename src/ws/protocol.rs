@@ -2,10 +2,9 @@
 //!
 //! This module provides functions for building and parsing Kalshi WebSocket messages.
 
+use super::{Channel, command::UpdateAction};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
-
-use super::Channel;
 
 /// Build a subscribe command message.
 ///
@@ -64,6 +63,39 @@ pub fn build_unsubscribe(id: u64, sids: &[i64]) -> String {
         "cmd": "unsubscribe",
         "params": {
             "sids": sids
+        }
+    })
+    .to_string()
+}
+
+/// Build an update_subscription command message.
+///
+/// # Arguments
+/// * `id` - Message ID for correlation
+/// * `sid` - Subscription ID to update
+/// * `markets` - Markets to add or remove
+/// * `action` - Whether to add or delete markets
+///
+/// # Returns
+/// JSON string ready to send over WebSocket
+pub fn build_update_subscription(
+    id: u64,
+    sid: i64,
+    markets: &[&str],
+    action: UpdateAction,
+) -> String {
+    let action_str = match action {
+        UpdateAction::AddMarkets => "add_markets",
+        UpdateAction::DeleteMarkets => "delete_markets",
+    };
+
+    serde_json::json!({
+        "id": id,
+        "cmd": "update_subscription",
+        "params": {
+            "sids": [sid],
+            "market_tickers": markets,
+            "action": action_str
         }
     })
     .to_string()
@@ -422,5 +454,36 @@ mod tests {
             }
             _ => panic!("Expected Response variant"),
         }
+    }
+
+    #[test]
+    fn test_build_update_subscription_add_markets() {
+        let result =
+            build_update_subscription(7, 123, &["MARKET-A", "MARKET-B"], UpdateAction::AddMarkets);
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 7);
+        assert_eq!(parsed["cmd"], "update_subscription");
+        assert_eq!(parsed["params"]["sids"], serde_json::json!([123]));
+        assert_eq!(
+            parsed["params"]["market_tickers"],
+            serde_json::json!(["MARKET-A", "MARKET-B"])
+        );
+        assert_eq!(parsed["params"]["action"], "add_markets");
+    }
+
+    #[test]
+    fn test_build_update_subscription_delete_markets() {
+        let result = build_update_subscription(8, 456, &["MARKET-X"], UpdateAction::DeleteMarkets);
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 8);
+        assert_eq!(parsed["cmd"], "update_subscription");
+        assert_eq!(parsed["params"]["sids"], serde_json::json!([456]));
+        assert_eq!(
+            parsed["params"]["market_tickers"],
+            serde_json::json!(["MARKET-X"])
+        );
+        assert_eq!(parsed["params"]["action"], "delete_markets");
     }
 }
