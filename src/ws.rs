@@ -58,8 +58,8 @@ pub use client::{KalshiStreamClient, KalshiStreamHandle};
 pub use command::{SubscribeResult, UnsubscribeResult};
 pub use message::{
     Action, FillData, MarketLifecycleData, MarketLifecycleEventType, MarketPositionData,
-    MultivariateLookupData, MveLeg, OrderbookDeltaData, OrderbookSnapshotData, Side,
-    StreamMessage, StreamUpdate, TickerData, TradeData,
+    MultivariateLookupData, MveLeg, OrderbookDeltaData, OrderbookSnapshotData, Side, StreamMessage,
+    StreamUpdate, TickerData, TradeData,
 };
 
 /// Connection strategy for the WebSocket client.

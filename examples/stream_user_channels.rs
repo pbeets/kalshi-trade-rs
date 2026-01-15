@@ -73,10 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  {} -> sid={}", sub.channel, sub.sid);
     }
     for err in &result.failed {
-        println!(
-            "  {:?} FAILED: {} - {}",
-            err.channel, err.code, err.message
-        );
+        println!("  {:?} FAILED: {} - {}", err.channel, err.code, err.message);
     }
 
     if result.successful.is_empty() {
