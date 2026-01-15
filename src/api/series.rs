@@ -8,7 +8,10 @@ use url::form_urlencoded;
 use crate::{
     client::HttpClient,
     error::Result,
-    models::{FeeChangesResponse, GetFeeChangesParams, GetSeriesParams, SeriesListResponse, SeriesResponse},
+    models::{
+        FeeChangesResponse, GetFeeChangesParams, GetSeriesParams, SeriesListResponse,
+        SeriesResponse,
+    },
 };
 
 /// URL-encode a ticker for use in path segments.

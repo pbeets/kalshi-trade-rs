@@ -112,7 +112,15 @@ impl HttpClient {
     pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         let request = self.build_request(Method::GET, path)?;
         let response = self.execute(request).await?;
-        response.json::<T>().await.map_err(Error::Http)
+        let text = response.text().await.map_err(Error::Http)?;
+        serde_json::from_str(&text).map_err(|e| {
+            let preview = if text.len() > 200 {
+                format!("{}...", &text[..200])
+            } else {
+                text
+            };
+            Error::Api(format!("JSON decode error: {}. Response: {}", e, preview))
+        })
     }
 
     /// Make a POST request with a JSON body and deserialize the response.
@@ -212,7 +220,9 @@ impl HttpClient {
     /// # Arguments
     /// * `path` - The API path
     pub async fn put_empty_json(&self, path: &str) -> Result<()> {
-        let request = self.build_request(Method::PUT, path)?.json(&serde_json::json!({}));
+        let request = self
+            .build_request(Method::PUT, path)?
+            .json(&serde_json::json!({}));
         self.execute(request).await?;
         Ok(())
     }

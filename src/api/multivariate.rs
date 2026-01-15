@@ -9,10 +9,9 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        CreateMarketInCollectionRequest, CreateMarketInCollectionResponse,
-        GetLookupHistoryParams, GetMultivariateCollectionsParams, LookupHistoryResponse,
-        LookupTickersRequest, LookupTickersResponse, MultivariateCollectionResponse,
-        MultivariateCollectionsResponse,
+        CreateMarketInCollectionRequest, CreateMarketInCollectionResponse, GetLookupHistoryParams,
+        GetMultivariateCollectionsParams, LookupHistoryResponse, LookupTickersRequest,
+        LookupTickersResponse, MultivariateCollectionResponse, MultivariateCollectionsResponse,
     },
 };
 
