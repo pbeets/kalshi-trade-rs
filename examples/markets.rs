@@ -43,9 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             market.title.as_deref().unwrap_or("(no title)"),
             market.volume.unwrap_or(0)
         );
-        if let (Some(yes_bid), Some(yes_ask)) =
-            (&market.yes_bid_dollars, &market.yes_ask_dollars)
-        {
+        if let (Some(yes_bid), Some(yes_ask)) = (&market.yes_bid_dollars, &market.yes_ask_dollars) {
             println!("    YES bid/ask: ${} / ${}", yes_bid, yes_ask);
         }
     }
@@ -209,9 +207,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let event_ticker = &market_response.market.event_ticker;
 
         println!("=== Markets in Event {} ===", event_ticker);
-        let params = GetMarketsParams::new()
-            .event_ticker(event_ticker)
-            .limit(10);
+        let params = GetMarketsParams::new().event_ticker(event_ticker).limit(10);
         let event_markets = client.get_markets_with_params(params).await?;
 
         println!(

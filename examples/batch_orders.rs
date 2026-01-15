@@ -11,8 +11,8 @@
 
 use kalshi_trade_rs::{
     Action, BatchCancelOrdersRequest, BatchCreateOrdersRequest, CreateOrderRequest,
-    GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus, OrderType, Side,
-    TimeInForce, cents_to_dollars,
+    GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus, OrderType, Side, TimeInForce,
+    cents_to_dollars,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -52,7 +52,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut orders = Vec::new();
     let market = &markets.markets[0];
 
-    let base_ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    let base_ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     for i in 1..=3 {
         let client_order_id = format!("batch-{}-{}", i, base_ts + i as u128);
         let order = CreateOrderRequest::new(&market.ticker, Side::Yes, Action::Buy, 1)
@@ -103,7 +106,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         print!("  Order {}: ", i + 1);
 
         if let Some(order) = &result.order {
-            println!("SUCCESS - ID: {} | status: {:?}", order.order_id, order.status);
+            println!(
+                "SUCCESS - ID: {} | status: {:?}",
+                order.order_id, order.status
+            );
             successful_order_ids.push(order.order_id.clone());
         } else if let Some(error) = &result.error {
             println!("FAILED - {}: {}", error.code, error.message);
@@ -140,7 +146,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Successful orders: {}", succeeded.len());
     for result in &succeeded {
         if let Some(order) = &result.order {
-            println!("  {} | {} {:?} @ ${:.2}",
+            println!(
+                "  {} | {} {:?} @ ${:.2}",
                 order.order_id,
                 order.ticker,
                 order.side,
