@@ -312,6 +312,7 @@ Specialized for FCM members only.
 | `portfolio.rs` | Balance, Positions, Fills | ✅ Verified |
 | `trading.rs` | Create/Get/Amend/Cancel Order | ⚠️ Demo env issues |
 | `batch_orders.rs` | Batch Create/Cancel | ✅ Verified |
+| `series_and_search.rs` | Series, Fee Changes, Tags, Filters | ✅ Verified |
 
 ### Not Yet Tested
 
@@ -320,11 +321,9 @@ The following implemented endpoints need verification examples:
 - **Candlesticks**: `get_candlesticks()`, `get_batch_candlesticks()`, `get_event_candlesticks()`
 - **Forecast**: `get_event_forecast_percentile_history()`
 - **Settlements**: `get_settlements()`
-- **Series**: `get_series()`, `get_series_list()`, `get_fee_changes()`
 - **Order Groups**: All 6 endpoints
 - **Subaccounts**: All 5 endpoints
 - **Communications**: All 12 endpoints (including `confirm_quote()`, `get_communications_id()`)
-- **Search**: `get_tags_by_categories()`, `get_filters_by_sport()`
 - **Live Data**: `get_live_data()`, `get_batch_live_data()`
 - **Multivariate Collections**: All 5 endpoints
 - **API Keys**: All 4 endpoints (`get_api_keys()`, `create_api_key()`, `generate_api_key()`, `delete_api_key()`)
