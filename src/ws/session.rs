@@ -27,7 +27,9 @@ use tokio_tungstenite::{
 use super::{
     BACKOFF_BASE, CONNECT_TIMEOUT, ConnectStrategy, HealthConfig, MAX_BACKOFF,
     channel::Channel,
-    command::{ChannelError, ChannelSubscription, StreamCommand, SubscribeResult, UnsubscribeResult},
+    command::{
+        ChannelError, ChannelSubscription, StreamCommand, SubscribeResult, UnsubscribeResult,
+    },
     message::{StreamMessage, StreamUpdate},
     protocol::{self, IncomingMessage},
 };
@@ -816,7 +818,10 @@ impl std::fmt::Debug for KalshiStreamSession {
         f.debug_struct("KalshiStreamSession")
             .field("next_request_id", &self.next_request_id)
             .field("pending_subscriptions", &self.pending_subscriptions.len())
-            .field("pending_unsubscriptions", &self.pending_unsubscriptions.len())
+            .field(
+                "pending_unsubscriptions",
+                &self.pending_unsubscriptions.len(),
+            )
             .field("ping_pending", &self.ping_pending)
             .finish()
     }

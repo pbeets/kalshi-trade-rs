@@ -134,10 +134,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if !response.candlesticks.is_empty() {
         println!("\nRecent bid/ask spreads:");
-        println!(
-            "{:<20} {:>12} {:>12}",
-            "Timestamp", "Yes Bid", "Yes Ask"
-        );
+        println!("{:<20} {:>12} {:>12}", "Timestamp", "Yes Bid", "Yes Ask");
         println!("{}", "-".repeat(46));
 
         for candle in response.candlesticks.iter().rev().take(5) {
@@ -200,7 +197,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|m| m.ticker.as_str())
             .collect();
 
-        println!("Fetching hourly candlesticks for {} markets:", tickers.len());
+        println!(
+            "Fetching hourly candlesticks for {} markets:",
+            tickers.len()
+        );
         for t in &tickers {
             println!("  - {}", t);
         }

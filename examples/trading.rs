@@ -52,7 +52,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let safe_price = 1; // 1 cent
 
     // Generate a unique client order ID using timestamp
-    let ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     let client_order_id = format!("example-{}", ts);
 
     // 1. Create an order
@@ -69,7 +72,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Side: {:?}", create_request.side);
     println!("  Action: {:?}", create_request.action);
     println!("  Count: {}", create_request.count);
-    println!("  YES Price: {} cents (${:.2})", safe_price, cents_to_dollars(safe_price));
+    println!(
+        "  YES Price: {} cents (${:.2})",
+        safe_price,
+        cents_to_dollars(safe_price)
+    );
     println!("  Client Order ID: {}", client_order_id);
     println!("  Post Only: true");
 
@@ -92,8 +99,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Note: Demo environment may have eventual consistency delays
     println!("=== Get Order ===");
     match client.get_order(&order_id).await {
-        Ok(fetched) => println!("Fetched order {} | status: {:?}", fetched.order.order_id, fetched.order.status),
-        Err(e) => println!("get_order returned error (demo env consistency issue): {}", e),
+        Ok(fetched) => println!(
+            "Fetched order {} | status: {:?}",
+            fetched.order.order_id, fetched.order.status
+        ),
+        Err(e) => println!(
+            "get_order returned error (demo env consistency issue): {}",
+            e
+        ),
     }
     println!();
 
@@ -101,7 +114,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Get Queue Position ===");
     match client.get_order_queue_position(&order_id).await {
         Ok(queue_pos) => {
-            println!("Queue position: {} contracts ahead", queue_pos.queue_position);
+            println!(
+                "Queue position: {} contracts ahead",
+                queue_pos.queue_position
+            );
         }
         Err(e) => {
             println!("Could not get queue position: {}", e);
@@ -121,7 +137,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 5. Amend order (change price)
     println!("=== Amend Order ===");
     let new_price = 2; // Change from 1 cent to 2 cents
-    let ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     let new_client_order_id = format!("example-amended-{}", ts);
 
     let amend_request = AmendOrderRequest::new(
@@ -145,7 +164,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Old order status: {:?}", amend_response.old_order.status);
     println!("  New order ID: {}", amend_response.order.order_id);
     println!("  New order status: {:?}", amend_response.order.status);
-    println!("  New order price: {} cents", amend_response.order.yes_price);
+    println!(
+        "  New order price: {} cents",
+        amend_response.order.yes_price
+    );
     println!();
 
     // Update order_id to the new order
@@ -168,17 +190,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Total orders: {}", orders.orders.len());
 
     // Count by status
-    let resting = orders.orders.iter().filter(|o| o.status == OrderStatus::Resting).count();
-    let executed = orders.orders.iter().filter(|o| o.status == OrderStatus::Executed).count();
-    let canceled = orders.orders.iter().filter(|o| o.status == OrderStatus::Canceled).count();
-    println!("  Resting: {}, Executed: {}, Canceled: {}", resting, executed, canceled);
+    let resting = orders
+        .orders
+        .iter()
+        .filter(|o| o.status == OrderStatus::Resting)
+        .count();
+    let executed = orders
+        .orders
+        .iter()
+        .filter(|o| o.status == OrderStatus::Executed)
+        .count();
+    let canceled = orders
+        .orders
+        .iter()
+        .filter(|o| o.status == OrderStatus::Canceled)
+        .count();
+    println!(
+        "  Resting: {}, Executed: {}, Canceled: {}",
+        resting, executed, canceled
+    );
     println!();
 
     // 8. List orders with filters
     println!("=== Resting Orders ===");
-    let params = GetOrdersParams::new()
-        .status(OrderStatus::Resting)
-        .limit(5);
+    let params = GetOrdersParams::new().status(OrderStatus::Resting).limit(5);
     let resting_orders = client.get_orders_with_params(params).await?;
 
     if resting_orders.orders.is_empty() {
@@ -203,10 +238,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Queue Positions (filtered by market) ===");
     let params = GetQueuePositionsParams::new().market_tickers(&market.ticker);
     match client.get_queue_positions_with_params(params).await {
-        Ok(queue_positions) => {
-            println!("Orders with queue positions: {}", queue_positions.queue_positions.len());
-            for qp in queue_positions.queue_positions.iter().take(5) {
-                println!("  {} | {} contracts ahead", qp.market_ticker, qp.queue_position);
+        Ok(response) => {
+            if let Some(queue_positions) = &response.queue_positions {
+                println!("Orders with queue positions: {}", queue_positions.len());
+                for qp in queue_positions.iter().take(5) {
+                    println!(
+                        "  {} | {} contracts ahead",
+                        qp.market_ticker, qp.queue_position
+                    );
+                }
+            } else {
+                println!("No orders with queue positions for this market");
             }
         }
         Err(e) => println!("Could not get queue positions: {}", e),
