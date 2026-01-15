@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::market::MveSelectedLeg;
 use super::Side;
+use super::market::MveSelectedLeg;
 
 /// Request body for POST /communications/rfqs (create RFQ).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,7 +83,9 @@ impl CreateRfqRequest {
         rest_remainder: bool,
     ) -> crate::error::Result<Self> {
         if target_cost_centi_cents <= 0 {
-            return Err(crate::error::Error::InvalidTargetCost(target_cost_centi_cents));
+            return Err(crate::error::Error::InvalidTargetCost(
+                target_cost_centi_cents,
+            ));
         }
         Ok(Self {
             market_ticker: market_ticker.into(),
@@ -129,7 +131,9 @@ impl CreateRfqRequest {
         rest_remainder: bool,
     ) -> crate::error::Result<Self> {
         if target_cost_dollars <= 0.0 {
-            return Err(crate::error::Error::InvalidTargetCostDollars(target_cost_dollars));
+            return Err(crate::error::Error::InvalidTargetCostDollars(
+                target_cost_dollars,
+            ));
         }
         let centi_cents = (target_cost_dollars * 10000.0).round() as i64;
         Ok(Self {
@@ -222,7 +226,11 @@ impl CreateQuoteRequest {
     /// # Errors
     ///
     /// Returns an error if `yes_price_cents` is not between 1 and 99.
-    pub fn try_from_cents(rfq_id: impl Into<String>, yes_price_cents: i64, rest_remainder: bool) -> crate::error::Result<Self> {
+    pub fn try_from_cents(
+        rfq_id: impl Into<String>,
+        yes_price_cents: i64,
+        rest_remainder: bool,
+    ) -> crate::error::Result<Self> {
         if !(1..=99).contains(&yes_price_cents) {
             return Err(crate::error::Error::InvalidPrice(yes_price_cents));
         }
@@ -249,9 +257,12 @@ impl CreateQuoteRequest {
     ///
     /// Panics if `yes_price_cents` is not between 1 and 99.
     #[must_use]
-    pub fn from_cents(rfq_id: impl Into<String>, yes_price_cents: i64, rest_remainder: bool) -> Self {
-        Self::try_from_cents(rfq_id, yes_price_cents, rest_remainder)
-            .expect("invalid quote price")
+    pub fn from_cents(
+        rfq_id: impl Into<String>,
+        yes_price_cents: i64,
+        rest_remainder: bool,
+    ) -> Self {
+        Self::try_from_cents(rfq_id, yes_price_cents, rest_remainder).expect("invalid quote price")
     }
 }
 
@@ -479,7 +490,10 @@ impl ListQuotesParams {
         qb.push_opt("status", self.status.as_ref());
         qb.push_opt("quote_creator_user_id", self.quote_creator_user_id.as_ref());
         qb.push_opt("rfq_creator_user_id", self.rfq_creator_user_id.as_ref());
-        qb.push_opt("rfq_creator_subtrader_id", self.rfq_creator_subtrader_id.as_ref());
+        qb.push_opt(
+            "rfq_creator_subtrader_id",
+            self.rfq_creator_subtrader_id.as_ref(),
+        );
         qb.push_opt("rfq_id", self.rfq_id.as_ref());
         qb.build()
     }
@@ -545,8 +559,7 @@ impl Rfq {
     /// Returns the target cost in dollars, if available.
     #[must_use]
     pub fn target_cost_dollars(&self) -> Option<f64> {
-        self.target_cost_centi_cents
-            .map(|cc| cc as f64 / 10000.0)
+        self.target_cost_centi_cents.map(|cc| cc as f64 / 10000.0)
     }
 }
 

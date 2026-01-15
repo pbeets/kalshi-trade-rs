@@ -39,11 +39,11 @@ pub use communications::{
     ListRfqsResponse, Quote, QuoteResponse, Rfq, RfqResponse,
 };
 pub use event::{
-    Event, EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
-    EventResponse, EventStatus, EventsResponse, ForecastHistoryPoint, ForecastPeriod,
-    GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
-    GetEventsParams, GetMultivariateEventsParams, MarketDetail, Milestone,
-    MultivariateEventsResponse, PercentilePoint, SettlementSource, MAX_FORECAST_PERCENTILES,
+    Event, EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
+    EventMetadataResponse, EventResponse, EventStatus, EventsResponse, ForecastHistoryPoint,
+    ForecastPeriod, GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams,
+    GetEventParams, GetEventsParams, GetMultivariateEventsParams, MAX_FORECAST_PERCENTILES,
+    MarketDetail, Milestone, MultivariateEventsResponse, PercentilePoint, SettlementSource,
 };
 pub use exchange::{
     Announcement, AnnouncementStatus, AnnouncementType, ExchangeAnnouncementsResponse,
@@ -52,10 +52,10 @@ pub use exchange::{
 };
 pub use fcm::{GetFcmOrdersParams, GetFcmPositionsParams, SettlementStatus};
 pub use fill::{Fill, FillsResponse, GetFillsParams};
-pub use incentive_program::{GetIncentiveProgramsParams, IncentiveProgram, IncentiveProgramsResponse};
-pub use live_data::{
-    BatchLiveDataResponse, GetBatchLiveDataParams, LiveData, LiveDataResponse,
+pub use incentive_program::{
+    GetIncentiveProgramsParams, IncentiveProgram, IncentiveProgramsResponse,
 };
+pub use live_data::{BatchLiveDataResponse, GetBatchLiveDataParams, LiveData, LiveDataResponse};
 pub use market::{
     BatchCandlesticksResponse, Candlestick, CandlestickPeriod, CandlesticksResponse,
     GetBatchCandlesticksParams, GetCandlesticksParams, GetMarketsParams, GetOrderbookParams,
@@ -64,9 +64,7 @@ pub use market::{
     OrderbookResponse, PriceLevelDollars, PriceOhlcData, PriceRange, StrikeType, TakerSide, Trade,
     TradesResponse,
 };
-pub use milestone::{
-    GetMilestonesParams, MilestoneInfo, MilestoneResponse, MilestonesResponse,
-};
+pub use milestone::{GetMilestonesParams, MilestoneInfo, MilestoneResponse, MilestonesResponse};
 pub use multivariate::{
     CollectionVariable, CreateMarketInCollectionRequest, CreateMarketInCollectionResponse,
     GetLookupHistoryParams, GetMultivariateCollectionsParams, LookupHistoryEntry,
