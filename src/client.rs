@@ -13,23 +13,23 @@ use crate::{
     auth::KalshiConfig,
     error::Result,
     models::{
-        AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, ApiKeysResponse, BalanceResponse,
-        BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCandlesticksResponse,
-        BatchCreateOrdersRequest, BatchCreateOrdersResponse, BatchLiveDataResponse,
-        CancelOrderResponse, CandlesticksResponse, CommunicationsIdResponse,
+        AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, ApiKeysResponse,
+        BalanceResponse, BatchCancelOrdersRequest, BatchCancelOrdersResponse,
+        BatchCandlesticksResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
+        BatchLiveDataResponse, CancelOrderResponse, CandlesticksResponse, CommunicationsIdResponse,
         CreateApiKeyRequest, CreateApiKeyResponse, CreateMarketInCollectionRequest,
-        CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderRequest,
-        CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest, CreateSubaccountResponse,
-        DecreaseOrderRequest, DeleteApiKeyResponse, EventCandlesticksResponse,
-        GetFcmOrdersParams, GetFcmPositionsParams,
-        EventForecastPercentileHistoryResponse, EventMetadataResponse, EventResponse,
-        EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderGroupResponse,
+        CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest,
+        CreateSubaccountResponse, DecreaseOrderRequest, DeleteApiKeyResponse,
+        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+        EventResponse, EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
         ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
         GenerateApiKeyRequest, GenerateApiKeyResponse, GetBatchCandlesticksParams,
         GetBatchLiveDataParams, GetCandlesticksParams, GetEventCandlesticksParams,
         GetEventForecastPercentileHistoryParams, GetEventParams, GetEventsParams,
-        GetFeeChangesParams, GetFillsParams, GetLookupHistoryParams, GetMarketsParams,
-        GetMilestonesParams, GetMultivariateCollectionsParams, GetMultivariateEventsParams,
+        GetFcmOrdersParams, GetFcmPositionsParams, GetFeeChangesParams, GetFillsParams,
+        GetLookupHistoryParams, GetMarketsParams, GetMilestonesParams,
+        GetMultivariateCollectionsParams, GetMultivariateEventsParams, GetOrderGroupResponse,
         GetOrderGroupsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
         GetQueuePositionsParams, GetQuoteResponse, GetRfqResponse, GetSettlementsParams,
         GetStructuredTargetsParams, GetSubaccountTransfersParams, GetTradesParams,
@@ -37,13 +37,13 @@ use crate::{
         ListRfqsResponse, LiveDataResponse, LookupHistoryResponse, LookupTickersRequest,
         LookupTickersResponse, MarketResponse, MarketsResponse, MilestoneResponse,
         MilestonesResponse, MultivariateCollectionResponse, MultivariateCollectionsResponse,
-        MultivariateEventsResponse, CreateOrderGroupResponse, GetOrderGroupResponse, OrderGroupsResponse,
-        OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
-        PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
-        RfqResponse, SeriesListResponse, SeriesResponse, SettlementsResponse,
-        StructuredTargetResponse, StructuredTargetsResponse, SubaccountBalancesResponse,
-        SubaccountTransfersResponse, TagsByCategoriesResponse, TradesResponse,
-        TransferBetweenSubaccountsRequest, TransferResponse, UserDataTimestampResponse,
+        MultivariateEventsResponse, OrderGroupsResponse, OrderQueuePositionResponse, OrderResponse,
+        OrderbookResponse, OrdersResponse, PositionsResponse, QueuePositionsResponse,
+        QuoteResponse, RestingOrderValueResponse, RfqResponse, SeriesListResponse, SeriesResponse,
+        SettlementsResponse, StructuredTargetResponse, StructuredTargetsResponse,
+        SubaccountBalancesResponse, SubaccountTransfersResponse, TagsByCategoriesResponse,
+        TradesResponse, TransferBetweenSubaccountsRequest, TransferResponse,
+        UserDataTimestampResponse,
     },
 };
 
@@ -2229,7 +2229,10 @@ impl KalshiClient {
     ///     println!("{}: {} contracts", pos.ticker, pos.position);
     /// }
     /// ```
-    pub async fn get_fcm_positions(&self, params: GetFcmPositionsParams) -> Result<PositionsResponse> {
+    pub async fn get_fcm_positions(
+        &self,
+        params: GetFcmPositionsParams,
+    ) -> Result<PositionsResponse> {
         fcm::get_fcm_positions(&self.http, params).await
     }
 }

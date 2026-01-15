@@ -81,7 +81,10 @@ pub async fn list_rfqs(http: &HttpClient, params: ListRfqsParams) -> Result<List
 /// List quotes with filtering and pagination.
 ///
 /// Returns a list of quotes matching the provided parameters.
-pub async fn list_quotes(http: &HttpClient, params: ListQuotesParams) -> Result<ListQuotesResponse> {
+pub async fn list_quotes(
+    http: &HttpClient,
+    params: ListQuotesParams,
+) -> Result<ListQuotesResponse> {
     let path = format!("/communications/quotes{}", params.to_query_string());
     http.get(&path).await
 }

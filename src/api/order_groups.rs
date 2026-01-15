@@ -66,6 +66,9 @@ pub async fn delete_order_group(http: &HttpClient, order_group_id: &str) -> Resu
 /// Resets the order group's matched contracts counter to zero,
 /// allowing new orders to be placed again after the limit was hit.
 pub async fn reset_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
-    let path = format!("/portfolio/order_groups/{}/reset", encode_id(order_group_id));
+    let path = format!(
+        "/portfolio/order_groups/{}/reset",
+        encode_id(order_group_id)
+    );
     http.put_empty_json(&path).await
 }
