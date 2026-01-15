@@ -148,7 +148,11 @@ impl CreateMarketInCollectionRequest {
 
     /// Add a variable value.
     #[must_use]
-    pub fn variable(mut self, name: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
+    pub fn variable(
+        mut self,
+        name: impl Into<String>,
+        value: impl Into<serde_json::Value>,
+    ) -> Self {
         self.variables.insert(name.into(), value.into());
         self
     }
@@ -191,7 +195,11 @@ impl LookupTickersRequest {
 
     /// Add a variable value for lookup.
     #[must_use]
-    pub fn variable(mut self, name: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
+    pub fn variable(
+        mut self,
+        name: impl Into<String>,
+        value: impl Into<serde_json::Value>,
+    ) -> Self {
         self.variables.insert(name.into(), value.into());
         self
     }

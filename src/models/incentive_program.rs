@@ -12,36 +12,30 @@ pub struct IncentiveProgram {
     /// The unique identifier for the incentive program.
     #[serde(default)]
     pub id: Option<String>,
-    /// The name of the incentive program.
+    /// The incentive type (e.g., "volume", "liquidity").
     #[serde(default)]
-    pub name: Option<String>,
-    /// A description of the incentive program.
+    pub incentive_type: Option<String>,
+    /// The associated market ticker.
     #[serde(default)]
-    pub description: Option<String>,
+    pub market_ticker: Option<String>,
     /// The start date of the incentive program (RFC3339 timestamp).
     #[serde(default)]
     pub start_date: Option<String>,
     /// The end date of the incentive program (RFC3339 timestamp).
     #[serde(default)]
     pub end_date: Option<String>,
-    /// The status of the incentive program.
+    /// The reward amount for the period (in cents).
     #[serde(default)]
-    pub status: Option<String>,
-    /// The associated series tickers.
+    pub period_reward: Option<i64>,
+    /// Discount factor in basis points.
     #[serde(default)]
-    pub series_tickers: Option<Vec<String>>,
-    /// The associated event tickers.
+    pub discount_factor_bps: Option<i64>,
+    /// Whether the program has been paid out.
     #[serde(default)]
-    pub event_tickers: Option<Vec<String>>,
-    /// The associated market tickers.
+    pub paid_out: Option<bool>,
+    /// Target size for the program.
     #[serde(default)]
-    pub market_tickers: Option<Vec<String>>,
-    /// The reward type (e.g., "volume_rebate", "maker_taker").
-    #[serde(default)]
-    pub reward_type: Option<String>,
-    /// Additional program details/configuration.
-    #[serde(default)]
-    pub details: Option<serde_json::Value>,
+    pub target_size: Option<i64>,
 }
 
 /// Response from GET /incentive_programs.
@@ -51,7 +45,7 @@ pub struct IncentiveProgramsResponse {
     pub incentive_programs: Vec<IncentiveProgram>,
     /// Cursor for pagination.
     #[serde(default)]
-    pub cursor: Option<String>,
+    pub next_cursor: Option<String>,
 }
 
 /// Query parameters for GET /incentive_programs.
@@ -139,12 +133,16 @@ mod tests {
         let json = r#"{
             "incentive_programs": [{
                 "id": "prog_123",
-                "name": "Maker Rewards",
-                "status": "active"
+                "incentive_type": "volume",
+                "market_ticker": "KXTEST",
+                "period_reward": 1000000
             }]
         }"#;
         let response: IncentiveProgramsResponse = serde_json::from_str(json).unwrap();
         assert_eq!(response.incentive_programs.len(), 1);
-        assert_eq!(response.incentive_programs[0].id, Some("prog_123".to_string()));
+        assert_eq!(
+            response.incentive_programs[0].id,
+            Some("prog_123".to_string())
+        );
     }
 }

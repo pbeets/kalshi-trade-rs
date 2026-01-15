@@ -435,7 +435,11 @@ impl GetEventCandlesticksParams {
     /// Panics if `start_ts >= end_ts`.
     /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
-    pub fn new(start_ts: i64, end_ts: i64, period_interval: super::market::CandlestickPeriod) -> Self {
+    pub fn new(
+        start_ts: i64,
+        end_ts: i64,
+        period_interval: super::market::CandlestickPeriod,
+    ) -> Self {
         Self::try_new(start_ts, end_ts, period_interval)
             .expect("invalid event candlestick parameters")
     }

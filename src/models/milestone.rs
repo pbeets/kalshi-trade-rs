@@ -11,40 +11,40 @@ use crate::models::query::QueryBuilder;
 pub struct MilestoneInfo {
     /// The unique milestone identifier.
     #[serde(default)]
-    pub milestone_id: Option<String>,
-    /// The milestone type (e.g., "price", "score").
-    #[serde(default)]
+    pub id: Option<String>,
+    /// The milestone type (e.g., "basketball_game", "one_off_milestone").
+    #[serde(default, rename = "type")]
     pub milestone_type: Option<String>,
     /// The title or name of the milestone.
     #[serde(default)]
     pub title: Option<String>,
-    /// The description of the milestone.
+    /// The category (e.g., "Sports", "sports").
     #[serde(default)]
-    pub description: Option<String>,
-    /// The start timestamp (RFC3339 or Unix).
+    pub category: Option<String>,
+    /// Notification message for the milestone.
     #[serde(default)]
-    pub start_ts: Option<String>,
-    /// The end timestamp (RFC3339 or Unix).
+    pub notification_message: Option<String>,
+    /// The start date (RFC3339 timestamp).
     #[serde(default)]
-    pub end_ts: Option<String>,
-    /// The associated series ticker.
+    pub start_date: Option<String>,
+    /// The end date (RFC3339 timestamp).
     #[serde(default)]
-    pub series_ticker: Option<String>,
-    /// The associated event ticker.
+    pub end_date: Option<String>,
+    /// Primary event tickers associated with this milestone.
     #[serde(default)]
-    pub event_ticker: Option<String>,
-    /// The current value.
+    pub primary_event_tickers: Option<Vec<String>>,
+    /// Related event tickers.
     #[serde(default)]
-    pub value: Option<f64>,
-    /// The value as a string.
+    pub related_event_tickers: Option<Vec<String>>,
+    /// The source identifier.
     #[serde(default)]
-    pub value_string: Option<String>,
-    /// Last update timestamp.
+    pub source_id: Option<String>,
+    /// Last update timestamp (RFC3339).
     #[serde(default)]
-    pub updated_ts: Option<i64>,
-    /// Additional milestone metadata.
+    pub last_updated_ts: Option<String>,
+    /// Additional milestone details.
     #[serde(default)]
-    pub metadata: Option<serde_json::Value>,
+    pub details: Option<serde_json::Value>,
 }
 
 /// Query parameters for GET /milestones.

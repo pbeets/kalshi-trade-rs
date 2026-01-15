@@ -850,8 +850,7 @@ impl GetCandlesticksParams {
     /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
     pub fn new(start_ts: i64, end_ts: i64, period_interval: CandlestickPeriod) -> Self {
-        Self::try_new(start_ts, end_ts, period_interval)
-            .expect("invalid candlestick parameters")
+        Self::try_new(start_ts, end_ts, period_interval).expect("invalid candlestick parameters")
     }
 
     /// Create new candlesticks query parameters with validation.
