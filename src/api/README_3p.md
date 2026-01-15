@@ -49,7 +49,7 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | ✅ | GET | `/exchange/schedule` | `get_exchange_schedule()` | Public endpoint |
 | ✅ | GET | `/exchange/announcements` | `get_exchange_announcements()` | Public endpoint |
 | ✅ | GET | `/exchange/user_data_timestamp` | `get_user_data_timestamp()` | Requires auth |
-| 🔲 | GET | `/series/fee_changes` | `get_fee_changes()` | Fee change notifications |
+| ✅ | GET | `/series/fee_changes` | `get_fee_changes()` | Fee change notifications |
 
 **Source**: `src/api/exchange.rs`, `src/api/series.rs`
 
@@ -154,9 +154,9 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 
 | Status | Method | Endpoint | Rust Function | Notes |
 |--------|--------|----------|---------------|-------|
-| 🔲 | GET | `/series/{ticker}` | `get_series()` | |
-| 🔲 | GET | `/series` | `get_series_list()` | |
-| 🔲 | GET | `/series/fee_changes` | `get_fee_changes()` | |
+| ✅ | GET | `/series/{ticker}` | `get_series()` | |
+| ✅ | GET | `/series` | `get_series_list()` | |
+| ✅ | GET | `/series/fee_changes` | `get_fee_changes()` | |
 
 **Source**: `src/api/series.rs`
 
@@ -186,8 +186,8 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 
 | Status | Method | Endpoint | Rust Function | Notes |
 |--------|--------|----------|---------------|-------|
-| 🔲 | GET | `/search/tags_by_categories` | `get_tags_by_categories()` | |
-| 🔲 | GET | `/search/filters_by_sport` | `get_filters_by_sport()` | |
+| ✅ | GET | `/search/tags_by_categories` | `get_tags_by_categories()` | |
+| ✅ | GET | `/search/filters_by_sport` | `get_filters_by_sport()` | |
 
 **Source**: `src/api/search.rs`
 
