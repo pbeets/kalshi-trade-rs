@@ -58,14 +58,14 @@ impl Environment {
     pub fn base_url(&self) -> &'static str {
         match self {
             Environment::Demo => "https://demo-api.kalshi.co/trade-api/v2",
-            Environment::Prod => "https://trading-api.kalshi.com/trade-api/v2",
+            Environment::Prod => "https://api.elections.kalshi.com/trade-api/v2",
         }
     }
 
     pub fn ws_url(&self) -> &'static str {
         match self {
             Environment::Demo => "wss://demo-api.kalshi.co/trade-api/ws/v2",
-            Environment::Prod => "wss://trading-api.kalshi.com/trade-api/ws/v2",
+            Environment::Prod => "wss://api.elections.kalshi.com/trade-api/ws/v2",
         }
     }
 

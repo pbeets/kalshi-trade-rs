@@ -287,7 +287,7 @@ Specialized endpoints for FCM (Futures Commission Merchant) members.
 | Environment | REST API | WebSocket |
 |-------------|----------|-----------|
 | Demo | `https://demo-api.kalshi.co/trade-api/v2` | `wss://demo-api.kalshi.co/trade-api/ws/v2` |
-| Production | `https://trading-api.kalshi.com/trade-api/v2` | `wss://trading-api.kalshi.com/trade-api/ws/v2` |
+| Production | `https://api.elections.kalshi.com/trade-api/v2` | `wss://api.elections.kalshi.com/trade-api/ws/v2` |
 
 ---
 
