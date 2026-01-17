@@ -13,10 +13,7 @@ use crate::{
     },
 };
 
-/// Create a new subaccount.
-///
-/// Creates a new numbered subaccount for the authenticated user.
-/// Subaccounts are numbered sequentially starting from 1, up to a maximum of 32.
+/// Creates a numbered subaccount (1-32) for the authenticated user.
 pub async fn create_subaccount(
     http: &HttpClient,
     request: CreateSubaccountRequest,
@@ -24,10 +21,7 @@ pub async fn create_subaccount(
     http.post("/portfolio/subaccounts", &request).await
 }
 
-/// Transfer funds between subaccounts.
-///
-/// Transfers funds between the authenticated user's subaccounts.
-/// Use 0 for the primary account, or 1-32 for numbered subaccounts.
+/// Transfers funds between subaccounts (use 0 for primary, 1-32 for numbered).
 pub async fn transfer_between_subaccounts(
     http: &HttpClient,
     request: TransferBetweenSubaccountsRequest,
@@ -35,16 +29,12 @@ pub async fn transfer_between_subaccounts(
     http.post("/portfolio/subaccounts/transfer", &request).await
 }
 
-/// Get balances for all subaccounts.
-///
-/// Returns the balance for all subaccounts including the primary account.
+/// Returns balances for all subaccounts including the primary account.
 pub async fn get_subaccount_balances(http: &HttpClient) -> Result<SubaccountBalancesResponse> {
     http.get("/portfolio/subaccounts/balances").await
 }
 
-/// Get subaccount transfer history.
-///
-/// Returns a paginated list of all transfers between subaccounts.
+/// Returns a paginated list of transfers between subaccounts.
 pub async fn get_subaccount_transfers(
     http: &HttpClient,
     params: GetSubaccountTransfersParams,
@@ -56,10 +46,7 @@ pub async fn get_subaccount_transfers(
     http.get(&path).await
 }
 
-/// Get total resting order value.
-///
-/// Returns the total value in cents of all resting orders.
-/// This endpoint is primarily intended for FCM members.
+/// Returns the total value in cents of all resting orders (primarily for FCM members).
 pub async fn get_resting_order_value(http: &HttpClient) -> Result<RestingOrderValueResponse> {
     http.get("/portfolio/summary/total_resting_order_value")
         .await

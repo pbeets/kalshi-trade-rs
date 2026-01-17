@@ -14,16 +14,12 @@ use crate::{
     },
 };
 
-/// Get a list of events with optional filtering.
-///
-/// Returns events matching the provided query parameters.
-/// Note: This endpoint excludes multivariate events.
+/// Returns events matching the provided query parameters (excludes multivariate events).
 pub async fn get_events(http: &HttpClient, params: GetEventsParams) -> Result<EventsResponse> {
     let path = format!("/events{}", params.to_query_string());
     http.get(&path).await
 }
 
-/// Get details for a specific event by ticker.
 pub async fn get_event(
     http: &HttpClient,
     event_ticker: &str,
@@ -33,7 +29,6 @@ pub async fn get_event(
     http.get(&path).await
 }
 
-/// Get metadata for a specific event.
 pub async fn get_event_metadata(
     http: &HttpClient,
     event_ticker: &str,
@@ -42,9 +37,7 @@ pub async fn get_event_metadata(
     http.get(&path).await
 }
 
-/// Get multivariate (combo) events.
-///
-/// Retrieves dynamically created events from multivariate event collections.
+/// Returns dynamically created events from multivariate event collections.
 pub async fn get_multivariate_events(
     http: &HttpClient,
     params: GetMultivariateEventsParams,
@@ -53,9 +46,7 @@ pub async fn get_multivariate_events(
     http.get(&path).await
 }
 
-/// Get aggregated candlestick data for an event.
-///
-/// Returns candlestick data aggregated across all markets in the event.
+/// Returns candlestick data aggregated across all markets in an event.
 pub async fn get_event_candlesticks(
     http: &HttpClient,
     series_ticker: &str,
@@ -71,9 +62,7 @@ pub async fn get_event_candlesticks(
     http.get(&path).await
 }
 
-/// Get forecast percentile history for an event.
-///
-/// Returns historical forecast data at specific percentiles.
+/// Returns historical forecast data at specific percentiles for an event.
 pub async fn get_event_forecast_percentile_history(
     http: &HttpClient,
     series_ticker: &str,

@@ -15,28 +15,22 @@ use crate::{
     },
 };
 
-/// URL-encode a ticker for use in path segments.
 fn encode_ticker(ticker: &str) -> String {
     form_urlencoded::byte_serialize(ticker.as_bytes()).collect()
 }
 
-/// Get a list of markets with optional filtering.
-///
 /// Returns markets matching the provided query parameters.
 pub async fn get_markets(http: &HttpClient, params: GetMarketsParams) -> Result<MarketsResponse> {
     let path = format!("/markets{}", params.to_query_string());
     http.get(&path).await
 }
 
-/// Get details for a specific market by ticker.
 pub async fn get_market(http: &HttpClient, ticker: &str) -> Result<MarketResponse> {
     let path = format!("/markets/{}", encode_ticker(ticker));
     http.get(&path).await
 }
 
-/// Get the orderbook for a specific market.
-///
-/// Returns the current order book with bid/ask prices and quantities.
+/// Returns the order book with bid/ask prices and quantities for a market.
 pub async fn get_orderbook(
     http: &HttpClient,
     ticker: &str,
@@ -50,17 +44,13 @@ pub async fn get_orderbook(
     http.get(&path).await
 }
 
-/// Get trades with optional filtering.
-///
-/// Returns a list of executed trades on the exchange.
+/// Returns executed trades on the exchange matching the provided parameters.
 pub async fn get_trades(http: &HttpClient, params: GetTradesParams) -> Result<TradesResponse> {
     let path = format!("/markets/trades{}", params.to_query_string());
     http.get(&path).await
 }
 
-/// Get candlestick (OHLCV) data for a specific market.
-///
-/// Returns historical price data in candlestick format.
+/// Returns historical OHLCV (candlestick) price data for a market.
 pub async fn get_candlesticks(
     http: &HttpClient,
     series_ticker: &str,
@@ -76,10 +66,7 @@ pub async fn get_candlesticks(
     http.get(&path).await
 }
 
-/// Get candlestick data for multiple markets in a single request.
-///
-/// Supports up to 100 market tickers per request.
-/// Returns up to 10,000 candlesticks total across all markets.
+/// Returns candlestick data for multiple markets (up to 100 tickers, 10,000 candlesticks total).
 pub async fn get_batch_candlesticks(
     http: &HttpClient,
     params: GetBatchCandlesticksParams,

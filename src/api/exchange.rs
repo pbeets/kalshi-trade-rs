@@ -12,38 +12,32 @@ use crate::{
     },
 };
 
-/// Get the current exchange status.
-///
 /// Returns whether the exchange and trading are currently active.
-/// This is a public endpoint that does not require authentication.
+///
+/// Public endpoint - no authentication required.
 pub async fn get_exchange_status(http: &HttpClient) -> Result<ExchangeStatusResponse> {
     http.get("/exchange/status").await
 }
 
-/// Get the exchange schedule.
+/// Returns the weekly trading schedule and scheduled maintenance windows.
 ///
-/// Returns the weekly trading schedule and any scheduled maintenance windows.
-/// All times are in Eastern Time (ET).
-/// This is a public endpoint that does not require authentication.
+/// All times are in Eastern Time (ET). Public endpoint - no authentication required.
 pub async fn get_exchange_schedule(http: &HttpClient) -> Result<ExchangeScheduleResponse> {
     http.get("/exchange/schedule").await
 }
 
-/// Get exchange announcements.
+/// Returns exchange-wide announcements including info, warning, and error messages.
 ///
-/// Returns all exchange-wide announcements including info, warning, and error messages.
-/// This is a public endpoint that does not require authentication.
+/// Public endpoint - no authentication required.
 pub async fn get_exchange_announcements(
     http: &HttpClient,
 ) -> Result<ExchangeAnnouncementsResponse> {
     http.get("/exchange/announcements").await
 }
 
-/// Get the user data timestamp.
+/// Returns when user portfolio data (balance, orders, fills, positions) was last validated.
 ///
-/// Returns an approximate indication of when user portfolio data
-/// (balance, orders, fills, positions) was last validated.
-/// Useful for determining data freshness.
+/// Useful for determining data freshness when there may be delays in reflecting recent trades.
 pub async fn get_user_data_timestamp(http: &HttpClient) -> Result<UserDataTimestampResponse> {
     http.get("/exchange/user_data_timestamp").await
 }
