@@ -3,11 +3,11 @@
 //! This module provides a streaming client using the actor pattern for
 //! real-time market data and account updates.
 //!
-//! # Example
+//! # Quick Start
 //!
 //! ```no_run
 //! use kalshi_trade_rs::auth::KalshiConfig;
-//! use kalshi_trade_rs::ws::{Channel, ConnectStrategy, KalshiStreamClient};
+//! use kalshi_trade_rs::ws::{Channel, ConnectStrategy, KalshiStreamClient, StreamMessage};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let config = KalshiConfig::from_env()?;
@@ -23,32 +23,138 @@
 //! // Subscribe to ticker updates for specific markets
 //! handle.subscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
 //!
-//! // Add more markets (automatically uses add_markets under the hood)
-//! handle.subscribe(Channel::Ticker, &["KXBTC-25DEC31-100000"]).await?;
-//!
-//! // Check what markets we're subscribed to
-//! println!("Ticker markets: {:?}", handle.markets(Channel::Ticker));
-//!
-//! // Process updates - handle disconnection events
+//! // Process updates
 //! while let Ok(update) = handle.update_receiver.recv().await {
 //!     match &update.msg {
-//!         kalshi_trade_rs::ws::StreamMessage::Closed { reason } => {
-//!             println!("Connection closed: {}", reason);
-//!             break;
+//!         StreamMessage::Ticker(data) => {
+//!             println!("{}: {}¢", data.market_ticker, data.price);
 //!         }
-//!         kalshi_trade_rs::ws::StreamMessage::ConnectionLost { reason } => {
+//!         StreamMessage::ConnectionLost { reason } => {
 //!             eprintln!("Connection lost: {}", reason);
-//!             break; // Reconnect with backoff here
+//!             break; // Handle reconnection (see below)
 //!         }
-//!         _ => println!("Update: {:?}", update),
+//!         _ => {}
 //!     }
 //! }
+//! # Ok(())
+//! # }
+//! ```
 //!
-//! // Unsubscribe from specific markets
-//! handle.unsubscribe(Channel::Ticker, &["INXD-25JAN17-B5955"]).await?;
+//! # Connection Strategies
 //!
-//! // Or unsubscribe from entire channel
+//! Two strategies control initial connection behavior:
+//!
+//! - [`ConnectStrategy::Simple`] - Single attempt, fast-fail on error. Good for testing.
+//! - [`ConnectStrategy::Retry`] - Exponential backoff until connected. Recommended for production.
+//!
+//! **Note**: These strategies only apply to the *initial* connection. Once connected,
+//! handling disconnections is your responsibility (see Reconnection Pattern below).
+//!
+//! # Reconnection Pattern
+//!
+//! The library does not automatically reconnect after a connection is lost. This is
+//! intentional - reconnection policies vary by application (e.g., max retries, backoff
+//! strategy, whether to resubscribe to the same markets).
+//!
+//! When the connection is lost, you'll receive [`StreamMessage::ConnectionLost`] on
+//! your update receiver. Implement reconnection like this:
+//!
+//! ```no_run
+//! use kalshi_trade_rs::auth::KalshiConfig;
+//! use kalshi_trade_rs::ws::{Channel, ConnectStrategy, KalshiStreamClient, StreamMessage};
+//! use std::time::Duration;
+//!
+//! async fn run_with_reconnect(config: &KalshiConfig) -> Result<(), Box<dyn std::error::Error>> {
+//!     let markets = vec!["INXD-25JAN17-B5955", "KXBTC-25DEC31-100000"];
+//!     let mut attempt = 0;
+//!
+//!     loop {
+//!         // Connect (Retry strategy handles initial connection retries)
+//!         let client = match KalshiStreamClient::connect_with_strategy(
+//!             config,
+//!             ConnectStrategy::Retry,
+//!         ).await {
+//!             Ok(c) => {
+//!                 attempt = 0; // Reset on successful connect
+//!                 c
+//!             }
+//!             Err(e) => {
+//!                 eprintln!("Connection failed: {}", e);
+//!                 continue;
+//!             }
+//!         };
+//!
+//!         let mut handle = client.handle();
+//!
+//!         // Resubscribe to markets
+//!         for market in &markets {
+//!             if let Err(e) = handle.subscribe(Channel::Ticker, &[market]).await {
+//!                 eprintln!("Subscribe failed: {}", e);
+//!             }
+//!         }
+//!
+//!         // Process updates until disconnection
+//!         while let Ok(update) = handle.update_receiver.recv().await {
+//!             match &update.msg {
+//!                 StreamMessage::Ticker(data) => {
+//!                     println!("{}: {}¢", data.market_ticker, data.price);
+//!                 }
+//!                 StreamMessage::ConnectionLost { reason } => {
+//!                     eprintln!("Connection lost: {}", reason);
+//!                     break; // Exit inner loop to reconnect
+//!                 }
+//!                 StreamMessage::Closed { .. } => {
+//!                     return Ok(()); // Graceful close, don't reconnect
+//!                 }
+//!                 _ => {}
+//!             }
+//!         }
+//!
+//!         // Backoff before reconnecting
+//!         attempt += 1;
+//!         let backoff = Duration::from_secs(std::cmp::min(attempt * 2, 60));
+//!         eprintln!("Reconnecting in {:?}...", backoff);
+//!         tokio::time::sleep(backoff).await;
+//!     }
+//! }
+//! ```
+//!
+//! See the `examples/stream_reconnect.rs` for a complete working example.
+//!
+//! # Available Channels
+//!
+//! Market data channels (require market tickers):
+//! - [`Channel::Ticker`] - Price and volume updates
+//! - [`Channel::Trade`] - Executed trades
+//! - [`Channel::OrderbookDelta`] - Orderbook changes
+//! - [`Channel::MarketLifecycle`] - Market status changes
+//!
+//! User channels (no market tickers needed):
+//! - [`Channel::Fill`] - Your executed fills
+//! - [`Channel::MarketPositions`] - Position changes
+//! - [`Channel::Communications`] - RFQ/quote updates
+//! - [`Channel::Multivariate`] - Multivariate event updates
+//!
+//! # Subscription Management
+//!
+//! ```no_run
+//! # use kalshi_trade_rs::ws::{Channel, KalshiStreamHandle};
+//! # async fn example(handle: &mut KalshiStreamHandle) -> Result<(), Box<dyn std::error::Error>> {
+//! // Subscribe to markets
+//! handle.subscribe(Channel::Ticker, &["MARKET-A", "MARKET-B"]).await?;
+//!
+//! // Add more markets to existing subscription
+//! handle.subscribe(Channel::Ticker, &["MARKET-C"]).await?;
+//!
+//! // Remove specific markets
+//! handle.unsubscribe(Channel::Ticker, &["MARKET-A"]).await?;
+//!
+//! // Unsubscribe from entire channel
 //! handle.unsubscribe_all(Channel::Ticker).await?;
+//!
+//! // Check current subscriptions
+//! println!("Markets: {:?}", handle.markets(Channel::Ticker));
+//! println!("Subscribed: {}", handle.is_subscribed(Channel::Ticker));
 //! # Ok(())
 //! # }
 //! ```

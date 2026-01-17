@@ -1,4 +1,58 @@
-//! Error types and API limit constants.
+//! Error types for the Kalshi API client.
+//!
+//! This module provides the unified [`enum@Error`] type used throughout the crate,
+//! along with API limit constants.
+//!
+//! # Error Categories
+//!
+//! Errors fall into several categories:
+//!
+//! - **Network errors**: [`Error::Http`], [`Error::WebSocket`] - connection failures,
+//!   timeouts, TLS errors
+//! - **Authentication errors**: [`Error::Auth`], [`Error::InvalidPrivateKey`] - credential
+//!   issues, signature failures
+//! - **API errors**: [`Error::Api`] - server-side rejections (invalid tickers, insufficient
+//!   balance, rate limits)
+//! - **Validation errors**: [`Error::InvalidPrice`], [`Error::BatchSizeExceeded`], etc. -
+//!   client-side validation before requests are sent
+//! - **Configuration errors**: [`Error::MissingEnvVar`], [`Error::PrivateKeyFileError`] -
+//!   setup and initialization issues
+//!
+//! # Example
+//!
+//! ```no_run
+//! use kalshi_trade_rs::{KalshiClient, KalshiConfig, Error};
+//!
+//! async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//!     let config = KalshiConfig::from_env()?;
+//!     let client = KalshiClient::new(config)?;
+//!
+//!     match client.get_balance().await {
+//!         Ok(balance) => println!("Balance: {} cents", balance.balance),
+//!         Err(Error::Auth(msg)) => {
+//!             // Authentication failed - check credentials
+//!             eprintln!("Authentication error: {}", msg);
+//!         }
+//!         Err(Error::Http(e)) => {
+//!             // Network error - may be transient, consider retry
+//!             eprintln!("Network error: {}", e);
+//!         }
+//!         Err(Error::Api(msg)) => {
+//!             // Server rejected request - check the message for details
+//!             eprintln!("API error: {}", msg);
+//!         }
+//!         Err(e) => {
+//!             eprintln!("Other error: {}", e);
+//!         }
+//!     }
+//!     Ok(())
+//! }
+//! ```
+//!
+//! # Handling WebSocket Errors
+//!
+//! For WebSocket connections, errors are delivered via [`crate::ws::StreamMessage::ConnectionLost`]
+//! on the update receiver. See the [`ws`](crate::ws) module for reconnection patterns.
 
 use thiserror::Error;
 

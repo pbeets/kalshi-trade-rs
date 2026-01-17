@@ -1,14 +1,18 @@
 # Rust Kalshi Trading API Client
 
-An unofficial Rust client library for connecting to the Kalshi prediction market.
+[![Crates.io](https://img.shields.io/crates/v/kalshi-trade-rs.svg)](https://crates.io/crates/kalshi-trade-rs)
+[![Documentation](https://docs.rs/kalshi-trade-rs/badge.svg)](https://docs.rs/kalshi-trade-rs)
+[![CI](https://github.com/pbeets/kalshi-trade-rs/workflows/CI/badge.svg)](https://github.com/pbeets/kalshi-trade-rs/actions)
+[![License](https://img.shields.io/crates/l/kalshi-trade-rs.svg)](https://github.com/pbeets/kalshi-trade-rs#license)
+
+An unofficial Rust client library for the [Kalshi](https://kalshi.com) prediction market, implementing the [Kalshi Trading API v2](https://trading-api.readme.io/reference).
 
 ## Key Features
 
-The library provides both REST API and WebSocket streaming capabilities:
+This crate provides both REST API and WebSocket streaming capabilities:
 
 - **REST Client**: Full coverage of the Kalshi API including portfolio management, order operations, market data, and exchange status
 - **WebSocket Streaming**: Real-time ticker, trade, orderbook, and fill updates with channel-based message delivery
-- **Batch Operations**: Rate-limited batch order creation and cancellation with automatic chunking and retry logic
 
 ## Getting Started
 
@@ -62,7 +66,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = KalshiStreamClient::connect(&config).await?;
     let mut handle = client.handle();
 
-    handle.subscribe(&[Channel::Ticker, Channel::Trade], None).await?;
+    // Subscribe to channels with market tickers
+    let markets = &["INXD-25JAN17-B5955", "KXBTC-25DEC31-100000"];
+    handle.subscribe(Channel::Ticker, markets).await?;
+    handle.subscribe(Channel::Trade, markets).await?;
 
     loop {
         match handle.update_receiver.recv().await {
@@ -89,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Connection and Reconnection
 
-Three connection strategies are available for WebSocket connections:
+Two connection strategies are available for WebSocket connections:
 
 - **Simple**: Fast-fail on connection errors
 - **Retry**: Exponential backoff with configurable attempts
@@ -102,6 +109,61 @@ use kalshi_trade_rs::ws::ConnectStrategy;
 let client = KalshiStreamClient::connect_with_strategy(&config, ConnectStrategy::Retry).await?;
 ```
 
-## Licensing
+## Examples
 
-This project is licensed under the MIT License.
+See the [`examples/`](examples/) directory for working examples covering REST API usage, WebSocket streaming, and reconnection patterns.
+
+```bash
+cargo run --example portfolio
+```
+
+## Error Handling
+
+The library uses a unified `Error` type for all errors:
+
+```rust
+use kalshi_trade_rs::{KalshiClient, Error};
+
+async fn example(client: &KalshiClient) {
+    match client.get_balance().await {
+        Ok(balance) => println!("Balance: {} cents", balance.balance),
+        Err(Error::Auth(msg)) => eprintln!("Auth failed: {}", msg),
+        Err(Error::Api(msg)) => eprintln!("API error: {}", msg),
+        Err(Error::Http(e)) => eprintln!("HTTP error: {}", e),
+        Err(e) => eprintln!("Other error: {}", e),
+    }
+}
+```
+
+## Minimum Supported Rust Version
+
+This crate requires **Rust 1.92** or later (uses Rust 2024 edition).
+
+## Running Tests
+
+Tests interact with the real Kalshi API. Set your credentials before running:
+
+```bash
+export KALSHI_ENV=demo
+export KALSHI_API_KEY_ID=your_api_key_id
+export KALSHI_PRIVATE_KEY_PATH=/path/to/your/private_key.pem
+
+cargo test
+```
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests for:
+
+- Bug fixes
+- New endpoint coverage
+- Documentation improvements
+- Additional examples
+
+## Disclaimer
+
+This is an **unofficial** client library and is not affiliated with or endorsed by Kalshi. Use at your own risk. The authors are not responsible for any financial losses incurred through the use of this software. Always test thoroughly with the demo environment before using in production.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
