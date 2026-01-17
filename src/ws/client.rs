@@ -705,11 +705,7 @@ mod tests {
             Channel::MarketLifecycle,
         ] {
             let result = handle.subscribe(channel, &[]).await;
-            assert!(
-                result.is_err(),
-                "{:?} should require markets",
-                channel
-            );
+            assert!(result.is_err(), "{:?} should require markets", channel);
         }
     }
 
@@ -773,7 +769,10 @@ mod tests {
             }
         });
 
-        handle.subscribe(Channel::Ticker, &["MARKET-A"]).await.unwrap();
+        handle
+            .subscribe(Channel::Ticker, &["MARKET-A"])
+            .await
+            .unwrap();
         responder.await.unwrap();
     }
 
@@ -795,13 +794,17 @@ mod tests {
                     assert_eq!(markets, vec!["NEW-MARKET"]);
                     assert_eq!(action, UpdateAction::AddMarkets);
 
-                    let _ = response.send(Ok(vec!["EXISTING".to_string(), "NEW-MARKET".to_string()]));
+                    let _ =
+                        response.send(Ok(vec!["EXISTING".to_string(), "NEW-MARKET".to_string()]));
                 }
                 other => panic!("Expected UpdateSubscription command, got {:?}", other),
             }
         });
 
-        handle.subscribe(Channel::Ticker, &["NEW-MARKET"]).await.unwrap();
+        handle
+            .subscribe(Channel::Ticker, &["NEW-MARKET"])
+            .await
+            .unwrap();
         responder.await.unwrap();
     }
 
@@ -812,7 +815,9 @@ mod tests {
 
         let responder = tokio::spawn(async move {
             match cmd_receiver.recv().await {
-                Some(StreamCommand::UpdateSubscription { markets, response, .. }) => {
+                Some(StreamCommand::UpdateSubscription {
+                    markets, response, ..
+                }) => {
                     // Should only contain the NEW market, not existing ones
                     assert_eq!(markets, vec!["NEW-MARKET"]);
                     assert!(!markets.contains(&"EXISTING-A".to_string()));
@@ -841,7 +846,10 @@ mod tests {
         add_subscription(&handle, Channel::Ticker, 100, &["MARKET-A", "MARKET-B"]);
 
         // Subscribe to markets we already have
-        handle.subscribe(Channel::Ticker, &["MARKET-A"]).await.unwrap();
+        handle
+            .subscribe(Channel::Ticker, &["MARKET-A"])
+            .await
+            .unwrap();
 
         // No command should have been sent
         assert!(
@@ -887,7 +895,10 @@ mod tests {
             }
         });
 
-        handle.unsubscribe(Channel::Ticker, &["REMOVE"]).await.unwrap();
+        handle
+            .unsubscribe(Channel::Ticker, &["REMOVE"])
+            .await
+            .unwrap();
 
         // Should still be subscribed with remaining market
         assert!(handle.is_subscribed(Channel::Ticker));
@@ -912,7 +923,10 @@ mod tests {
             }
         });
 
-        handle.unsubscribe(Channel::Ticker, &["ONLY-MARKET"]).await.unwrap();
+        handle
+            .unsubscribe(Channel::Ticker, &["ONLY-MARKET"])
+            .await
+            .unwrap();
 
         // Channel should be fully removed
         assert!(!handle.is_subscribed(Channel::Ticker));
@@ -992,7 +1006,9 @@ mod tests {
         add_subscription(&handle, Channel::Ticker, 100, &["OLD"]);
 
         let responder = tokio::spawn(async move {
-            if let Some(StreamCommand::UpdateSubscription { response, .. }) = cmd_receiver.recv().await {
+            if let Some(StreamCommand::UpdateSubscription { response, .. }) =
+                cmd_receiver.recv().await
+            {
                 // Server returns different list than expected
                 let _ = response.send(Ok(vec![
                     "OLD".to_string(),
@@ -1044,7 +1060,10 @@ mod tests {
             }
         });
 
-        handle.subscribe(Channel::Ticker, &["MARKET"]).await.unwrap();
+        handle
+            .subscribe(Channel::Ticker, &["MARKET"])
+            .await
+            .unwrap();
 
         // Should keep the concurrent subscription (999), not overwrite with ours (100)
         assert_eq!(handle.sid(Channel::Ticker), Some(999));
@@ -1060,7 +1079,9 @@ mod tests {
 
         let subscriptions = handle.subscriptions.clone();
         let responder = tokio::spawn(async move {
-            if let Some(StreamCommand::UpdateSubscription { response, .. }) = cmd_receiver.recv().await {
+            if let Some(StreamCommand::UpdateSubscription { response, .. }) =
+                cmd_receiver.recv().await
+            {
                 // Simulate SID change (e.g., unsubscribe/resubscribe by another task)
                 {
                     let mut subs = subscriptions.write().unwrap();
