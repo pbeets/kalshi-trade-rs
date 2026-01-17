@@ -12,7 +12,7 @@ rust-version = "1.92"
 
 [dependencies]
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt", "sync", "time", "net", "macros"] }
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
@@ -44,6 +44,7 @@ tracing = "0.1"
 url = "2"
 
 [dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-test = "0.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
@@ -51,3 +52,7 @@ rsa = "0.9"
 
 [features]
 default = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
