@@ -1,3 +1,5 @@
+//! Authentication and configuration for the Kalshi API.
+
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use rand_core::OsRng;
 use std::{env, fs, path::Path};

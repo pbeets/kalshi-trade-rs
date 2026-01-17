@@ -1,6 +1,4 @@
 //! Event models and response types.
-//!
-//! Types for events and related data.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

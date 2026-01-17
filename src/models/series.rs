@@ -18,7 +18,6 @@ pub struct SeriesFeeChange {
     /// The type of fee structure.
     pub fee_type: FeeType,
     /// The fee multiplier value.
-    // TODO: Consider switching to fixed-point decimal type for financial precision
     pub fee_multiplier: f64,
     /// ISO 8601 timestamp when the change takes effect.
     pub scheduled_ts: String,

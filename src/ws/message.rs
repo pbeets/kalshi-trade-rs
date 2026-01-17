@@ -1,7 +1,4 @@
 //! WebSocket message types for Kalshi streaming API.
-//!
-//! This module contains all the message and data types used for WebSocket communication
-//! with the Kalshi exchange.
 
 use serde::{Deserialize, Serialize};
 

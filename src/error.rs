@@ -1,15 +1,17 @@
+//! Error types and API limit constants.
+
 use thiserror::Error;
 
-/// Maximum number of orders allowed in a batch request.
+/// Maximum orders per batch request.
 pub const MAX_BATCH_SIZE: usize = 20;
 
-/// Maximum number of market tickers in a batch candlesticks request.
+/// Maximum market tickers in batch candlesticks request.
 pub const MAX_BATCH_CANDLESTICKS_TICKERS: usize = 100;
 
-/// Maximum number of event tickers in comma-separated filter.
+/// Maximum event tickers in comma-separated filter.
 pub const MAX_EVENT_TICKERS: usize = 10;
 
-/// Maximum number of percentiles in a forecast history request.
+/// Maximum percentiles in forecast history request.
 pub const MAX_FORECAST_PERCENTILES: usize = 10;
 
 #[derive(Debug, Error)]

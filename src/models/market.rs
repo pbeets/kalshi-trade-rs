@@ -1,6 +1,4 @@
 //! Market models and response types.
-//!
-//! Types for markets, orderbooks, and trades.
 
 use serde::{Deserialize, Serialize};
 
