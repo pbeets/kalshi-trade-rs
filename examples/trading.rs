@@ -1,6 +1,6 @@
 //! Trading API example
 //!
-//! Demonstrates order lifecycle: create, get, amend, and cancel orders.
+//! Demonstrates order lifecycle: create, get, amend, decrease, and cancel orders.
 //!
 //! **WARNING**: This example places REAL orders on Kalshi! Use the demo environment
 //! unless you understand the risks. Orders are placed with post_only=true to minimize
@@ -8,12 +8,13 @@
 //!
 //! Run with: cargo run --example trading
 
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 use kalshi_trade_rs::{
-    Action, AmendOrderRequest, CreateOrderRequest, GetMarketsParams, GetOrdersParams,
-    GetQueuePositionsParams, KalshiClient, KalshiConfig, MarketFilterStatus, OrderStatus,
-    OrderType, Side, TimeInForce, cents_to_dollars,
+    Action, AmendOrderRequest, CreateOrderRequest, DecreaseOrderRequest, GetMarketsParams,
+    GetOrdersParams, GetQueuePositionsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
+    OrderStatus, OrderType, Side, TimeInForce, cents_to_dollars,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,6 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize client
     let config = KalshiConfig::from_env()?;
+
     println!("Connected to {:?} environment", config.environment);
     println!("**WARNING**: This example places REAL orders!\n");
 
@@ -28,9 +30,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Find an open market to trade
     println!("=== Finding an Open Market ===");
+
     let params = GetMarketsParams::new()
         .status(MarketFilterStatus::Open)
         .limit(5);
+
     let markets = client.get_markets_with_params(params).await?;
 
     let Some(market) = markets.markets.first() else {
@@ -39,12 +43,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     println!("Selected market: {}", market.ticker);
+
     if let Some(title) = &market.title {
         println!("Title: {}", title);
     }
+
     if let (Some(yes_bid), Some(yes_ask)) = (&market.yes_bid_dollars, &market.yes_ask_dollars) {
         println!("Current YES: ${} bid / ${} ask", yes_bid, yes_ask);
     }
+
     println!();
 
     // Use a price far from the market to avoid execution
@@ -56,11 +63,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
+
     let client_order_id = format!("example-{}", ts);
 
-    // 1. Create an order
+    // 1. Create an order with multiple contracts (for decrease_order demo)
     println!("=== Create Order ===");
-    let create_request = CreateOrderRequest::new(&market.ticker, Side::Yes, Action::Buy, 1)
+
+    let create_request = CreateOrderRequest::new(&market.ticker, Side::Yes, Action::Buy, 5)
         .client_order_id(&client_order_id)
         .order_type(OrderType::Limit)
         .yes_price(safe_price)
@@ -88,16 +97,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Status: {:?}", order.status);
     println!("  Fill Count: {}", order.fill_count);
     println!("  Remaining: {}", order.remaining_count);
+
     if let Some(created) = &order.created_time {
         println!("  Created: {}", created);
     }
+
     println!();
 
     let order_id = order.order_id.clone();
 
+    // Small delay for demo environment consistency
+    println!("(Waiting for demo environment consistency...)");
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
     // 2. Get the order
     // Note: Demo environment may have eventual consistency delays
     println!("=== Get Order ===");
+
     match client.get_order(&order_id).await {
         Ok(fetched) => println!(
             "Fetched order {} | status: {:?}",
@@ -108,10 +124,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             e
         ),
     }
+
     println!();
 
     // 3. Get order queue position
     println!("=== Get Queue Position ===");
+
     match client.get_order_queue_position(&order_id).await {
         Ok(queue_pos) => {
             println!(
@@ -123,19 +141,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Could not get queue position: {}", e);
         }
     }
+
     println!();
 
-    // 4. Decrease order quantity (if order has more than 1 contract, we'd use this)
-    // Since we only have 1 contract, we'll skip this but show the API
-    println!("=== Decrease Order (demo) ===");
-    println!("(Skipping - order only has 1 contract)");
-    println!("To decrease an order:");
-    println!("  let request = DecreaseOrderRequest::reduce_by(5); // reduce by 5 contracts");
-    println!("  let request = DecreaseOrderRequest::reduce_to(3); // reduce to 3 remaining");
+    // 4. Decrease order quantity
+    println!("=== Decrease Order ===");
+    println!("Decreasing order from 5 to 3 contracts...");
+
+    let decrease_request = DecreaseOrderRequest::reduce_to(3);
+
+    match client.decrease_order(&order_id, decrease_request).await {
+        Ok(decreased) => {
+            println!("Order decreased:");
+            println!("  Order ID: {}", decreased.order.order_id);
+            println!("  Remaining: {}", decreased.order.remaining_count);
+            println!("  Status: {:?}", decreased.order.status);
+        }
+        Err(e) => {
+            println!("Could not decrease order: {}", e);
+            println!("(This may fail in demo env due to eventual consistency)");
+        }
+    }
+
     println!();
 
     // 5. Amend order (change price)
     println!("=== Amend Order ===");
+
     let new_price = 2; // Change from 1 cent to 2 cents
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -151,7 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &new_client_order_id,
     )
     .yes_price(new_price)
-    .count(1);
+    .count(3); // Match decreased count
 
     println!("Amending order:");
     println!("  Old price: {} cents", safe_price);
@@ -175,18 +207,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 6. Cancel order
     println!("=== Cancel Order ===");
+
     let cancel_response = client.cancel_order(&order_id).await?;
+
     println!("Order canceled:");
     println!("  Order ID: {}", cancel_response.order.order_id);
     println!("  Status: {:?}", cancel_response.order.status);
+
     if let Some(reduced_by) = cancel_response.reduced_by {
         println!("  Reduced by: {} contracts", reduced_by);
     }
+
     println!();
 
     // 7. List orders
     println!("=== List Orders ===");
+
     let orders = client.get_orders().await?;
+
     println!("Total orders: {}", orders.orders.len());
 
     // Count by status
@@ -195,24 +233,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .filter(|o| o.status == OrderStatus::Resting)
         .count();
+
     let executed = orders
         .orders
         .iter()
         .filter(|o| o.status == OrderStatus::Executed)
         .count();
+
     let canceled = orders
         .orders
         .iter()
         .filter(|o| o.status == OrderStatus::Canceled)
         .count();
+
     println!(
         "  Resting: {}, Executed: {}, Canceled: {}",
         resting, executed, canceled
     );
+
     println!();
 
     // 8. List orders with filters
     println!("=== Resting Orders ===");
+
     let params = GetOrdersParams::new().status(OrderStatus::Resting).limit(5);
     let resting_orders = client.get_orders_with_params(params).await?;
 
@@ -232,11 +275,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
     }
+
     println!();
 
     // 9. Get queue positions (requires market_tickers or event_ticker filter)
     println!("=== Queue Positions (filtered by market) ===");
+
     let params = GetQueuePositionsParams::new().market_tickers(&market.ticker);
+
     match client.get_queue_positions_with_params(params).await {
         Ok(response) => {
             if let Some(queue_positions) = &response.queue_positions {

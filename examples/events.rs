@@ -6,8 +6,14 @@
 //!
 //! Run with: cargo run --example events
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use kalshi_trade_rs::{
     EventStatus, GetEventParams, GetEventsParams, GetSeriesParams, KalshiClient, KalshiConfig,
+    models::{
+        CandlestickPeriod, ForecastPeriod, GetEventCandlesticksParams,
+        GetEventForecastPercentileHistoryParams,
+    },
 };
 
 #[tokio::main]
@@ -22,15 +28,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1. Get Events (default parameters)
     println!("=== Get Events (default) ===");
+
     let events = client.get_events().await?;
+
     println!("Total events returned: {}", events.events.len());
+
     if let Some(cursor) = &events.cursor {
         println!("Next cursor: {}...", &cursor[..cursor.len().min(20)]);
     }
+
     println!();
 
     // 2. Get Events with filters
     println!("=== Get Open Events (limit 5) ===");
+
     let params = GetEventsParams::new().status(EventStatus::Open).limit(5);
     let open_events = client.get_events_with_params(params).await?;
 
@@ -48,6 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 3. Get Events with nested markets
     println!("=== Get Events with Nested Markets ===");
+
     let params = GetEventsParams::new()
         .status(EventStatus::Open)
         .with_nested_markets(true)
@@ -246,10 +258,116 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
 
     // ==========================================================================
+    // Event Candlesticks & Forecast History
+    // ==========================================================================
+
+    // 10. Get event candlesticks (aggregated across all markets in an event)
+    if let Some(first_event) = open_events.events.first() {
+        let event_ticker = &first_event.event_ticker;
+        let series_ticker = &first_event.series_ticker;
+
+        println!("=== Event Candlesticks: {} ===", event_ticker);
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        let one_day_ago = now - 86400;
+
+        let params = GetEventCandlesticksParams::new(one_day_ago, now, CandlestickPeriod::OneHour);
+        let candles = client
+            .get_event_candlesticks(series_ticker, event_ticker, params)
+            .await?;
+
+        println!("Markets in event: {}", candles.market_tickers.len());
+        for ticker in candles.market_tickers.iter().take(5) {
+            println!("  - {}", ticker);
+        }
+        if candles.market_tickers.len() > 5 {
+            println!("  ... and {} more", candles.market_tickers.len() - 5);
+        }
+
+        println!(
+            "Market candlestick arrays: {}",
+            candles.market_candlesticks.len()
+        );
+        for (i, market_candles) in candles.market_candlesticks.iter().enumerate().take(3) {
+            println!(
+                "  Market {} has {} candles",
+                candles.market_tickers.get(i).unwrap_or(&"?".to_string()),
+                market_candles.len()
+            );
+        }
+        if let Some(adjusted) = candles.adjusted_end_ts {
+            println!("Adjusted end timestamp: {}", adjusted);
+        }
+        println!();
+
+        // 11. Get event forecast percentile history
+        // Note: This endpoint only works for events with numeric/forecast data.
+        // Many events (like yes/no binary events) don't support this endpoint.
+        println!(
+            "=== Event Forecast Percentile History: {} ===",
+            event_ticker
+        );
+
+        // Request median (50th percentile = 5000) and quartiles (25th = 2500, 75th = 7500)
+        let percentiles = vec![2500, 5000, 7500];
+        let params = GetEventForecastPercentileHistoryParams::new(
+            percentiles.clone(),
+            one_day_ago,
+            now,
+            ForecastPeriod::OneHour,
+        );
+
+        match client
+            .get_event_forecast_percentile_history(series_ticker, event_ticker, params)
+            .await
+        {
+            Ok(forecast) => {
+                println!(
+                    "Forecast history points: {}",
+                    forecast.forecast_history.len()
+                );
+
+                for point in forecast.forecast_history.iter().take(3) {
+                    println!(
+                        "  Event: {} | ts: {} | period: {}min",
+                        point.event_ticker, point.end_period_ts, point.period_interval
+                    );
+                    for pp in &point.percentile_points {
+                        let formatted = pp.formatted_forecast.as_deref().unwrap_or("-");
+                        let numerical = pp.numerical_forecast.map(|v| format!("{:.2}", v));
+                        println!(
+                            "    {}th percentile: {} ({})",
+                            pp.percentile / 100,
+                            formatted,
+                            numerical.as_deref().unwrap_or("-")
+                        );
+                    }
+                }
+                if forecast.forecast_history.len() > 3 {
+                    println!(
+                        "  ... and {} more points",
+                        forecast.forecast_history.len() - 3
+                    );
+                }
+            }
+            Err(e) => {
+                println!(
+                    "  (Forecast history not available for this event type: {})",
+                    e
+                );
+            }
+        }
+        println!();
+    }
+
+    // ==========================================================================
     // Series API
     // ==========================================================================
 
-    // 10. Get list of series
+    // 12. Get list of series
     println!("=== Get Series List ===");
     let series_list = client.get_series_list().await?;
     println!("Total series returned: {}", series_list.series.len());
@@ -265,7 +383,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
 
-    // 11. Get series list with params
+    // 13. Get series list with params
     println!("=== Get Series List with Params ===");
     let params = GetSeriesParams::new().include_volume(true);
     let series_with_volume = client.get_series_list_with_params(params).await?;
@@ -282,7 +400,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
 
-    // 12. Get a specific series
+    // 14. Get a specific series
     if let Some(first_series) = series_list.series.first() {
         let series_ticker = &first_series.ticker;
 

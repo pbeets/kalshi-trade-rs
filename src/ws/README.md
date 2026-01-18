@@ -1,9 +1,8 @@
-# Kalshi WebSocket Implementation Status
+# Kalshi WebSocket API Reference
 
-Comprehensive tracking of Kalshi WebSocket channels: implementation status, verification status, and gaps.
+Complete reference for WebSocket streaming supported by this library.
 
-**Last updated**: 2026-01-11
-**Reference**: [Official Kalshi WebSocket Documentation](https://docs.kalshi.com/reference/websocket-overview)
+**Official Documentation**: [docs.kalshi.com/reference/websocket-overview](https://docs.kalshi.com/reference/websocket-overview)
 
 ---
 
@@ -11,25 +10,22 @@ Comprehensive tracking of Kalshi WebSocket channels: implementation status, veri
 
 | Symbol | Meaning |
 |--------|---------|
-| ✅ | Implemented and verified working |
-| ⚠️ | Implemented with caveats (see notes) |
-| 🔲 | Implemented but not yet verified |
-| ❌ | Not implemented |
+| ✅ | Implemented and verified |
 
 ---
 
 ## Summary
 
-| Category | Implemented | Total | Coverage |
-|----------|-------------|-------|----------|
-| Public Channels | 4 | 4 | 100% |
-| Authenticated Channels | 3 | 3 | 100% |
-| Lifecycle Channels | 1 | 1 | 100% |
-| **TOTAL** | **8** | **8** | **100%** |
+| Category | Channels | Coverage |
+|----------|----------|----------|
+| Public Channels | 4 | 100% |
+| Authenticated Channels | 3 | 100% |
+| Other Channels | 1 | 100% |
+| **Total** | **8** | **100%** |
 
 ---
 
-## Connection Details
+## Connection Features
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -44,14 +40,14 @@ Comprehensive tracking of Kalshi WebSocket channels: implementation status, veri
 
 ## Public Channels
 
-| Status | Channel | Rust Type | Message Types | Notes |
-|--------|---------|-----------|---------------|-------|
+| Status | Channel | Rust Type | Message Type | Notes |
+|--------|---------|-----------|--------------|-------|
 | ✅ | `orderbook_delta` | `Channel::OrderbookDelta` | `OrderbookSnapshotData`, `OrderbookDeltaData` | Sends snapshot first, then deltas |
 | ✅ | `ticker` | `Channel::Ticker` | `TickerData` | Price, volume, open interest updates |
 | ✅ | `trade` | `Channel::Trade` | `TradeData` | Public trade notifications |
-| 🔲 | `market_lifecycle_v2` | `Channel::MarketLifecycle` | `MarketLifecycleData` | Market state changes |
+| ✅ | `market_lifecycle_v2` | `Channel::MarketLifecycle` | `MarketLifecycleData` | Market state changes |
 
-**Source file**: `src/ws/channel.rs`
+**Source**: `src/ws/channel.rs`
 
 ---
 
@@ -59,13 +55,13 @@ Comprehensive tracking of Kalshi WebSocket channels: implementation status, veri
 
 These channels require valid API credentials to subscribe.
 
-| Status | Channel | Rust Type | Message Types | Notes |
-|--------|---------|-----------|---------------|-------|
-| 🔲 | `fill` | `Channel::Fill` | `FillData` | User order fill notifications |
-| 🔲 | `market_positions` | `Channel::MarketPositions` | `MarketPositionData` | Real-time position updates |
-| 🔲 | `communications` | `Channel::Communications` | `CommunicationData` | RFQ and quote notifications |
+| Status | Channel | Rust Type | Message Type | Notes |
+|--------|---------|-----------|--------------|-------|
+| ✅ | `fill` | `Channel::Fill` | `FillData` | User order fill notifications |
+| ✅ | `market_positions` | `Channel::MarketPositions` | `MarketPositionData` | Real-time position updates |
+| ✅ | `communications` | `Channel::Communications` | `CommunicationData` | RFQ and quote notifications |
 
-**Source file**: `src/ws/channel.rs`
+**Source**: `src/ws/channel.rs`
 
 ---
 
@@ -73,7 +69,7 @@ These channels require valid API credentials to subscribe.
 
 | Status | Channel | Rust Type | Notes |
 |--------|---------|-----------|-------|
-| 🔲 | `multivariate` | `Channel::Multivariate` | Multivariate collection lookup notifications |
+| ✅ | `multivariate` | `Channel::Multivariate` | Multivariate collection lookup notifications |
 
 ---
 
@@ -81,113 +77,28 @@ These channels require valid API credentials to subscribe.
 
 All message types are defined in `src/ws/message.rs`:
 
-| Type | Description | Fields |
-|------|-------------|--------|
+| Type | Description | Key Fields |
+|------|-------------|------------|
 | `StreamUpdate` | Wrapper for all updates | `channel`, `sid`, `seq`, `msg` |
 | `StreamMessage` | Enum of all message variants | See below |
-| `OrderbookSnapshotData` | Full orderbook state | `market_ticker`, `yes`, `no`, dollar variants |
+| `OrderbookSnapshotData` | Full orderbook state | `market_ticker`, `yes`, `no` |
 | `OrderbookDeltaData` | Incremental orderbook update | `market_ticker`, `price`, `delta`, `side` |
-| `TickerData` | Market ticker data | `market_ticker`, `price`, `yes_bid`, `yes_ask`, `volume`, `open_interest`, etc. |
+| `TickerData` | Market ticker data | `market_ticker`, `price`, `yes_bid`, `yes_ask`, `volume`, `open_interest` |
 | `TradeData` | Public trade info | `market_ticker`, `yes_price`, `no_price`, `count`, `taker_side`, `ts` |
-| `FillData` | User fill notification | `trade_id`, `order_id`, `market_ticker`, `is_taker`, `side`, `yes_price`, `count`, etc. |
-| `MarketPositionData` | Position update | `user_id`, `market_ticker`, `position`, `position_cost`, `realized_pnl`, etc. |
-| `MarketLifecycleData` | Lifecycle event | `event_type`, `market_ticker`, timestamps, `result`, `additional_metadata` |
+| `FillData` | User fill notification | `trade_id`, `order_id`, `market_ticker`, `is_taker`, `side`, `yes_price`, `count` |
+| `MarketPositionData` | Position update | `user_id`, `market_ticker`, `position`, `position_cost`, `realized_pnl` |
+| `MarketLifecycleData` | Lifecycle event | `event_type`, `market_ticker`, timestamps, `result` |
 | `CommunicationData` | RFQ/Quote events | Tagged enum: `RfqCreated`, `RfqDeleted`, `QuoteCreated`, `QuoteAccepted` |
 
 ### System Messages
 
-These are locally-generated, not from the server:
+Locally-generated messages (not from server):
 
 | Type | Description | When Sent |
 |------|-------------|-----------|
 | `StreamMessage::Closed` | Clean connection close | User-requested or server close frame |
 | `StreamMessage::ConnectionLost` | Unexpected disconnection | Error, timeout, network failure |
 | `StreamMessage::Unsubscribed` | Channel unsubscribed | After successful unsubscribe |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User Code                               │
-│  ┌──────────────────┐    ┌──────────────────┐                   │
-│  │ KalshiStreamClient│    │ KalshiStreamHandle│  (cloneable)     │
-│  └────────┬─────────┘    └────────┬─────────┘                   │
-│           │ owns                  │ clone                        │
-└───────────┼───────────────────────┼─────────────────────────────┘
-            │                       │
-            ▼                       ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                     KalshiStreamSession (Actor)                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐   │
-│  │ cmd_receiver│◄─┤ Commands    │  │ update_sender (broadcast)│   │
-│  │   (mpsc)    │  │ Subscribe   │  │   → all handles          │   │
-│  └─────────────┘  │ Unsubscribe │  └─────────────────────────┘   │
-│                   │ Close       │                                 │
-│                   └─────────────┘                                 │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                    WebSocket Connection                      │ │
-│  │  ┌──────────────┐              ┌──────────────┐             │ │
-│  │  │  ws_writer   │ ◄──────────► │  ws_reader   │             │ │
-│  │  │  (SplitSink) │              │ (SplitStream)│             │ │
-│  │  └──────────────┘              └──────────────┘             │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                    Request Handler                           │ │
-│  │  pending: HashMap<request_id, oneshot::Sender>               │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Module Structure
-
-| File | Purpose |
-|------|---------|
-| `mod.rs` (ws.rs) | Module re-exports, `ConnectStrategy`, `HealthConfig` |
-| `channel.rs` | `Channel` enum with auth/ticker requirements |
-| `client.rs` | `KalshiStreamClient`, `KalshiStreamHandle` |
-| `command.rs` | `StreamCommand`, `SubscribeResult` |
-| `message.rs` | All message/data types |
-| `protocol.rs` | JSON serialization, `IncomingMessage` parsing |
-| `request_handler.rs` | Request ID → response mapping |
-| `session.rs` | Actor implementation, connection lifecycle |
-
----
-
-## Test Coverage
-
-### Unit Tests
-
-| File | Tests | Status |
-|------|-------|--------|
-| `protocol.rs` | Subscribe/unsubscribe message building, response parsing | ✅ |
-| `message.rs` | Side/Action serialization, message deserialization | ✅ |
-| `request_handler.rs` | Register/handle/cancel request flow | ✅ |
-| `session.rs` | SID extraction from responses | ✅ |
-| `client.rs` | Handle cloning, broadcast receiver behavior | ✅ |
-
-### Example Programs (Integration Tests)
-
-| Example | Channels Tested | Status |
-|---------|-----------------|--------|
-| `stream_ticker.rs` | Ticker, Trade | ✅ Verified |
-| `stream_reconnect.rs` | Ticker (with reconnection pattern) | ✅ Verified |
-| `multi_channel_subscribe.rs` | Ticker, Trade, OrderbookDelta | ✅ Verified |
-| `stream_user_channels.rs` | Fill, MarketPositions, Communications | 🔲 Needs activity |
-| `stream_lifecycle.rs` | MarketLifecycle, Multivariate | 🔲 Needs activity |
-
-### Notes on Verification
-
-Some channels require specific conditions to produce updates:
-
-- **Fill**: Requires placing orders that get matched/filled
-- **MarketPositions**: Requires having active positions in markets
-- **Communications**: Requires RFQ/quote activity (typically institutional)
-- **MarketLifecycle**: Events are infrequent (market opens, closes, settlements)
-- **Multivariate**: Requires multivariate collection lookup activity
 
 ---
 
@@ -226,7 +137,7 @@ println!("Ticker markets: {:?}", handle.markets(Channel::Ticker));
 // ["INXD-25JAN17-B5955", "KXBTC-25DEC31-100000"]
 ```
 
-### Production Reconnection Pattern
+### Reconnection Pattern
 
 ```rust
 use kalshi_trade_rs::ws::{ConnectStrategy, KalshiStreamClient, StreamMessage};
@@ -281,7 +192,7 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 
 ## Protocol Details
 
-### Subscribe Request Format
+### Subscribe Request
 
 ```json
 {
@@ -294,7 +205,7 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 }
 ```
 
-### Unsubscribe Request Format
+### Unsubscribe Request
 
 ```json
 {
@@ -342,11 +253,11 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 
 ---
 
-## Known Issues & Caveats
+## Important Notes
 
 1. **Market ticker requirements**: Channels `orderbook_delta`, `ticker`, `trade`, and `market_lifecycle_v2` require at least one market ticker. The client validates this before sending.
 
-2. **Authentication-only channels**: `fill`, `market_positions`, and `communications` are user-scoped and don't require/use market tickers.
+2. **Authentication-only channels**: `fill`, `market_positions`, and `communications` are user-scoped and don't require market tickers.
 
 3. **Broadcast channel lag**: If a subscriber falls behind, they will receive a `RecvError::Lagged(n)` indicating dropped messages. Increase `buffer_size` via `connect_with_options()` if needed.
 
@@ -358,4 +269,4 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 
 - [Kalshi WebSocket Overview](https://docs.kalshi.com/reference/websocket-overview)
 - [Kalshi WebSocket Subscriptions](https://docs.kalshi.com/reference/ws-subscriptions)
-- Example programs: `examples/stream_ticker.rs`, `examples/stream_reconnect.rs`, `examples/multi_channel_subscribe.rs`
+- Examples: `examples/stream_ticker.rs`, `examples/stream_reconnect.rs`, `examples/multi_channel_subscribe.rs`

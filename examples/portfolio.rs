@@ -1,12 +1,13 @@
 //! Portfolio API example
 //!
-//! Demonstrates all Portfolio API methods including balance, positions, fills, and orders.
+//! Demonstrates all Portfolio API methods including balance, positions, fills, orders,
+//! and settlements.
 //!
 //! Run with: cargo run --example portfolio
 
 use kalshi_trade_rs::{
-    GetFillsParams, GetOrdersParams, GetPositionsParams, KalshiClient, KalshiConfig, OrderStatus,
-    cents_to_dollars,
+    GetFillsParams, GetOrdersParams, GetPositionsParams, GetSettlementsParams, KalshiClient,
+    KalshiConfig, OrderStatus, cents_to_dollars,
 };
 
 #[tokio::main]
@@ -15,23 +16,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize client
     let config = KalshiConfig::from_env()?;
+
     println!("Connected to {:?} environment\n", config.environment);
 
     let client = KalshiClient::new(config)?;
 
     // 1. Get Balance
     println!("=== Balance ===");
+
     let balance = client.get_balance().await?;
+
     println!("Available: ${:.2}", cents_to_dollars(balance.balance));
+
     println!(
         "Portfolio Value: ${:.2}",
         cents_to_dollars(balance.portfolio_value)
     );
+
     println!();
 
     // 2. Get Positions
     println!("=== Positions ===");
+
     let positions = client.get_positions().await?;
+
     println!(
         "Market positions: {}, Event positions: {}",
         positions.market_positions.len(),
@@ -40,6 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for pos in positions.market_positions.iter().take(5) {
         let side = if pos.position > 0 { "YES" } else { "NO" };
+
         println!(
             "  {} {} {} | exposure: ${:.2} | realized P&L: ${:.2}",
             pos.ticker,
@@ -49,25 +58,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             cents_to_dollars(pos.realized_pnl)
         );
     }
+
     if positions.market_positions.len() > 5 {
         println!("  ... and {} more", positions.market_positions.len() - 5);
     }
+
     println!();
 
     // 3. Get Positions with params (filter example)
     println!("=== Positions (with limit) ===");
+
     let params = GetPositionsParams::new().limit(3);
     let limited_positions = client.get_positions_with_params(params).await?;
+
     println!(
         "Fetched {} positions (limited to 3)",
         limited_positions.market_positions.len()
     );
+
     println!();
 
     // 4. Get Fills
     println!("=== Recent Fills ===");
+
     let params = GetFillsParams::new().limit(5);
     let fills = client.get_fills_with_params(params).await?;
+
     println!("Recent fills: {}", fills.fills.len());
 
     for fill in &fills.fills {
@@ -85,7 +101,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 5. Get Orders
     println!("=== Orders ===");
+
     let orders = client.get_orders().await?;
+
     println!("Total orders: {}", orders.orders.len());
 
     // Count by status
@@ -104,6 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .filter(|o| o.status == OrderStatus::Canceled)
         .count();
+
     println!(
         "  Resting: {}, Executed: {}, Canceled: {}",
         resting, executed, canceled
@@ -112,6 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Show resting orders
     if resting > 0 {
         println!("\nResting orders:");
+
         let params = GetOrdersParams::new().status(OrderStatus::Resting).limit(5);
         let resting_orders = client.get_orders_with_params(params).await?;
 
@@ -129,6 +149,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    println!();
+
+    // 6. Get Settlements
+    println!("=== Settlements ===");
+
+    let params = GetSettlementsParams::new().limit(10);
+    let settlements = client.get_settlements_with_params(params).await?;
+
+    println!("Recent settlements: {}", settlements.settlements.len());
+
+    for settlement in settlements.settlements.iter().take(5) {
+        let ticker = &settlement.ticker;
+        let pnl = settlement.revenue;
+        let result = format!("{:?}", settlement.market_result);
+
+        println!(
+            "  {} | result: {} | P&L: ${:.2}",
+            ticker,
+            result,
+            cents_to_dollars(pnl)
+        );
+    }
+
+    if settlements.settlements.len() > 5 {
+        println!("  ... and {} more", settlements.settlements.len() - 5);
+    }
+
+    if settlements.settlements.is_empty() {
+        println!("  (No settlements yet - markets must settle first)");
+    }
+
     println!("\n=== Done ===");
+
     Ok(())
 }
