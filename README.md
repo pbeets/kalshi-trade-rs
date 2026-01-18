@@ -1,7 +1,7 @@
 # Rust Kalshi Trading API Client
 
 [![Crates.io](https://img.shields.io/crates/v/kalshi-trade-rs.svg)](https://crates.io/crates/kalshi-trade-rs)
-[![Documentation](https://docs.rs/kalshi-trade-rs/badge.svg)](https://docs.rs/kalshi-trade-rs)
+[![docs.rs](https://img.shields.io/docsrs/kalshi-trade-rs)](https://docs.rs/kalshi-trade-rs)
 [![CI](https://github.com/pbeets/kalshi-trade-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/pbeets/kalshi-trade-rs/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
