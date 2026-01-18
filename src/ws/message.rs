@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::DisconnectReason;
+use crate::ws::Channel;
 // Re-export common types from models to avoid duplication
 pub use crate::models::{Action, Side};
 
@@ -72,10 +73,16 @@ pub enum StreamMessage {
     /// This is a local event, not received from the server.
     /// Indicates an unexpected disconnection (error, timeout, network failure).
     /// You should reconnect with backoff when receiving this.
+    ///
+    /// The `subscriptions` field contains the channels and markets that were
+    /// subscribed at the time of disconnection, useful for resubscribing after
+    /// reconnection.
     #[serde(skip)]
     ConnectionLost {
         /// The reason for the connection loss.
         reason: DisconnectReason,
+        /// Subscriptions that were active at disconnection: (channel, markets).
+        subscriptions: Vec<(Channel, Vec<String>)>,
     },
     /// Channel was unsubscribed.
     ///

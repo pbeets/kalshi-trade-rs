@@ -15,7 +15,7 @@ use super::{
     channel::Channel,
     command::{StreamCommand, SubscribeResult, UnsubscribeResult, UpdateAction},
     message::StreamUpdate,
-    session::KalshiStreamSession,
+    session::{KalshiStreamSession, SharedSubscriptions, SubscriptionState},
 };
 
 use crate::{
@@ -28,18 +28,6 @@ const DEFAULT_BUFFER_SIZE: usize = 1024;
 
 /// Timeout for session to signal readiness after spawning.
 const SESSION_READY_TIMEOUT: Duration = Duration::from_secs(5);
-
-/// State of a single channel subscription.
-#[derive(Debug, Clone)]
-struct SubscriptionState {
-    /// Server-assigned subscription ID.
-    sid: i64,
-    /// Markets currently subscribed to for this channel.
-    markets: HashSet<String>,
-}
-
-/// Shared subscription state across all handles.
-type SharedSubscriptions = Arc<RwLock<HashMap<Channel, SubscriptionState>>>;
 
 /// Owner of the WebSocket connection and session task.
 ///
@@ -160,12 +148,14 @@ impl KalshiStreamClient {
         let (cmd_sender, cmd_receiver) = mpsc::channel(32);
         let (update_sender, _) = broadcast::channel(buffer_size);
         let (ready_tx, ready_rx) = oneshot::channel();
+        let subscriptions: SharedSubscriptions = Arc::new(RwLock::new(HashMap::new()));
 
-        let session = KalshiStreamSession::connect_with_ready(
+        let session = KalshiStreamSession::connect(
             config,
             strategy,
             cmd_receiver,
             update_sender.clone(),
+            subscriptions.clone(),
             ready_tx,
         )
         .await?;
@@ -191,7 +181,7 @@ impl KalshiStreamClient {
             session_handle,
             cmd_sender,
             update_sender,
-            subscriptions: Arc::new(RwLock::new(HashMap::new())),
+            subscriptions,
         })
     }
 
@@ -253,7 +243,7 @@ impl KalshiStreamClient {
 ///                 println!("Connection closed: {}", reason);
 ///                 break;
 ///             }
-///             StreamMessage::ConnectionLost { reason } => {
+///             StreamMessage::ConnectionLost { reason, .. } => {
 ///                 eprintln!("Connection lost: {}", reason);
 ///                 break;
 ///             }

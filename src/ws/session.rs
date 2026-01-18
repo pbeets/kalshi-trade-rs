@@ -7,7 +7,8 @@
 use tracing::{debug, error, info, warn};
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
+    sync::{Arc, RwLock},
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -44,6 +45,18 @@ use crate::{
 
 /// WebSocket stream type alias for clarity.
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
+/// State of a single channel subscription.
+#[derive(Debug, Clone)]
+pub struct SubscriptionState {
+    /// Server-assigned subscription ID.
+    pub sid: i64,
+    /// Markets currently subscribed to for this channel.
+    pub markets: HashSet<String>,
+}
+
+/// Shared subscription state across all handles.
+pub type SharedSubscriptions = Arc<RwLock<HashMap<Channel, SubscriptionState>>>;
 
 /// Collects multiple responses for a single multi-channel subscribe request.
 ///
@@ -189,6 +202,9 @@ pub struct KalshiStreamSession {
     ready_sender: Option<oneshot::Sender<()>>,
     /// Sender for broadcasting updates to subscribers.
     update_sender: broadcast::Sender<StreamUpdate>,
+    /// Shared subscription state with client handles.
+    /// Used to capture and clear subscriptions on disconnect.
+    subscriptions: SharedSubscriptions,
     /// WebSocket reader half.
     ws_reader: SplitStream<WsStream>,
     /// WebSocket writer half.
@@ -196,59 +212,7 @@ pub struct KalshiStreamSession {
 }
 
 impl KalshiStreamSession {
-    /// Connect to the Kalshi WebSocket API with the specified strategy.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - The Kalshi configuration with API credentials.
-    /// * `strategy` - Connection strategy (Simple or Retry).
-    /// * `cmd_receiver` - Receiver for commands from client handles.
-    /// * `update_sender` - Sender for broadcasting updates to subscribers.
-    pub async fn connect(
-        config: &KalshiConfig,
-        strategy: ConnectStrategy,
-        cmd_receiver: mpsc::Receiver<StreamCommand>,
-        update_sender: broadcast::Sender<StreamUpdate>,
-    ) -> Result<Self> {
-        Self::connect_full(
-            config,
-            strategy,
-            HealthConfig::default(),
-            cmd_receiver,
-            update_sender,
-            None,
-        )
-        .await
-    }
-
-    /// Connect with custom health monitoring configuration.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - The Kalshi configuration with API credentials.
-    /// * `strategy` - Connection strategy (Simple or Retry).
-    /// * `health_config` - Health monitoring configuration.
-    /// * `cmd_receiver` - Receiver for commands from client handles.
-    /// * `update_sender` - Sender for broadcasting updates to subscribers.
-    pub async fn connect_with_health(
-        config: &KalshiConfig,
-        strategy: ConnectStrategy,
-        health_config: HealthConfig,
-        cmd_receiver: mpsc::Receiver<StreamCommand>,
-        update_sender: broadcast::Sender<StreamUpdate>,
-    ) -> Result<Self> {
-        Self::connect_full(
-            config,
-            strategy,
-            health_config,
-            cmd_receiver,
-            update_sender,
-            None,
-        )
-        .await
-    }
-
-    /// Connect with a ready signal sender.
+    /// Connect to the Kalshi WebSocket API.
     ///
     /// The `ready_sender` will be notified when the session enters its main loop,
     /// allowing the caller to confirm the session is running before returning.
@@ -259,12 +223,14 @@ impl KalshiStreamSession {
     /// * `strategy` - Connection strategy (Simple or Retry).
     /// * `cmd_receiver` - Receiver for commands from client handles.
     /// * `update_sender` - Sender for broadcasting updates to subscribers.
+    /// * `subscriptions` - Shared subscription state with client handles.
     /// * `ready_sender` - One-shot sender to signal session readiness.
-    pub async fn connect_with_ready(
+    pub async fn connect(
         config: &KalshiConfig,
         strategy: ConnectStrategy,
         cmd_receiver: mpsc::Receiver<StreamCommand>,
         update_sender: broadcast::Sender<StreamUpdate>,
+        subscriptions: SharedSubscriptions,
         ready_sender: oneshot::Sender<()>,
     ) -> Result<Self> {
         Self::connect_full(
@@ -273,6 +239,7 @@ impl KalshiStreamSession {
             HealthConfig::default(),
             cmd_receiver,
             update_sender,
+            subscriptions,
             Some(ready_sender),
         )
         .await
@@ -285,6 +252,7 @@ impl KalshiStreamSession {
         health_config: HealthConfig,
         cmd_receiver: mpsc::Receiver<StreamCommand>,
         update_sender: broadcast::Sender<StreamUpdate>,
+        subscriptions: SharedSubscriptions,
         ready_sender: Option<oneshot::Sender<()>>,
     ) -> Result<Self> {
         let ws_url = config.environment.ws_url();
@@ -304,6 +272,7 @@ impl KalshiStreamSession {
             pending_updates: HashMap::new(),
             ping_pending: false,
             ready_sender,
+            subscriptions,
             update_sender,
             ws_reader,
             ws_writer,
@@ -416,7 +385,9 @@ impl KalshiStreamSession {
         let ping_start = Instant::now() + self.health_config.ping_interval;
         let mut ping_interval = interval_at(ping_start.into(), self.health_config.ping_interval);
 
-        let disconnect_msg: Option<StreamMessage>;
+        // Track disconnect reason and whether it's a clean close
+        // (reason, is_clean_close)
+        let disconnect_info: Option<(DisconnectReason, bool)>;
 
         loop {
             tokio::select! {
@@ -424,9 +395,7 @@ impl KalshiStreamSession {
                 Some(command) = self.cmd_receiver.recv() => {
                     if self.handle_command(command).await {
                         info!("KalshiStreamSession received close command, shutting down");
-                        disconnect_msg = Some(StreamMessage::Closed {
-                            reason: DisconnectReason::ClientClosed,
-                        });
+                        disconnect_info = Some((DisconnectReason::ClientClosed, true));
                         break;
                     }
                 }
@@ -437,14 +406,12 @@ impl KalshiStreamSession {
                         Ok(false) => {} // Continue
                         Ok(true) => {
                             // Clean close from server
-                            disconnect_msg = Some(StreamMessage::Closed {
-                                reason: DisconnectReason::ServerClosed,
-                            });
+                            disconnect_info = Some((DisconnectReason::ServerClosed, true));
                             break;
                         }
                         Err(reason) => {
                             // Error close
-                            disconnect_msg = Some(StreamMessage::ConnectionLost { reason });
+                            disconnect_info = Some((reason, false));
                             break;
                         }
                     }
@@ -457,9 +424,7 @@ impl KalshiStreamSession {
                         let elapsed = self.last_pong.elapsed();
                         if elapsed > self.health_config.ping_timeout {
                             error!("Ping timeout: no pong received in {:?}", elapsed);
-                            disconnect_msg = Some(StreamMessage::ConnectionLost {
-                                reason: DisconnectReason::PingTimeout,
-                            });
+                            disconnect_info = Some((DisconnectReason::PingTimeout, false));
                             break;
                         }
                     } else {
@@ -467,9 +432,7 @@ impl KalshiStreamSession {
                         let ping_data = b"health".to_vec();
                         if let Err(e) = self.ws_writer.send(Message::Ping(ping_data.into())).await {
                             error!("Failed to send ping: {}", e);
-                            disconnect_msg = Some(StreamMessage::ConnectionLost {
-                                reason: DisconnectReason::HealthCheckFailed(format!("send ping: {}", e)),
-                            });
+                            disconnect_info = Some((DisconnectReason::HealthCheckFailed(format!("send ping: {}", e)), false));
                             break;
                         }
                         self.last_activity = Instant::now();
@@ -485,9 +448,7 @@ impl KalshiStreamSession {
                     let elapsed = self.last_activity.elapsed();
                     if elapsed > self.health_config.server_ping_timeout {
                         error!("Activity timeout: no messages sent or received in {:?}", elapsed);
-                        disconnect_msg = Some(StreamMessage::ConnectionLost {
-                            reason: DisconnectReason::ServerHeartbeatTimeout,
-                        });
+                        disconnect_info = Some((DisconnectReason::ServerHeartbeatTimeout, false));
                         break;
                     }
                 }
@@ -495,22 +456,38 @@ impl KalshiStreamSession {
                 // All channels closed
                 else => {
                     info!("KalshiStreamSession all channels closed, shutting down");
-                    disconnect_msg = Some(StreamMessage::Closed {
-                        reason: DisconnectReason::AllChannelsClosed,
-                    });
+                    disconnect_info = Some((DisconnectReason::AllChannelsClosed, true));
                     break;
                 }
             }
         }
 
+        // Capture and clear subscriptions before broadcasting disconnect
+        let lost_subscriptions: Vec<(Channel, Vec<String>)> = {
+            let mut subs = self
+                .subscriptions
+                .write()
+                .expect("subscription lock poisoned");
+
+            let captured: Vec<(Channel, Vec<String>)> = subs
+                .drain()
+                .map(|(channel, state)| (channel, state.markets.into_iter().collect()))
+                .collect();
+
+            captured
+        };
+
         // Broadcast disconnection event
-        if let Some(msg) = disconnect_msg {
-            let is_clean = matches!(msg, StreamMessage::Closed { .. });
-            let reason = match &msg {
-                StreamMessage::Closed { reason } | StreamMessage::ConnectionLost { reason } => {
-                    reason.to_string()
+        if let Some((reason, is_clean)) = disconnect_info {
+            let msg = if is_clean {
+                StreamMessage::Closed {
+                    reason: reason.clone(),
                 }
-                _ => "Unknown".to_owned(),
+            } else {
+                StreamMessage::ConnectionLost {
+                    reason: reason.clone(),
+                    subscriptions: lost_subscriptions,
+                }
             };
 
             let disconnect_update = StreamUpdate {

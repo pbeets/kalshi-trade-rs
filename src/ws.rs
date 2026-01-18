@@ -29,7 +29,7 @@
 //!         StreamMessage::Ticker(data) => {
 //!             println!("{}: {}¢", data.market_ticker, data.price);
 //!         }
-//!         StreamMessage::ConnectionLost { reason } => {
+//!         StreamMessage::ConnectionLost { reason, .. } => {
 //!             eprintln!("Connection lost: {}", reason);
 //!             break; // Handle reconnection (see below)
 //!         }
@@ -99,7 +99,7 @@
 //!                 StreamMessage::Ticker(data) => {
 //!                     println!("{}: {}¢", data.market_ticker, data.price);
 //!                 }
-//!                 StreamMessage::ConnectionLost { reason } => {
+//!                 StreamMessage::ConnectionLost { reason, .. } => {
 //!                     eprintln!("Connection lost: {}", reason);
 //!                     break; // Exit inner loop to reconnect
 //!                 }

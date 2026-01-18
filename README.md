@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 StreamMessage::Trade(t) => {
                     println!("[TRADE] {} {} @ {}¢", t.market_ticker, t.count, t.yes_price);
                 }
-                StreamMessage::ConnectionLost { reason } => {
+                StreamMessage::ConnectionLost { reason, .. } => {
                     println!("Connection lost: {}", reason);
                     break;
                 }

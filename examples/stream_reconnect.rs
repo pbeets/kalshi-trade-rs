@@ -58,8 +58,12 @@ async fn run_stream(config: &KalshiConfig) -> Result<String, Box<dyn std::error:
     loop {
         match handle.update_receiver.recv().await {
             Ok(update) => match &update.msg {
-                StreamMessage::Closed { reason } => return Ok(reason.clone()),
-                StreamMessage::ConnectionLost { reason } => {
+                StreamMessage::Closed { reason } => return Ok(reason.to_string()),
+                StreamMessage::ConnectionLost { reason, subscriptions } => {
+                    eprintln!("Connection lost: {reason}");
+                    if !subscriptions.is_empty() {
+                        eprintln!("Lost subscriptions: {subscriptions:?}");
+                    }
                     return Err(format!("Connection lost: {reason}").into());
                 }
                 StreamMessage::Fill(f) => {

@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("[CLOSED] {}", reason);
                     break;
                 }
-                StreamMessage::ConnectionLost { reason } => {
+                StreamMessage::ConnectionLost { reason, .. } => {
                     println!("[CONNECTION LOST] {}", reason);
                     break;
                 }

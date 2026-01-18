@@ -139,6 +139,9 @@ println!("Ticker markets: {:?}", handle.markets(Channel::Ticker));
 
 ### Reconnection Pattern
 
+When a connection is lost unexpectedly, `ConnectionLost` includes the subscriptions
+that were active at the time of disconnection. Use this to resubscribe after reconnecting:
+
 ```rust
 use kalshi_trade_rs::ws::{ConnectStrategy, KalshiStreamClient, StreamMessage};
 
@@ -152,8 +155,23 @@ let mut handle = client.handle();
 loop {
     match handle.update_receiver.recv().await {
         Ok(update) => match &update.msg {
-            StreamMessage::ConnectionLost { reason } => {
-                // Reconnect logic here
+            StreamMessage::ConnectionLost { reason, subscriptions } => {
+                eprintln!("Connection lost: {reason}");
+                // subscriptions: Vec<(Channel, Vec<String>)>
+                // Contains channels and their markets that were subscribed
+                // before disconnect. Use this to resubscribe after reconnecting:
+                //
+                // let new_client = KalshiStreamClient::connect(&config).await?;
+                // let mut new_handle = new_client.handle();
+                // for (channel, markets) in subscriptions {
+                //     let market_refs: Vec<&str> = markets.iter().map(|s| s.as_str()).collect();
+                //     new_handle.subscribe(channel, &market_refs).await?;
+                // }
+                break;
+            }
+            StreamMessage::Closed { reason } => {
+                // Clean close (client-initiated or server close frame)
+                println!("Connection closed: {reason}");
                 break;
             }
             _ => { /* process update */ }
