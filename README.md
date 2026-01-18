@@ -2,8 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/kalshi-trade-rs.svg)](https://crates.io/crates/kalshi-trade-rs)
 [![Documentation](https://docs.rs/kalshi-trade-rs/badge.svg)](https://docs.rs/kalshi-trade-rs)
-[![CI](https://github.com/pbeets/kalshi-trade-rs/workflows/CI/badge.svg)](https://github.com/pbeets/kalshi-trade-rs/actions)
-[![License](https://img.shields.io/crates/l/kalshi-trade-rs.svg)](https://github.com/pbeets/kalshi-trade-rs#license)
+[![CI](https://github.com/pbeets/kalshi-trade-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/pbeets/kalshi-trade-rs/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An unofficial Rust client library for the [Kalshi](https://kalshi.com) prediction market, implementing the [Kalshi Trading API v2](https://trading-api.readme.io/reference).
 
