@@ -49,7 +49,7 @@ pub mod ws;
 // Re-export commonly used types at the crate root
 pub use auth::KalshiConfig;
 pub use client::{Environment, HttpClient, KalshiClient};
-pub use error::{Error, MAX_BATCH_SIZE, Result};
+pub use error::{DisconnectReason, Error, MAX_BATCH_SIZE, Result};
 pub use models::{
     AcceptQuoteRequest, Action, AmendOrderRequest, AmendOrderResponse, Announcement,
     AnnouncementStatus, AnnouncementType, ApiKey, ApiKeysResponse, BalanceResponse,

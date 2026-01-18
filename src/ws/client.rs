@@ -2,10 +2,12 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 use tokio::{
     sync::{broadcast, mpsc, oneshot},
     task::JoinHandle,
+    time::timeout,
 };
 
 use super::{
@@ -18,11 +20,14 @@ use super::{
 
 use crate::{
     auth::KalshiConfig,
-    error::{Error, Result},
+    error::{DisconnectReason, Error, Result},
 };
 
 /// Default buffer size for the broadcast channel.
 const DEFAULT_BUFFER_SIZE: usize = 1024;
+
+/// Timeout for session to signal readiness after spawning.
+const SESSION_READY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// State of a single channel subscription.
 #[derive(Debug, Clone)]
@@ -36,10 +41,10 @@ struct SubscriptionState {
 /// Shared subscription state across all handles.
 type SharedSubscriptions = Arc<RwLock<HashMap<Channel, SubscriptionState>>>;
 
-/// Owner of the WebSocket connection and actor task.
+/// Owner of the WebSocket connection and session task.
 ///
 /// This struct owns the WebSocket connection lifetime. When dropped, it will
-/// shut down the actor task. Use [`handle()`](Self::handle) to get a cloneable
+/// shut down the session task. Use [`handle()`](Self::handle) to get a cloneable
 /// handle for interacting with the stream.
 ///
 /// # Example
@@ -76,7 +81,7 @@ type SharedSubscriptions = Arc<RwLock<HashMap<Channel, SubscriptionState>>>;
 /// # }
 /// ```
 pub struct KalshiStreamClient {
-    actor_handle: JoinHandle<()>,
+    session_handle: JoinHandle<()>,
     cmd_sender: mpsc::Sender<StreamCommand>,
     update_sender: broadcast::Sender<StreamUpdate>,
     subscriptions: SharedSubscriptions,
@@ -85,7 +90,7 @@ pub struct KalshiStreamClient {
 impl KalshiStreamClient {
     /// Connect to Kalshi's WebSocket API with the default (Simple) strategy.
     ///
-    /// This establishes a WebSocket connection and starts the background actor
+    /// This establishes a WebSocket connection and starts the background session
     /// that manages the connection. Uses `ConnectStrategy::Simple` which fails
     /// fast on connection errors.
     ///
@@ -144,7 +149,9 @@ impl KalshiStreamClient {
     ///
     /// # Errors
     ///
-    /// Returns an error if the WebSocket connection cannot be established.
+    /// Returns an error if:
+    /// - The WebSocket connection cannot be established
+    /// - The session fails to start within the timeout period
     pub async fn connect_with_options(
         config: &KalshiConfig,
         strategy: ConnectStrategy,
@@ -152,14 +159,36 @@ impl KalshiStreamClient {
     ) -> Result<Self> {
         let (cmd_sender, cmd_receiver) = mpsc::channel(32);
         let (update_sender, _) = broadcast::channel(buffer_size);
+        let (ready_tx, ready_rx) = oneshot::channel();
 
-        let actor =
-            KalshiStreamSession::connect(config, strategy, cmd_receiver, update_sender.clone())
-                .await?;
-        let actor_handle = tokio::spawn(actor.run());
+        let session = KalshiStreamSession::connect_with_ready(
+            config,
+            strategy,
+            cmd_receiver,
+            update_sender.clone(),
+            ready_tx,
+        )
+        .await?;
+
+        let session_handle = tokio::spawn(session.run());
+
+        // Wait for the session to signal it's ready (with timeout)
+        match timeout(SESSION_READY_TIMEOUT, ready_rx).await {
+            Ok(Ok(())) => {
+                // Session is ready
+            }
+            Ok(Err(_)) => {
+                // ready_tx was dropped without sending - session died before signaling ready
+                return Err(Error::Disconnected(DisconnectReason::SessionStartupFailed));
+            }
+            Err(_) => {
+                // Timeout waiting for ready signal
+                return Err(Error::Disconnected(DisconnectReason::SessionStartupTimeout));
+            }
+        }
 
         Ok(Self {
-            actor_handle,
+            session_handle,
             cmd_sender,
             update_sender,
             subscriptions: Arc::new(RwLock::new(HashMap::new())),
@@ -180,17 +209,17 @@ impl KalshiStreamClient {
         }
     }
 
-    /// Shut down the connection and wait for the actor to exit.
+    /// Shut down the connection and wait for the session to exit.
     ///
-    /// This sends a close command to the actor and waits for it to
+    /// This sends a close command to the session and waits for it to
     /// complete its shutdown sequence.
     ///
     /// # Errors
     ///
-    /// Returns an error if the actor task panicked.
+    /// Returns an error if the session task panicked.
     pub async fn shutdown(self) -> Result<()> {
         let _ = self.cmd_sender.send(StreamCommand::Close).await;
-        self.actor_handle
+        self.session_handle
             .await
             .map_err(|e| Error::Api(e.to_string()))
     }
@@ -258,6 +287,21 @@ impl Clone for KalshiStreamHandle {
 }
 
 impl KalshiStreamHandle {
+    /// Check if the connection appears to be alive.
+    ///
+    /// This checks whether the command channel to the session is still open.
+    /// Note that this is a heuristic - the connection could die immediately
+    /// after this returns `true`. Use for diagnostics and logging, not for
+    /// control flow decisions.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the command channel is still open (session may be alive),
+    /// `false` if the channel is closed (session has definitely shut down).
+    pub fn is_alive(&self) -> bool {
+        !self.cmd_sender.is_closed()
+    }
+
     /// Subscribe to a channel for specific markets.
     ///
     /// If already subscribed to this channel, automatically adds the new markets
@@ -272,7 +316,7 @@ impl KalshiStreamHandle {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - The command channel is closed (actor has shut down)
+    /// - The command channel is closed (session has shut down)
     /// - The server rejects the subscription request
     /// - Markets are required but not provided
     ///
@@ -396,7 +440,7 @@ impl KalshiStreamHandle {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - The command channel is closed (actor has shut down)
+    /// - The command channel is closed (session has shut down)
     /// - Not currently subscribed to this channel
     /// - The server rejects the request
     ///
@@ -484,7 +528,7 @@ impl KalshiStreamHandle {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - The command channel is closed (actor has shut down)
+    /// - The command channel is closed (session has shut down)
     /// - Not currently subscribed to this channel
     ///
     /// # Example
@@ -570,7 +614,7 @@ impl KalshiStreamHandle {
 
     /// Request graceful close of the connection.
     ///
-    /// This sends a close command to the actor but does not wait for
+    /// This sends a close command to the session but does not wait for
     /// the connection to fully close. For a blocking shutdown, use
     /// [`KalshiStreamClient::shutdown`] instead.
     pub async fn close(&self) {
@@ -601,10 +645,10 @@ impl KalshiStreamHandle {
         self.cmd_sender
             .send(cmd)
             .await
-            .map_err(|_| Error::Api("Actor channel closed".to_string()))?;
+            .map_err(|_| Error::Disconnected(DisconnectReason::SessionDied))?;
 
         rx.await
-            .map_err(|_| Error::Api("Response channel closed".to_string()))?
+            .map_err(|_| Error::Disconnected(DisconnectReason::SessionDied))?
             .map_err(Error::Api)
     }
 
@@ -620,10 +664,10 @@ impl KalshiStreamHandle {
         self.cmd_sender
             .send(cmd)
             .await
-            .map_err(|_| Error::Api("Actor channel closed".to_string()))?;
+            .map_err(|_| Error::Disconnected(DisconnectReason::SessionDied))?;
 
         rx.await
-            .map_err(|_| Error::Api("Response channel closed".to_string()))?
+            .map_err(|_| Error::Disconnected(DisconnectReason::SessionDied))?
             .map_err(Error::Api)
     }
 
@@ -648,10 +692,10 @@ impl KalshiStreamHandle {
         self.cmd_sender
             .send(cmd)
             .await
-            .map_err(|_| Error::Api("Actor channel closed".to_string()))?;
+            .map_err(|_| Error::Disconnected(DisconnectReason::SessionDied))?;
 
         rx.await
-            .map_err(|_| Error::Api("Response channel closed".to_string()))?
+            .map_err(|_| Error::Disconnected(DisconnectReason::SessionDied))?
             .map_err(Error::Api)
     }
 }

@@ -54,6 +54,7 @@
 //! For WebSocket connections, errors are delivered via [`crate::ws::StreamMessage::ConnectionLost`]
 //! on the update receiver. See the [`ws`](crate::ws) module for reconnection patterns.
 
+use std::fmt;
 use thiserror::Error;
 
 /// Maximum orders per batch request.
@@ -68,6 +69,60 @@ pub const MAX_EVENT_TICKERS: usize = 10;
 /// Maximum percentiles in forecast history request.
 pub const MAX_FORECAST_PERCENTILES: usize = 10;
 
+/// Reason why a WebSocket connection was lost or couldn't be established.
+///
+/// This enum provides detailed information about disconnection causes,
+/// allowing clients to handle different scenarios appropriately (e.g.,
+/// retry on transient errors, alert on auth failures).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DisconnectReason {
+    // === Connection Establishment Failures ===
+    /// Session failed to start (crashed before signaling ready).
+    SessionStartupFailed,
+    /// Session didn't signal ready within the timeout period.
+    SessionStartupTimeout,
+
+    // === Clean Shutdowns (expected) ===
+    /// Client requested close via shutdown().
+    ClientClosed,
+    /// Server sent a WebSocket close frame.
+    ServerClosed,
+    /// All subscription channels were closed.
+    AllChannelsClosed,
+
+    // === Connection Lost (unexpected) ===
+    /// Session's command channel closed (session died unexpectedly).
+    SessionDied,
+    /// No response to our ping within the configured timeout.
+    PingTimeout,
+    /// No heartbeat received from Kalshi server within timeout.
+    ServerHeartbeatTimeout,
+    /// Failed to send health check message (ping or pong).
+    HealthCheckFailed(String),
+    /// WebSocket I/O error during operation.
+    IoError(String),
+    /// WebSocket protocol error.
+    ProtocolError(String),
+}
+
+impl fmt::Display for DisconnectReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SessionStartupFailed => write!(f, "session failed to start"),
+            Self::SessionStartupTimeout => write!(f, "session startup timeout"),
+            Self::ClientClosed => write!(f, "client requested close"),
+            Self::ServerClosed => write!(f, "server closed connection"),
+            Self::AllChannelsClosed => write!(f, "all channels closed"),
+            Self::SessionDied => write!(f, "session died unexpectedly"),
+            Self::PingTimeout => write!(f, "ping timeout"),
+            Self::ServerHeartbeatTimeout => write!(f, "server heartbeat timeout"),
+            Self::HealthCheckFailed(msg) => write!(f, "health check failed: {}", msg),
+            Self::IoError(msg) => write!(f, "I/O error: {}", msg),
+            Self::ProtocolError(msg) => write!(f, "protocol error: {}", msg),
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("HTTP error: {0}")]
@@ -75,6 +130,9 @@ pub enum Error {
 
     #[error("WebSocket error: {0}")]
     WebSocket(Box<tokio_tungstenite::tungstenite::Error>),
+
+    #[error("WebSocket disconnected: {0}")]
+    Disconnected(DisconnectReason),
 
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),

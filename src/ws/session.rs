@@ -1,7 +1,7 @@
-//! WebSocket stream actor for the Kalshi API.
+//! WebSocket stream session for the Kalshi API.
 //!
-//! This module implements the actor pattern for managing the WebSocket connection
-//! to Kalshi's streaming API. The actor owns the WebSocket connection and handles
+//! This module implements a session that manages the WebSocket connection
+//! to Kalshi's streaming API. The session owns the WebSocket connection and handles
 //! all communication in a single async task.
 
 use tracing::{debug, error, info, warn};
@@ -39,7 +39,7 @@ use super::{
 
 use crate::{
     auth::KalshiConfig,
-    error::{Error, Result},
+    error::{DisconnectReason, Error, Result},
 };
 
 /// WebSocket stream type alias for clarity.
@@ -155,9 +155,9 @@ impl UnsubscribeCollector {
     }
 }
 
-/// The WebSocket stream actor that manages the connection lifecycle.
+/// The WebSocket stream session that manages the connection lifecycle.
 ///
-/// The actor owns the WebSocket connection (split into reader and writer),
+/// The session owns the WebSocket connection (split into reader and writer),
 /// processes commands from clients, and broadcasts updates to subscribers.
 pub struct KalshiStreamSession {
     /// Configuration for authentication.
@@ -165,12 +165,16 @@ pub struct KalshiStreamSession {
     config: KalshiConfig,
     /// Receiver for commands from client handles.
     cmd_receiver: mpsc::Receiver<StreamCommand>,
-    /// Sender for broadcasting updates to subscribers.
-    update_sender: broadcast::Sender<StreamUpdate>,
-    /// WebSocket reader half.
-    ws_reader: SplitStream<WsStream>,
-    /// WebSocket writer half.
-    ws_writer: SplitSink<WsStream, Message>,
+    /// Health monitoring configuration.
+    health_config: HealthConfig,
+    /// Last time we received a pong response to our ping.
+    last_pong: Instant,
+    /// Last time we had any activity (sent or received a message).
+    /// Used to detect stale connections when Kalshi stops sending heartbeats
+    /// during periods of activity (Kalshi only sends pings on idle connections).
+    last_activity: Instant,
+    /// Next request ID to use for outgoing messages.
+    next_request_id: u64,
     /// Pending multi-channel subscribe requests awaiting multiple responses.
     pending_subscriptions: HashMap<u64, SubscribeCollector>,
     /// Pending multi-SID unsubscribe requests awaiting multiple responses.
@@ -178,17 +182,17 @@ pub struct KalshiStreamSession {
     /// Pending update_subscription requests awaiting single response.
     /// Returns the updated list of markets for the subscription.
     pending_updates: HashMap<u64, oneshot::Sender<std::result::Result<Vec<String>, String>>>,
-    /// Next request ID to use for outgoing messages.
-    next_request_id: u64,
-    /// Health monitoring configuration.
-    health_config: HealthConfig,
-    /// Last time we received a pong response to our ping.
-    last_pong: Instant,
     /// Whether we're waiting for a pong response.
     ping_pending: bool,
-    /// Last time we received a ping from Kalshi server.
-    /// `None` until the first ping is received (grace period at startup).
-    last_server_ping: Option<Instant>,
+    /// One-shot sender to signal that the session is ready.
+    /// Sent when the session enters its main loop.
+    ready_sender: Option<oneshot::Sender<()>>,
+    /// Sender for broadcasting updates to subscribers.
+    update_sender: broadcast::Sender<StreamUpdate>,
+    /// WebSocket reader half.
+    ws_reader: SplitStream<WsStream>,
+    /// WebSocket writer half.
+    ws_writer: SplitSink<WsStream, Message>,
 }
 
 impl KalshiStreamSession {
@@ -206,12 +210,13 @@ impl KalshiStreamSession {
         cmd_receiver: mpsc::Receiver<StreamCommand>,
         update_sender: broadcast::Sender<StreamUpdate>,
     ) -> Result<Self> {
-        Self::connect_with_health(
+        Self::connect_full(
             config,
             strategy,
             HealthConfig::default(),
             cmd_receiver,
             update_sender,
+            None,
         )
         .await
     }
@@ -232,6 +237,56 @@ impl KalshiStreamSession {
         cmd_receiver: mpsc::Receiver<StreamCommand>,
         update_sender: broadcast::Sender<StreamUpdate>,
     ) -> Result<Self> {
+        Self::connect_full(
+            config,
+            strategy,
+            health_config,
+            cmd_receiver,
+            update_sender,
+            None,
+        )
+        .await
+    }
+
+    /// Connect with a ready signal sender.
+    ///
+    /// The `ready_sender` will be notified when the session enters its main loop,
+    /// allowing the caller to confirm the session is running before returning.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The Kalshi configuration with API credentials.
+    /// * `strategy` - Connection strategy (Simple or Retry).
+    /// * `cmd_receiver` - Receiver for commands from client handles.
+    /// * `update_sender` - Sender for broadcasting updates to subscribers.
+    /// * `ready_sender` - One-shot sender to signal session readiness.
+    pub async fn connect_with_ready(
+        config: &KalshiConfig,
+        strategy: ConnectStrategy,
+        cmd_receiver: mpsc::Receiver<StreamCommand>,
+        update_sender: broadcast::Sender<StreamUpdate>,
+        ready_sender: oneshot::Sender<()>,
+    ) -> Result<Self> {
+        Self::connect_full(
+            config,
+            strategy,
+            HealthConfig::default(),
+            cmd_receiver,
+            update_sender,
+            Some(ready_sender),
+        )
+        .await
+    }
+
+    /// Full connect with all options.
+    async fn connect_full(
+        config: &KalshiConfig,
+        strategy: ConnectStrategy,
+        health_config: HealthConfig,
+        cmd_receiver: mpsc::Receiver<StreamCommand>,
+        update_sender: broadcast::Sender<StreamUpdate>,
+        ready_sender: Option<oneshot::Sender<()>>,
+    ) -> Result<Self> {
         let ws_url = config.environment.ws_url();
         let ws_stream = Self::connect_with_strategy(config, ws_url, strategy).await?;
 
@@ -240,17 +295,18 @@ impl KalshiStreamSession {
         Ok(Self {
             config: config.clone(),
             cmd_receiver,
-            update_sender,
-            ws_reader,
-            ws_writer,
+            health_config,
+            last_pong: Instant::now(),
+            last_activity: Instant::now(), // Connection establishment is activity
+            next_request_id: 1,
             pending_subscriptions: HashMap::new(),
             pending_unsubscriptions: HashMap::new(),
             pending_updates: HashMap::new(),
-            next_request_id: 1,
-            health_config,
-            last_pong: Instant::now(),
             ping_pending: false,
-            last_server_ping: None, // Grace period until first ping received
+            ready_sender,
+            update_sender,
+            ws_reader,
+            ws_writer,
         })
     }
 
@@ -337,7 +393,7 @@ impl KalshiStreamSession {
         Ok(ws_stream)
     }
 
-    /// Run the actor's main event loop.
+    /// Run the session's main event loop.
     ///
     /// This method processes:
     /// 1. Commands from client handles via `cmd_receiver`
@@ -350,6 +406,11 @@ impl KalshiStreamSession {
     /// to all subscribers.
     pub async fn run(mut self) {
         info!("KalshiStreamSession starting main loop");
+
+        // Signal that the session is ready (if a ready_sender was provided)
+        if let Some(ready_sender) = self.ready_sender.take() {
+            let _ = ready_sender.send(());
+        }
 
         // Set up ping interval for health monitoring
         let ping_start = Instant::now() + self.health_config.ping_interval;
@@ -364,7 +425,7 @@ impl KalshiStreamSession {
                     if self.handle_command(command).await {
                         info!("KalshiStreamSession received close command, shutting down");
                         disconnect_msg = Some(StreamMessage::Closed {
-                            reason: "Client requested close".to_string(),
+                            reason: DisconnectReason::ClientClosed,
                         });
                         break;
                     }
@@ -377,7 +438,7 @@ impl KalshiStreamSession {
                         Ok(true) => {
                             // Clean close from server
                             disconnect_msg = Some(StreamMessage::Closed {
-                                reason: "Server closed connection".to_string(),
+                                reason: DisconnectReason::ServerClosed,
                             });
                             break;
                         }
@@ -397,7 +458,7 @@ impl KalshiStreamSession {
                         if elapsed > self.health_config.ping_timeout {
                             error!("Ping timeout: no pong received in {:?}", elapsed);
                             disconnect_msg = Some(StreamMessage::ConnectionLost {
-                                reason: "Ping timeout".to_string(),
+                                reason: DisconnectReason::PingTimeout,
                             });
                             break;
                         }
@@ -407,34 +468,27 @@ impl KalshiStreamSession {
                         if let Err(e) = self.ws_writer.send(Message::Ping(ping_data.into())).await {
                             error!("Failed to send ping: {}", e);
                             disconnect_msg = Some(StreamMessage::ConnectionLost {
-                                reason: format!("Failed to send ping: {}", e),
+                                reason: DisconnectReason::HealthCheckFailed(format!("send ping: {}", e)),
                             });
                             break;
                         }
+                        self.last_activity = Instant::now();
                         self.ping_pending = true;
                         debug!("Sent health ping");
                     }
                 }
 
-                // Check for server ping timeout (server -> client)
-                // Only active after we receive the first ping from Kalshi (grace period at startup)
-                _ = async {
-                    if let Some(last_ping) = self.last_server_ping {
-                        sleep_until((last_ping + self.health_config.server_ping_timeout).into()).await;
-                    } else {
-                        // No ping received yet - wait indefinitely (other branches will handle connection issues)
-                        std::future::pending::<()>().await;
-                    }
-                } => {
-                    if let Some(last_ping) = self.last_server_ping {
-                        let elapsed = last_ping.elapsed();
-                        if elapsed > self.health_config.server_ping_timeout {
-                            error!("Server ping timeout: no ping from Kalshi in {:?}", elapsed);
-                            disconnect_msg = Some(StreamMessage::ConnectionLost {
-                                reason: "Server ping timeout".to_string(),
-                            });
-                            break;
-                        }
+                // Check for activity timeout (no messages sent or received)
+                // Kalshi only sends heartbeat pings on idle connections, so we track
+                // all activity (incoming and outgoing messages) to detect stale connections.
+                _ = sleep_until((self.last_activity + self.health_config.server_ping_timeout).into()) => {
+                    let elapsed = self.last_activity.elapsed();
+                    if elapsed > self.health_config.server_ping_timeout {
+                        error!("Activity timeout: no messages sent or received in {:?}", elapsed);
+                        disconnect_msg = Some(StreamMessage::ConnectionLost {
+                            reason: DisconnectReason::ServerHeartbeatTimeout,
+                        });
+                        break;
                     }
                 }
 
@@ -442,7 +496,7 @@ impl KalshiStreamSession {
                 else => {
                     info!("KalshiStreamSession all channels closed, shutting down");
                     disconnect_msg = Some(StreamMessage::Closed {
-                        reason: "All channels closed".to_string(),
+                        reason: DisconnectReason::AllChannelsClosed,
                     });
                     break;
                 }
@@ -454,9 +508,9 @@ impl KalshiStreamSession {
             let is_clean = matches!(msg, StreamMessage::Closed { .. });
             let reason = match &msg {
                 StreamMessage::Closed { reason } | StreamMessage::ConnectionLost { reason } => {
-                    reason.clone()
+                    reason.to_string()
                 }
-                _ => "Unknown".to_string(),
+                _ => "Unknown".to_owned(),
             };
 
             let disconnect_update = StreamUpdate {
@@ -482,7 +536,7 @@ impl KalshiStreamSession {
 
     /// Handle a command from a client handle.
     ///
-    /// Returns `true` if the actor should shut down.
+    /// Returns `true` if the session should shut down.
     async fn handle_command(&mut self, command: StreamCommand) -> bool {
         match command {
             StreamCommand::Subscribe {
@@ -553,6 +607,7 @@ impl KalshiStreamSession {
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
                 }
+                self.last_activity = Instant::now();
 
                 // Register a collector to accumulate all N responses
                 let collector = SubscribeCollector::new(num_channels, response);
@@ -577,6 +632,7 @@ impl KalshiStreamSession {
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
                 }
+                self.last_activity = Instant::now();
 
                 // Register a collector to accumulate all N responses
                 let collector = UnsubscribeCollector::new(num_sids, response);
@@ -607,6 +663,7 @@ impl KalshiStreamSession {
                     let _ = response.send(Err(format!("WebSocket send error: {}", e)));
                     return false;
                 }
+                self.last_activity = Instant::now();
 
                 // Register pending request (single response expected)
                 self.pending_updates.insert(request_id, response);
@@ -625,12 +682,17 @@ impl KalshiStreamSession {
     ///
     /// Returns:
     /// - `Ok(false)` to continue processing
-    /// - `Ok(true)` for clean shutdown
+    /// - `Ok(true)` for clean shutdown (server sent close frame)
     /// - `Err(reason)` for error shutdown
     async fn handle_ws_message(
         &mut self,
         message: std::result::Result<Message, tungstenite::Error>,
-    ) -> std::result::Result<bool, String> {
+    ) -> std::result::Result<bool, DisconnectReason> {
+        // Update activity timestamp for any successfully received message
+        if message.is_ok() {
+            self.last_activity = Instant::now();
+        }
+
         match message {
             Ok(Message::Text(text)) => {
                 self.handle_text_message(&text).await;
@@ -638,14 +700,14 @@ impl KalshiStreamSession {
             }
 
             Ok(Message::Ping(data)) => {
-                debug!("Received ping: {:?}", String::from_utf8_lossy(&data));
-                // Kalshi sends ping with body "heartbeat" every 10 seconds
-                // Reset server ping timer
-                self.last_server_ping = Some(Instant::now());
+                info!("Received server ping: {:?}", String::from_utf8_lossy(&data));
                 // Respond with pong containing the same data
                 if let Err(e) = self.ws_writer.send(Message::Pong(data)).await {
                     error!("Failed to send pong: {}", e);
-                    return Err(format!("Failed to send pong: {}", e));
+                    return Err(DisconnectReason::HealthCheckFailed(format!(
+                        "send pong: {}",
+                        e
+                    )));
                 }
                 Ok(false)
             }
@@ -684,12 +746,12 @@ impl KalshiStreamSession {
 
             Err(tungstenite::Error::Io(ref e)) => {
                 error!("WebSocket I/O error: {}", e);
-                Err(format!("I/O error: {}", e))
+                Err(DisconnectReason::IoError(e.to_string()))
             }
 
             Err(e) => {
                 error!("WebSocket error: {}", e);
-                Err(format!("WebSocket error: {}", e))
+                Err(DisconnectReason::ProtocolError(e.to_string()))
             }
         }
     }

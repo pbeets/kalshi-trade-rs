@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::error::DisconnectReason;
 // Re-export common types from models to avoid duplication
 pub use crate::models::{Action, Side};
 
@@ -62,8 +63,8 @@ pub enum StreamMessage {
     /// Indicates an expected close (user-requested or server sent close frame).
     #[serde(skip)]
     Closed {
-        /// Human-readable reason for the close.
-        reason: String,
+        /// The reason for the clean close.
+        reason: DisconnectReason,
     },
 
     /// Connection was lost unexpectedly.
@@ -73,8 +74,8 @@ pub enum StreamMessage {
     /// You should reconnect with backoff when receiving this.
     #[serde(skip)]
     ConnectionLost {
-        /// Human-readable reason for the connection loss.
-        reason: String,
+        /// The reason for the connection loss.
+        reason: DisconnectReason,
     },
     /// Channel was unsubscribed.
     ///

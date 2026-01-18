@@ -1,6 +1,6 @@
 //! WebSocket streaming client for Kalshi API.
 //!
-//! This module provides a streaming client using the actor pattern for
+//! This module provides a streaming client with a background session for
 //! real-time market data and account updates.
 //!
 //! # Quick Start
@@ -159,14 +159,14 @@
 //! # }
 //! ```
 
-use std::time::Duration;
-
 mod channel;
 mod client;
 mod command;
 mod message;
 mod protocol;
 mod session;
+
+use std::time::Duration;
 
 pub use channel::Channel;
 pub use client::{KalshiStreamClient, KalshiStreamHandle};
@@ -198,22 +198,18 @@ pub enum ConnectStrategy {
 ///
 /// # Kalshi WebSocket Behavior
 ///
-/// Kalshi sends Ping frames every 10 seconds with body "heartbeat".
-/// The client responds with Pong frames. The client also sends its own
-/// Ping frames to verify the connection is alive in both directions.
+/// Kalshi sends Ping frames with body "heartbeat", but only on **idle connections**.
+/// When there's activity (messages being sent or received), Kalshi may stop sending
+/// heartbeat pings. The client also sends its own Ping frames to verify the
+/// connection is alive.
 ///
 /// # Two-Way Health Monitoring
 ///
 /// 1. **Client → Server**: Client sends pings at `ping_interval`, expects pong
 ///    within `ping_timeout`.
-/// 2. **Server → Client**: Client expects Kalshi pings at ~10s intervals. If no
-///    ping received within `server_ping_timeout`, connection is considered dead.
-///
-/// # Startup Grace Period
-///
-/// The server ping timeout monitoring only begins after the first ping is
-/// received from Kalshi. This prevents false timeouts at connection startup
-/// if there's a delay before Kalshi sends its first ping.
+/// 2. **Activity Monitoring**: If no messages are sent or received within
+///    `server_ping_timeout`, the connection is considered dead. This handles
+///    the case where Kalshi stops sending heartbeats during active sessions.
 #[derive(Debug, Clone)]
 pub struct HealthConfig {
     /// Interval between client-initiated WebSocket ping frames.
@@ -226,13 +222,13 @@ pub struct HealthConfig {
     /// Default: 10 seconds.
     pub ping_timeout: Duration,
 
-    /// Timeout for receiving pings from Kalshi server.
+    /// Timeout for any activity (messages sent or received).
     ///
-    /// Kalshi sends pings every 10 seconds. If no ping is received within
-    /// this duration (after the first ping has been received), the connection
-    /// is considered dead.
+    /// Kalshi only sends heartbeat pings on idle connections. When there's
+    /// activity (subscriptions, data flow, etc.), Kalshi may stop sending pings.
+    /// This timeout detects stale connections by tracking all activity.
     ///
-    /// Default: 30 seconds (allows for up to 2 missed pings before timeout).
+    /// Default: 30 seconds.
     pub server_ping_timeout: Duration,
 }
 
@@ -241,8 +237,8 @@ impl Default for HealthConfig {
         Self {
             ping_interval: Duration::from_secs(30),
             ping_timeout: Duration::from_secs(10),
-            // Kalshi pings every 10s, so 30s allows for up to 2 missed pings
-            // before considering the connection dead
+            // Activity timeout - if no messages sent/received in this duration,
+            // the connection is considered dead
             server_ping_timeout: Duration::from_secs(30),
         }
     }
