@@ -51,10 +51,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(start) = &milestone.start_date {
             println!("   Start: {}", start);
         }
-        if let Some(tickers) = &milestone.primary_event_tickers {
-            if !tickers.is_empty() {
-                println!("   Events: {}", tickers.join(", "));
-            }
+        if let Some(tickers) = &milestone.primary_event_tickers
+            && !tickers.is_empty()
+        {
+            println!("   Events: {}", tickers.join(", "));
         }
         println!();
     }
@@ -118,27 +118,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(end) = &milestone.end_date {
                     println!("  End:      {}", end);
                 }
-                if let Some(tickers) = &milestone.primary_event_tickers {
-                    if !tickers.is_empty() {
-                        println!("  Primary Events: {}", tickers.join(", "));
-                    }
+                if let Some(tickers) = &milestone.primary_event_tickers
+                    && !tickers.is_empty()
+                {
+                    println!("  Primary Events: {}", tickers.join(", "));
                 }
-                if let Some(tickers) = &milestone.related_event_tickers {
-                    if !tickers.is_empty() {
-                        println!("  Related Events: {}", tickers.join(", "));
-                    }
+                if let Some(tickers) = &milestone.related_event_tickers
+                    && !tickers.is_empty()
+                {
+                    println!("  Related Events: {}", tickers.join(", "));
                 }
                 if let Some(updated) = &milestone.last_updated_ts {
                     println!("  Updated:  {}", updated);
                 }
-                if let Some(details) = &milestone.details {
-                    if let Some(obj) = details.as_object() {
-                        if !obj.is_empty() {
-                            println!("  Details:  {} fields", obj.len());
-                            for (key, value) in obj.iter().take(5) {
-                                println!("    {}: {}", key, value);
-                            }
-                        }
+                if let Some(details) = &milestone.details
+                    && let Some(obj) = details.as_object()
+                    && !obj.is_empty()
+                {
+                    println!("  Details:  {} fields", obj.len());
+                    for (key, value) in obj.iter().take(5) {
+                        println!("    {}: {}", key, value);
                     }
                 }
             }
