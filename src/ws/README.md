@@ -31,7 +31,7 @@ Complete reference for WebSocket streaming supported by this library.
 |---------|--------|-------|
 | RSA-PSS Authentication | ✅ | Headers: KALSHI-ACCESS-KEY, KALSHI-ACCESS-SIGNATURE, KALSHI-ACCESS-TIMESTAMP |
 | Connection Strategies | ✅ | `Simple` (fast-fail) and `Retry` (exponential backoff) |
-| Health Monitoring | ✅ | Bidirectional ping/pong with configurable timeouts |
+| Health Monitoring | ✅ | Activity-based monitoring with configurable timeouts |
 | Heartbeat Response | ✅ | Auto-responds to Kalshi's 10-second ping frames |
 | Graceful Shutdown | ✅ | Clean close with subscriber notification |
 | Reconnection Support | ✅ | Via application-level pattern (see examples) |

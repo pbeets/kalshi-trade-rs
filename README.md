@@ -20,7 +20,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kalshi-trade-rs = "0.1.0"
+kalshi-trade-rs = "0.2.0"
 ```
 
 Configure environment variables:
