@@ -14,6 +14,9 @@ pub struct MarketPosition {
     pub total_traded_dollars: Option<String>,
     /// Negative = NO position, positive = YES position.
     pub position: i64,
+    /// Position (fixed-point decimal string).
+    #[serde(default)]
+    pub position_fp: Option<String>,
     /// Position cost in cents.
     pub market_exposure: i64,
     #[serde(default)]
@@ -23,6 +26,9 @@ pub struct MarketPosition {
     #[serde(default)]
     pub realized_pnl_dollars: Option<String>,
     pub resting_orders_count: i64,
+    /// Resting orders count (fixed-point decimal string).
+    #[serde(default)]
+    pub resting_orders_count_fp: Option<String>,
     /// In cents.
     pub fees_paid: i64,
     #[serde(default)]
@@ -40,6 +46,9 @@ pub struct EventPosition {
     #[serde(default)]
     pub total_cost_dollars: Option<String>,
     pub total_cost_shares: i64,
+    /// Total cost shares (fixed-point decimal string).
+    #[serde(default)]
+    pub total_cost_shares_fp: Option<String>,
     /// In cents.
     pub event_exposure: i64,
     #[serde(default)]

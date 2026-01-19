@@ -16,10 +16,16 @@ pub struct Settlement {
     pub market_result: MarketResult,
     /// Number of YES contracts held at settlement.
     pub yes_count: i64,
+    /// Number of YES contracts (fixed-point decimal string).
+    #[serde(default)]
+    pub yes_count_fp: Option<String>,
     /// Total cost of YES contracts in cents.
     pub yes_total_cost: i64,
     /// Number of NO contracts held at settlement.
     pub no_count: i64,
+    /// Number of NO contracts (fixed-point decimal string).
+    #[serde(default)]
+    pub no_count_fp: Option<String>,
     /// Total cost of NO contracts in cents.
     pub no_total_cost: i64,
     /// Revenue from settlement in cents.

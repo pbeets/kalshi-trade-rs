@@ -100,6 +100,14 @@ pub struct Series {
     pub frequency: String,
     /// Title of the series.
     pub title: String,
+    /// Total contracts traded across all events in this series.
+    /// Only present when `include_volume=true` in the request.
+    #[serde(default)]
+    pub volume: Option<i64>,
+    /// Total contracts traded (fixed-point decimal string).
+    /// Only present when `include_volume=true` in the request.
+    #[serde(default)]
+    pub volume_fp: Option<String>,
 }
 
 /// Response from GET /series/{series_ticker}.

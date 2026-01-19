@@ -85,6 +85,47 @@ impl UnsubscribeResult {
     }
 }
 
+/// Sharding configuration for high-throughput communications channel.
+///
+/// When subscribing to the communications channel for RFQ/quote updates,
+/// sharding can be used to distribute traffic across multiple connections.
+#[derive(Debug, Clone, Default)]
+pub struct CommunicationsSharding {
+    /// Number of shards to distribute traffic across.
+    /// Each shard receives approximately 1/shard_factor of the traffic.
+    pub shard_factor: Option<i32>,
+    /// This connection's shard key (0 to shard_factor-1).
+    /// Determines which subset of traffic this connection receives.
+    pub shard_key: Option<i32>,
+}
+
+impl CommunicationsSharding {
+    /// Create a new sharding configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `shard_factor` - Number of shards (e.g., 4 for 4 connections).
+    /// * `shard_key` - This connection's shard (0 to shard_factor-1).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use kalshi_trade_rs::ws::CommunicationsSharding;
+    ///
+    /// // Connection 1 of 4 shards
+    /// let sharding = CommunicationsSharding::new(4, 0);
+    /// // Connection 2 of 4 shards
+    /// let sharding = CommunicationsSharding::new(4, 1);
+    /// ```
+    #[must_use]
+    pub fn new(shard_factor: i32, shard_key: i32) -> Self {
+        Self {
+            shard_factor: Some(shard_factor),
+            shard_key: Some(shard_key),
+        }
+    }
+}
+
 /// Commands that can be sent to the WebSocket stream handler.
 #[derive(Debug)]
 pub enum StreamCommand {
@@ -94,6 +135,8 @@ pub enum StreamCommand {
         channels: Vec<String>,
         /// Market ticker symbols to subscribe to.
         market_tickers: Vec<String>,
+        /// Optional sharding config for communications channel.
+        sharding: Option<CommunicationsSharding>,
         /// Oneshot channel to receive the subscription result.
         response: oneshot::Sender<Result<SubscribeResult, String>>,
     },
@@ -120,4 +163,23 @@ pub enum StreamCommand {
 
     /// Close the WebSocket connection gracefully.
     Close,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_communications_sharding_new() {
+        let sharding = CommunicationsSharding::new(4, 2);
+        assert_eq!(sharding.shard_factor, Some(4));
+        assert_eq!(sharding.shard_key, Some(2));
+    }
+
+    #[test]
+    fn test_communications_sharding_default() {
+        let sharding = CommunicationsSharding::default();
+        assert_eq!(sharding.shard_factor, None);
+        assert_eq!(sharding.shard_key, None);
+    }
 }

@@ -42,8 +42,17 @@ pub struct Order {
     #[serde(default)]
     pub no_price_dollars: Option<String>,
     pub fill_count: i64,
+    /// Fill count (fixed-point decimal string).
+    #[serde(default)]
+    pub fill_count_fp: Option<String>,
     pub remaining_count: i64,
+    /// Remaining count (fixed-point decimal string).
+    #[serde(default)]
+    pub remaining_count_fp: Option<String>,
     pub initial_count: i64,
+    /// Initial count (fixed-point decimal string).
+    #[serde(default)]
+    pub initial_count_fp: Option<String>,
     /// Fees in cents.
     #[serde(default)]
     pub taker_fees: Option<i64>,

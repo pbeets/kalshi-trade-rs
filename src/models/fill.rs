@@ -20,6 +20,9 @@ pub struct Fill {
     pub side: Side,
     pub action: Action,
     pub count: i64,
+    /// Count (fixed-point decimal string).
+    #[serde(default)]
+    pub count_fp: Option<String>,
     /// Price in cents.
     pub yes_price: i64,
     /// Price in cents.

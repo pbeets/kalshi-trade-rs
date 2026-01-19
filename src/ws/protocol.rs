@@ -2,7 +2,7 @@
 //!
 //! This module provides functions for building and parsing Kalshi WebSocket messages.
 
-use super::{Channel, command::UpdateAction};
+use super::{Channel, command::{CommunicationsSharding, UpdateAction}};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
 
@@ -12,6 +12,7 @@ use serde_json::Value as JsonValue;
 /// * `id` - Message ID for correlation
 /// * `channels` - List of channels to subscribe to
 /// * `market_tickers` - Market ticker(s) to subscribe to. At least one ticker is required.
+/// * `sharding` - Optional sharding config for communications channel.
 ///
 /// # Returns
 /// JSON string ready to send over WebSocket
@@ -19,10 +20,15 @@ use serde_json::Value as JsonValue;
 /// # Note
 /// The Kalshi API requires at least one market ticker for most channels.
 /// Omitting market tickers will likely result in an error response.
-pub fn build_subscribe(id: u64, channels: &[Channel], market_tickers: &[&str]) -> String {
+pub fn build_subscribe(
+    id: u64,
+    channels: &[Channel],
+    market_tickers: &[&str],
+    sharding: Option<&CommunicationsSharding>,
+) -> String {
     let channel_strings: Vec<&str> = channels.iter().map(|c| c.as_str()).collect();
 
-    let params = if market_tickers.is_empty() {
+    let mut params = if market_tickers.is_empty() {
         // No tickers provided - some channels may reject this
         serde_json::json!({
             "channels": channel_strings
@@ -40,6 +46,16 @@ pub fn build_subscribe(id: u64, channels: &[Channel], market_tickers: &[&str]) -
             "market_tickers": market_tickers
         })
     };
+
+    // Add sharding parameters if provided (for communications channel)
+    if let Some(sharding) = sharding {
+        if let Some(shard_factor) = sharding.shard_factor {
+            params["shard_factor"] = serde_json::json!(shard_factor);
+        }
+        if let Some(shard_key) = sharding.shard_key {
+            params["shard_key"] = serde_json::json!(shard_key);
+        }
+    }
 
     serde_json::json!({
         "id": id,
@@ -219,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_build_subscribe_single_ticker() {
-        let result = build_subscribe(1, &[Channel::OrderbookDelta], &["AAPL-YES"]);
+        let result = build_subscribe(1, &[Channel::OrderbookDelta], &["AAPL-YES"], None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 1);
@@ -238,6 +254,7 @@ mod tests {
             2,
             &[Channel::OrderbookDelta, Channel::Ticker],
             &["AAPL-YES", "GOOG-NO"],
+            None,
         );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
@@ -257,7 +274,7 @@ mod tests {
     #[test]
     fn test_build_subscribe_no_tickers() {
         // Subscribe to all markets by omitting market_ticker(s)
-        let result = build_subscribe(3, &[Channel::Ticker], &[]);
+        let result = build_subscribe(3, &[Channel::Ticker], &[], None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 3);
@@ -279,6 +296,7 @@ mod tests {
                 Channel::Fill,
             ],
             &["TEST"],
+            None,
         );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
@@ -286,6 +304,22 @@ mod tests {
             parsed["params"]["channels"],
             serde_json::json!(["orderbook_delta", "ticker", "trade", "fill"])
         );
+    }
+
+    #[test]
+    fn test_build_subscribe_with_sharding() {
+        let sharding = CommunicationsSharding::new(4, 2);
+        let result = build_subscribe(5, &[Channel::Communications], &[], Some(&sharding));
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 5);
+        assert_eq!(parsed["cmd"], "subscribe");
+        assert_eq!(
+            parsed["params"]["channels"],
+            serde_json::json!(["communications"])
+        );
+        assert_eq!(parsed["params"]["shard_factor"], 4);
+        assert_eq!(parsed["params"]["shard_key"], 2);
     }
 
     #[test]

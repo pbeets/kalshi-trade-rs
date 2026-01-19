@@ -613,11 +613,77 @@ impl KalshiStreamHandle {
 
     // --- Internal methods ---
 
+    /// Subscribe to the communications channel with sharding for high-throughput RFQ/quote traffic.
+    ///
+    /// Sharding allows distributing communications traffic across multiple connections.
+    /// Each connection specifies a shard_factor (total number of shards) and shard_key
+    /// (which shard this connection handles).
+    ///
+    /// # Arguments
+    ///
+    /// * `sharding` - Sharding configuration specifying shard_factor and shard_key.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use kalshi_trade_rs::ws::{Channel, KalshiStreamHandle, CommunicationsSharding};
+    /// # async fn example(handle: &mut KalshiStreamHandle) -> Result<(), Box<dyn std::error::Error>> {
+    /// // Set up 4 shards, this connection handles shard 0
+    /// let sharding = CommunicationsSharding::new(4, 0);
+    /// handle.subscribe_communications_sharded(sharding).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn subscribe_communications_sharded(
+        &mut self,
+        sharding: super::command::CommunicationsSharding,
+    ) -> Result<()> {
+        let result = self
+            .subscribe_raw_with_sharding(&[Channel::Communications], &[], Some(sharding))
+            .await?;
+
+        // Check for failures
+        if !result.failed.is_empty() {
+            let errors: Vec<String> = result
+                .failed
+                .iter()
+                .map(|e| format!("{}: {}", e.code, e.message))
+                .collect();
+            return Err(Error::Api(errors.join("; ")));
+        }
+
+        // Update state if successful
+        if let Some(sub) = result.successful.first() {
+            let mut subs = self
+                .subscriptions
+                .write()
+                .expect("subscription lock poisoned");
+            subs.entry(Channel::Communications)
+                .or_insert(SubscriptionState {
+                    sid: sub.sid,
+                    markets: std::collections::HashSet::new(),
+                });
+        }
+
+        Ok(())
+    }
+
     /// Raw subscribe without local state management.
     async fn subscribe_raw(
         &self,
         channels: &[Channel],
         markets: &[&str],
+    ) -> Result<SubscribeResult> {
+        self.subscribe_raw_with_sharding(channels, markets, None)
+            .await
+    }
+
+    /// Raw subscribe with optional sharding support.
+    async fn subscribe_raw_with_sharding(
+        &self,
+        channels: &[Channel],
+        markets: &[&str],
+        sharding: Option<super::command::CommunicationsSharding>,
     ) -> Result<SubscribeResult> {
         let (tx, rx) = oneshot::channel();
 
@@ -629,6 +695,7 @@ impl KalshiStreamHandle {
         let cmd = StreamCommand::Subscribe {
             channels: channel_strings,
             market_tickers: market_strings,
+            sharding,
             response: tx,
         };
 
@@ -786,6 +853,7 @@ mod tests {
                     channels,
                     market_tickers,
                     response,
+                    ..
                 }) => {
                     // Verify correct command type and params
                     assert_eq!(channels, vec!["ticker"]);

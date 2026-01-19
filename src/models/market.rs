@@ -206,12 +206,21 @@ pub struct Market {
     /// Total contracts traded.
     #[serde(default)]
     pub volume: Option<i64>,
+    /// Total contracts traded (fixed-point decimal string).
+    #[serde(default)]
+    pub volume_fp: Option<String>,
     /// 24-hour trading volume.
     #[serde(default)]
     pub volume_24h: Option<i64>,
+    /// 24-hour trading volume (fixed-point decimal string).
+    #[serde(default)]
+    pub volume_24h_fp: Option<String>,
     /// Contracts outstanding.
     #[serde(default)]
     pub open_interest: Option<i64>,
+    /// Contracts outstanding (fixed-point decimal string).
+    #[serde(default)]
+    pub open_interest_fp: Option<String>,
 
     /// Notional value per contract in dollars.
     #[serde(default)]
@@ -592,6 +601,9 @@ pub struct Trade {
     pub price: Option<f64>,
     /// Contract quantity.
     pub count: i64,
+    /// Contract quantity (fixed-point decimal string).
+    #[serde(default)]
+    pub count_fp: Option<String>,
     /// Yes side price in cents.
     pub yes_price: i64,
     /// No side price in cents.
@@ -798,9 +810,15 @@ pub struct Candlestick {
     /// Trading volume during the period.
     #[serde(default)]
     pub volume: Option<i64>,
+    /// Trading volume during the period (fixed-point decimal string).
+    #[serde(default)]
+    pub volume_fp: Option<String>,
     /// Open interest at end of period.
     #[serde(default)]
     pub open_interest: Option<i64>,
+    /// Open interest at end of period (fixed-point decimal string).
+    #[serde(default)]
+    pub open_interest_fp: Option<String>,
 }
 
 /// Response from GET /series/{series_ticker}/markets/{ticker}/candlesticks.
@@ -837,6 +855,9 @@ pub struct GetCandlesticksParams {
     pub end_ts: i64,
     /// Candlestick period interval.
     pub period_interval: CandlestickPeriod,
+    /// Include synthetic candlestick before start_ts for price continuity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_latest_before_start: Option<bool>,
 }
 
 impl GetCandlesticksParams {
@@ -868,7 +889,15 @@ impl GetCandlesticksParams {
             start_ts,
             end_ts,
             period_interval,
+            include_latest_before_start: None,
         })
+    }
+
+    /// Include synthetic candlestick before start_ts for price continuity.
+    #[must_use]
+    pub fn include_latest_before_start(mut self, include: bool) -> Self {
+        self.include_latest_before_start = Some(include);
+        self
     }
 
     #[must_use]
@@ -877,6 +906,10 @@ impl GetCandlesticksParams {
         qb.push("start_ts", self.start_ts);
         qb.push("end_ts", self.end_ts);
         qb.push("period_interval", self.period_interval.as_minutes());
+        qb.push_opt(
+            "include_latest_before_start",
+            self.include_latest_before_start,
+        );
         qb.build()
     }
 }
@@ -1091,13 +1124,20 @@ mod tests {
             "status": "active",
             "title": "Will Bitcoin reach $50,000?",
             "volume": 1000,
-            "open_interest": 500
+            "volume_fp": "1000.5",
+            "volume_24h": 500,
+            "volume_24h_fp": "500.25",
+            "open_interest": 250,
+            "open_interest_fp": "250.125"
         }"#;
         let market: Market = serde_json::from_str(json).unwrap();
         assert_eq!(market.ticker, "KXBTC-25JAN10-B50000");
         assert_eq!(market.market_type, MarketType::Binary);
         assert_eq!(market.status, MarketStatus::Active);
         assert_eq!(market.volume, Some(1000));
+        assert_eq!(market.volume_fp, Some("1000.5".to_string()));
+        assert_eq!(market.volume_24h_fp, Some("500.25".to_string()));
+        assert_eq!(market.open_interest_fp, Some("250.125".to_string()));
     }
 
     #[test]
@@ -1152,6 +1192,7 @@ mod tests {
             "trade_id": "abc123",
             "ticker": "KXBTC-25JAN10-B50000",
             "count": 10,
+            "count_fp": "10.5",
             "yes_price": 50,
             "no_price": 50,
             "taker_side": "yes",
@@ -1160,6 +1201,7 @@ mod tests {
         let trade: Trade = serde_json::from_str(json).unwrap();
         assert_eq!(trade.trade_id, "abc123");
         assert_eq!(trade.count, 10);
+        assert_eq!(trade.count_fp, Some("10.5".to_string()));
         assert_eq!(trade.taker_side, TakerSide::Yes);
     }
 
