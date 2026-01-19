@@ -160,17 +160,17 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 
 | Status | Method | Endpoint | Rust Function | Notes |
 |--------|--------|----------|---------------|-------|
-| 🔲 | POST | `/communications/rfqs` | `create_rfq()` | |
-| 🔲 | GET | `/communications/rfqs` | `list_rfqs()` | |
-| 🔲 | GET | `/communications/rfqs/{id}` | `get_rfq()` | |
-| 🔲 | DELETE | `/communications/rfqs/{id}` | `cancel_rfq()` | |
-| 🔲 | POST | `/communications/quotes` | `create_quote()` | |
-| 🔲 | GET | `/communications/quotes` | `list_quotes()` | |
-| 🔲 | GET | `/communications/quotes/{id}` | `get_quote()` | |
-| 🔲 | DELETE | `/communications/quotes/{id}` | `cancel_quote()` | |
-| 🔲 | PUT | `/communications/quotes/{id}/accept` | `accept_quote()` | |
-| 🔲 | PUT | `/communications/quotes/{id}/confirm` | `confirm_quote()` | Starts execution timer |
-| 🔲 | GET | `/communications/id` | `get_communications_id()` | Get user's comms ID |
+| ✅ | POST | `/communications/rfqs` | `create_rfq()` | |
+| ✅ | GET | `/communications/rfqs` | `list_rfqs()` | |
+| ✅ | GET | `/communications/rfqs/{id}` | `get_rfq()` | |
+| ✅ | DELETE | `/communications/rfqs/{id}` | `cancel_rfq()` | |
+| ✅ | POST | `/communications/quotes` | `create_quote()` | |
+| ✅ | GET | `/communications/quotes` | `list_quotes()` | Requires user_id filter |
+| ✅ | GET | `/communications/quotes/{id}` | `get_quote()` | |
+| ✅ | DELETE | `/communications/quotes/{id}` | `cancel_quote()` | |
+| ✅ | PUT | `/communications/quotes/{id}/accept` | `accept_quote()` | |
+| ✅ | PUT | `/communications/quotes/{id}/confirm` | `confirm_quote()` | Starts execution timer |
+| ✅ | GET | `/communications/id` | `get_communications_id()` | Get user's comms ID |
 
 **Source**: `src/api/communications.rs`
 

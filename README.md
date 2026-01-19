@@ -11,8 +11,8 @@ An unofficial Rust client library for the [Kalshi](https://kalshi.com) predictio
 
 This crate provides both REST API and WebSocket streaming capabilities:
 
-- **REST Client**: Full coverage of the Kalshi API including portfolio management, order operations, market data, and exchange status
-- **WebSocket Streaming**: Real-time ticker, trade, orderbook, and fill updates with channel-based message delivery
+- **REST Client**: Full coverage of the Kalshi API including portfolio management, order operations, market data, exchange status, and RFQ (Request for Quote) communications
+- **WebSocket Streaming**: Real-time ticker, trade, orderbook, fill, and RFQ/quote updates with channel-based message delivery
 
 ## Getting Started
 
@@ -94,6 +94,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## RFQ (Request for Quote) Support
+
+The library provides full support for Kalshi's RFQ system, enabling large trades and combo/parlay bets:
+
+```rust
+use kalshi_trade_rs::{KalshiClient, CreateRfqRequest, CreateQuoteRequest, AcceptQuoteRequest};
+
+// Create an RFQ (as requester)
+let rfq = CreateRfqRequest::with_target_cost_dollars("TICKER", 100.0, true);
+let response = client.create_rfq(rfq).await?;
+
+// Submit a quote (as market maker)
+let quote = CreateQuoteRequest::from_cents("rfq-id", 55, true);  // YES at 55¢
+let response = client.create_quote(quote).await?;
+
+// Accept a quote
+client.accept_quote("quote-id", AcceptQuoteRequest::yes()).await?;
+
+// Confirm (as quoter, within 30 seconds)
+client.confirm_quote("quote-id").await?;
+```
+
+Stream RFQ events via WebSocket:
+
+```rust
+handle.subscribe(Channel::Communications, &[]).await?;
+// Receive: RfqCreated, RfqDeleted, QuoteCreated, QuoteAccepted
+```
+
+See [`examples/rfq_verify.rs`](examples/rfq_verify.rs) for a complete verification example.
+
 ## Connection and Reconnection
 
 Two connection strategies are available for WebSocket connections:
@@ -111,10 +142,21 @@ let client = KalshiStreamClient::connect_with_strategy(&config, ConnectStrategy:
 
 ## Examples
 
-See the [`examples/`](examples/) directory for working examples covering REST API usage, WebSocket streaming, and reconnection patterns.
+See the [`examples/`](examples/) directory for working examples:
+
+| Example | Description |
+|---------|-------------|
+| `portfolio` | REST API: account balance, positions |
+| `trading` | REST API: order creation, amendment, cancellation |
+| `markets` | REST API: market data queries |
+| `stream_ticker` | WebSocket: real-time price updates |
+| `stream_user_channels` | WebSocket: fills, positions, RFQ communications |
+| `rfq_verify` | RFQ system verification (read-only) |
+| `stream_reconnect` | WebSocket reconnection patterns |
 
 ```bash
 cargo run --example portfolio
+cargo run --example rfq_verify
 ```
 
 ## Error Handling

@@ -287,4 +287,4 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 
 - [Kalshi WebSocket Overview](https://docs.kalshi.com/reference/websocket-overview)
 - [Kalshi WebSocket Subscriptions](https://docs.kalshi.com/reference/ws-subscriptions)
-- Examples: `examples/stream_ticker.rs`, `examples/stream_reconnect.rs`, `examples/multi_channel_subscribe.rs`
+- Examples: `examples/stream_ticker.rs`, `examples/stream_reconnect.rs`, `examples/multi_channel_subscribe.rs`, `examples/stream_user_channels.rs`, `examples/rfq_verify.rs`
