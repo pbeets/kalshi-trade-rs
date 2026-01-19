@@ -2,7 +2,10 @@
 //!
 //! This module provides functions for building and parsing Kalshi WebSocket messages.
 
-use super::{Channel, command::{CommunicationsSharding, UpdateAction}};
+use super::{
+    Channel,
+    command::{CommunicationsSharding, UpdateAction},
+};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
 
