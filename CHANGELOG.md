@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ConnectionLost` now includes a `subscriptions` field containing the channels and
   markets that were active at the time of disconnection. This enables automatic
   resubscription after reconnecting.
+- Fixed-point decimal fields (`*_dollars` suffix) added throughout the API for
+  prices and costs, avoiding floating-point precision issues.
+- WebSocket sharding support via `CommunicationsSharding` for high-throughput
+  market makers handling RFQ traffic across multiple connections.
+- Exported `CommunicationData`, `RfqData`, `RfqDeletedData`, `QuoteData`, and
+  `QuoteAcceptedData` types from the `ws` module for easier RFQ event handling.
+- New `rfq_verify` example demonstrating read-only RFQ API verification.
+- RFQ documentation in README with usage examples for creating RFQs, submitting
+  quotes, and streaming events.
 
 ### Changed
 
