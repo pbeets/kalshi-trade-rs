@@ -44,6 +44,7 @@ pub mod batch;
 pub mod client;
 pub mod error;
 pub mod models;
+pub mod orderbook;
 pub mod ws;
 
 // Re-export commonly used types at the crate root
@@ -94,4 +95,9 @@ pub use ws::{
 pub use batch::{
     AggregatedCancelResponse, AggregatedCreateResponse, BatchManager, BatchManagerBuilder,
     BatchOperationResult, RateLimitTier, RetryConfig,
+};
+
+// Re-export orderbook aggregation types
+pub use orderbook::{
+    OrderbookAggregator, OrderbookDelta, OrderbookSummary, OrderbookUpdate, SequenceGap,
 };

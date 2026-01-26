@@ -174,8 +174,8 @@ pub use command::{CommunicationsSharding, SubscribeResult, UnsubscribeResult};
 pub use message::{
     Action, CommunicationData, FillData, MarketLifecycleData, MarketLifecycleEventType,
     MarketPositionData, MultivariateLookupData, MveLeg, OrderbookDeltaData, OrderbookSnapshotData,
-    QuoteAcceptedData, QuoteData, RfqData, RfqDeletedData, Side, StreamMessage, StreamUpdate,
-    TickerData, TradeData,
+    PriceLevel, QuoteAcceptedData, QuoteData, RfqData, RfqDeletedData, Side, StreamMessage,
+    StreamUpdate, TickerData, TradeData,
 };
 
 /// Connection strategy for the WebSocket client.
