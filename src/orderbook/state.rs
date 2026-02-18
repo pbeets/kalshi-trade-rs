@@ -175,13 +175,11 @@ impl OrderbookState {
     }
 
     /// Get all YES levels (price -> quantity).
-    #[allow(dead_code)]
     pub fn yes_levels(&self) -> &BTreeMap<i64, i64> {
         &self.yes_levels
     }
 
     /// Get all NO levels (price -> quantity).
-    #[allow(dead_code)]
     pub fn no_levels(&self) -> &BTreeMap<i64, i64> {
         &self.no_levels
     }

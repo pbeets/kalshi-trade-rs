@@ -99,5 +99,6 @@ pub use batch::{
 
 // Re-export orderbook aggregation types
 pub use orderbook::{
-    OrderbookAggregator, OrderbookDelta, OrderbookSummary, OrderbookUpdate, SequenceGap,
+    OrderbookAggregator, OrderbookDelta, OrderbookLadder, OrderbookSummary, OrderbookUpdate,
+    SequenceGap,
 };

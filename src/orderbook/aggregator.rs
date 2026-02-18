@@ -1,6 +1,6 @@
 //! Orderbook aggregator for maintaining live orderbook state.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, RwLock};
 
 use tokio::sync::broadcast;
@@ -68,6 +68,17 @@ pub struct SequenceGap {
     pub expected: i64,
     /// Received sequence number.
     pub received: i64,
+}
+
+/// The full orderbook ladder for a market.
+#[derive(Debug, Clone)]
+pub struct OrderbookLadder {
+    /// Market ticker.
+    pub ticker: String,
+    /// YES side price levels: price_cents -> quantity, sorted ascending.
+    pub yes_levels: BTreeMap<i64, i64>,
+    /// NO side price levels: price_cents -> quantity, sorted ascending.
+    pub no_levels: BTreeMap<i64, i64>,
 }
 
 /// Default channel capacity for update broadcasts.
@@ -356,6 +367,21 @@ impl OrderbookAggregator {
             .get(ticker)
             .map(|ob| ob.depth_at_price(side, price))
             .unwrap_or(0)
+    }
+
+    /// Get the full orderbook ladder for a market.
+    ///
+    /// Returns all YES and NO price levels with their quantities.
+    /// Returns `None` if the market is not being tracked.
+    pub fn full_book(&self, ticker: &str) -> Option<OrderbookLadder> {
+        let state = self.state.read().expect("state lock poisoned");
+        let orderbook = state.get(ticker)?;
+
+        Some(OrderbookLadder {
+            ticker: ticker.to_string(),
+            yes_levels: orderbook.yes_levels().clone(),
+            no_levels: orderbook.no_levels().clone(),
+        })
     }
 
     /// Get the list of tracked markets.
