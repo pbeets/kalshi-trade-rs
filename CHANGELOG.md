@@ -113,8 +113,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `CreateOrderRequest::sell_position_floor()` — use `reduce_only` instead. Only
   accepts value of 0.
+- `Rfq::target_cost_as_dollars()` and `Quote::rfq_target_cost_as_dollars()` —
+  use the `target_cost_dollars` / `rfq_target_cost_dollars` fields directly.
+- `BatchCancelOrdersRequest::new()` and `try_new()` — use `with_orders()` /
+  `try_with_orders()` for per-order subaccount support.
 - `target_cost_centi_cents` on RFQ/Quote types — use `target_cost_dollars`
   instead.
+- `Order.queue_position` — always returns 0; use the `get_order_queue_position`
+  endpoint instead.
+- `Fill.price` and `Trade.price` — use `yes_price` / `no_price` instead.
+- `Fill.trade_id`, `Fill.market_ticker`, `Fill.ts` — legacy field names.
+- `Event.category` — use series-level category instead.
+- `MarketPosition.resting_orders_count` — deprecated by the API.
 
 ## [0.2.0] - 2026-01-18
 

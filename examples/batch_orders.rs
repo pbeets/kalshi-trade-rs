@@ -10,9 +10,9 @@
 //! Run with: cargo run --example batch_orders
 
 use kalshi_trade_rs::{
-    Action, BatchCancelOrdersRequest, BatchCreateOrdersRequest, CreateOrderRequest,
-    GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus, OrderType, Side, TimeInForce,
-    cents_to_dollars,
+    Action, BatchCancelOrderItem, BatchCancelOrdersRequest, BatchCreateOrdersRequest,
+    CreateOrderRequest, GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
+    OrderType, Side, TimeInForce, cents_to_dollars,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -171,7 +171,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("=== Batch Cancel Orders ===");
         println!("Canceling {} orders...", successful_order_ids.len());
 
-        let cancel_request = BatchCancelOrdersRequest::new(successful_order_ids.clone());
+        let cancel_items: Vec<BatchCancelOrderItem> = successful_order_ids
+            .iter()
+            .map(BatchCancelOrderItem::new)
+            .collect();
+        let cancel_request = BatchCancelOrdersRequest::with_orders(cancel_items);
         let cancel_response = client.batch_cancel_orders(cancel_request).await?;
 
         println!("\nBatch cancel results:");
