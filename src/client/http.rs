@@ -191,6 +191,17 @@ impl HttpClient {
         response.json::<T>().await.map_err(Error::Http)
     }
 
+    /// Make a PUT request with a JSON body, expecting no response body.
+    ///
+    /// # Arguments
+    /// * `path` - The API path
+    /// * `body` - The request body to serialize as JSON
+    pub async fn put_no_response<B: Serialize>(&self, path: &str, body: &B) -> Result<()> {
+        let request = self.build_request(Method::PUT, path)?.json(body);
+        self.execute(request).await?;
+        Ok(())
+    }
+
     /// Make a PUT request with an empty body and deserialize the response.
     ///
     /// # Arguments

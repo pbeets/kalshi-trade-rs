@@ -3,6 +3,7 @@
 //! All monetary values are in cents unless noted otherwise.
 //! Fields ending in `_dollars` are fixed-point dollar strings.
 
+mod account;
 mod api_key;
 mod balance;
 mod common;
@@ -27,6 +28,7 @@ mod structured_target;
 mod subaccount;
 
 // Re-export all public types
+pub use account::ApiTierLimitsResponse;
 pub use api_key::{
     ApiKey, ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, DeleteApiKeyResponse,
     GenerateApiKeyRequest, GenerateApiKeyResponse,
@@ -81,7 +83,7 @@ pub use order::{
 };
 pub use order_group::{
     CreateOrderGroupRequest, CreateOrderGroupResponse, GetOrderGroupResponse, GetOrderGroupsParams,
-    OrderGroupSummary, OrderGroupsResponse,
+    OrderGroupSummary, OrderGroupsResponse, UpdateOrderGroupLimitRequest,
 };
 pub use position::{EventPosition, GetPositionsParams, MarketPosition, PositionsResponse};
 pub use search::{

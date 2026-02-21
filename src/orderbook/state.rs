@@ -236,6 +236,7 @@ mod tests {
             delta: 100,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
 
@@ -255,6 +256,7 @@ mod tests {
             delta: 100,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         state.apply_delta(&delta1);
@@ -266,6 +268,7 @@ mod tests {
             delta: 50,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         let new_qty = state.apply_delta(&delta2);
@@ -283,6 +286,7 @@ mod tests {
             delta: 100,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         state.apply_delta(&delta1);
@@ -294,6 +298,7 @@ mod tests {
             delta: -30,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         let new_qty = state.apply_delta(&delta2);
@@ -311,6 +316,7 @@ mod tests {
             delta: 100,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         state.apply_delta(&delta1);
@@ -322,6 +328,7 @@ mod tests {
             delta: -100,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         let new_qty = state.apply_delta(&delta2);
@@ -340,6 +347,7 @@ mod tests {
             delta: 50,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         state.apply_delta(&delta1);
@@ -351,6 +359,7 @@ mod tests {
             delta: -100,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         let new_qty = state.apply_delta(&delta2);

@@ -53,8 +53,8 @@ pub use client::{Environment, HttpClient, KalshiClient};
 pub use error::{DisconnectReason, Error, MAX_BATCH_SIZE, Result};
 pub use models::{
     AcceptQuoteRequest, Action, AmendOrderRequest, AmendOrderResponse, Announcement,
-    AnnouncementStatus, AnnouncementType, ApiKey, ApiKeysResponse, BalanceResponse,
-    BatchCancelOrderResult, BatchCancelOrdersRequest, BatchCancelOrdersResponse,
+    AnnouncementStatus, AnnouncementType, ApiKey, ApiKeysResponse, ApiTierLimitsResponse,
+    BalanceResponse, BatchCancelOrderResult, BatchCancelOrdersRequest, BatchCancelOrdersResponse,
     BatchCandlesticksResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
     BatchLiveDataResponse, BatchOrderError, BatchOrderResult, CancelOrderResponse, Candlestick,
     CandlestickPeriod, CandlesticksResponse, CommunicationsIdResponse, CompetitionFilter,
@@ -81,8 +81,8 @@ pub use models::{
     Series, SeriesFeeChange, SeriesListResponse, SeriesResponse, Settlement, SettlementStatus,
     SettlementsResponse, Side, SportFilter, StandardHoursPeriod, StrikeType, StructuredTarget,
     StructuredTargetResponse, StructuredTargetsResponse, TagsByCategoriesResponse, TakerSide,
-    TimeInForce, Trade, TradesResponse, TradingSession, UserDataTimestampResponse,
-    cents_to_dollars,
+    TimeInForce, Trade, TradesResponse, TradingSession, UpdateOrderGroupLimitRequest,
+    UserDataTimestampResponse, cents_to_dollars,
 };
 
 // Re-export WebSocket types for convenience

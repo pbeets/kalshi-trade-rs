@@ -7,7 +7,7 @@ use crate::{
     error::Result,
     models::{
         CreateOrderGroupRequest, CreateOrderGroupResponse, GetOrderGroupResponse,
-        GetOrderGroupsParams, OrderGroupsResponse,
+        GetOrderGroupsParams, OrderGroupsResponse, UpdateOrderGroupLimitRequest,
     },
 };
 
@@ -54,4 +54,26 @@ pub async fn reset_order_group(http: &HttpClient, order_group_id: &str) -> Resul
         encode_id(order_group_id)
     );
     http.put_empty_json(&path).await
+}
+
+/// Triggers an order group, cancelling all orders within it.
+pub async fn trigger_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
+    let path = format!(
+        "/portfolio/order_groups/{}/trigger",
+        encode_id(order_group_id)
+    );
+    http.put_empty_json(&path).await
+}
+
+/// Updates the contracts limit for an order group.
+pub async fn update_order_group_limit(
+    http: &HttpClient,
+    order_group_id: &str,
+    request: UpdateOrderGroupLimitRequest,
+) -> Result<()> {
+    let path = format!(
+        "/portfolio/order_groups/{}/limit",
+        encode_id(order_group_id)
+    );
+    http.put_no_response(&path, &request).await
 }

@@ -7,6 +7,29 @@ use crate::ws::Channel;
 // Re-export common types from models to avoid duplication
 pub use crate::models::{Action, Side};
 
+/// Order group event types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OrderGroupEventType {
+    Created,
+    Triggered,
+    Reset,
+    Deleted,
+    LimitUpdated,
+}
+
+/// Order group update data for order group lifecycle events.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderGroupUpdateData {
+    /// The order group identifier.
+    pub order_group_id: String,
+    /// Type of order group event.
+    pub event_type: OrderGroupEventType,
+    /// Contracts limit (fixed-point decimal string), present on limit updates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts_limit_fp: Option<String>,
+}
+
 /// Market lifecycle event types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -56,6 +79,8 @@ pub enum StreamMessage {
     MarketLifecycle(MarketLifecycleData),
     /// RFQ or quote communication.
     Communication(CommunicationData),
+    /// Order group update notification.
+    OrderGroupUpdate(OrderGroupUpdateData),
     /// Multivariate collection lookup notification.
     MultivariateLookup(MultivariateLookupData),
     /// Connection was closed cleanly.
@@ -126,6 +151,9 @@ pub struct OrderbookDeltaData {
     pub delta: i64,
     /// Side of the orderbook being updated.
     pub side: Side,
+    /// Delta (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta_fp: Option<String>,
     /// Price in dollar format.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price_dollars: Option<String>,
@@ -164,6 +192,12 @@ pub struct TickerData {
     /// No bid in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_bid_dollars: Option<String>,
+    /// Volume (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_fp: Option<String>,
+    /// Open interest (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_interest_fp: Option<String>,
 }
 
 /// Trade data for public trade notifications.
@@ -181,6 +215,9 @@ pub struct TradeData {
     pub taker_side: Side,
     /// Unix timestamp in seconds.
     pub ts: i64,
+    /// Count (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count_fp: Option<String>,
     /// Yes price formatted in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yes_price_dollars: Option<String>,
@@ -208,6 +245,9 @@ pub struct FillData {
     pub yes_price_dollars: String,
     /// Number of contracts filled.
     pub count: i64,
+    /// Count (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count_fp: Option<String>,
     /// Action type (buy or sell).
     pub action: Action,
     /// Unix timestamp in seconds.
@@ -218,6 +258,9 @@ pub struct FillData {
     /// Position after this fill.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub post_position: Option<i64>,
+    /// Position after this fill (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_position_fp: Option<String>,
     /// Side that was purchased.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub purchased_side: Option<Side>,
@@ -247,6 +290,12 @@ pub struct MarketPositionData {
     /// Total volume traded.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub volume: Option<i64>,
+    /// Position (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position_fp: Option<String>,
+    /// Volume (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_fp: Option<String>,
 }
 
 /// Additional metadata included with market creation events.
@@ -527,6 +576,9 @@ impl StreamMessage {
                 .map(|data| StreamMessage::Communication(CommunicationData::QuoteCreated(data))),
             "quote_accepted" => serde_json::from_value::<QuoteAcceptedData>(value)
                 .map(|data| StreamMessage::Communication(CommunicationData::QuoteAccepted(data))),
+            // Order group update notifications
+            "order_group_updates" => serde_json::from_value::<OrderGroupUpdateData>(value)
+                .map(StreamMessage::OrderGroupUpdate),
             // Multivariate lookup notifications
             "multivariate_lookup" => serde_json::from_value::<MultivariateLookupData>(value)
                 .map(StreamMessage::MultivariateLookup),

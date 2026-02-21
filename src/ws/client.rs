@@ -1289,6 +1289,8 @@ mod tests {
                 price_dollars: None,
                 yes_bid_dollars: None,
                 no_bid_dollars: None,
+                volume_fp: None,
+                open_interest_fp: None,
             }),
         };
 

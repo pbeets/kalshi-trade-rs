@@ -21,7 +21,8 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 |----------|-----------|----------|
 | Exchange | 5 | 100% |
 | Orders | 10 | 100% |
-| Order Groups | 5 | 100% |
+| Order Groups | 7 | 100% |
+| Account | 1 | 100% |
 | Portfolio | 5 | 100% |
 | Subaccounts | 5 | 100% |
 | Markets | 6 | 100% |
@@ -36,7 +37,7 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | Structured Targets | 2 | 100% |
 | Incentive Programs | 1 | 100% |
 | FCM | 2 | 100% |
-| **Total** | **75** | **100%** |
+| **Total** | **78** | **100%** |
 
 ---
 
@@ -82,8 +83,20 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | ✅ | GET | `/portfolio/order_groups` | `list_order_groups()` | |
 | ✅ | DELETE | `/portfolio/order_groups/{id}` | `delete_order_group()` | Cancels all orders in group |
 | ✅ | PUT | `/portfolio/order_groups/{id}/reset` | `reset_order_group()` | Resets contracts counter |
+| ✅ | PUT | `/portfolio/order_groups/{id}/trigger` | `trigger_order_group()` | Triggers auto-cancel |
+| ✅ | PUT | `/portfolio/order_groups/{id}/limit` | `update_order_group_limit()` | Updates contracts limit |
 
 **Source**: `src/api/order_groups.rs`
+
+---
+
+## Account API
+
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| ✅ | GET | `/account/limits` | `get_api_limits()` | API tier and rate limits |
+
+**Source**: `src/api/account.rs`
 
 ---
 

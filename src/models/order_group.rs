@@ -12,11 +12,17 @@ use super::query::QueryBuilder;
 pub struct CreateOrderGroupRequest {
     /// The maximum number of contracts that can be matched within this group.
     /// When this limit is hit, all orders in the group are cancelled.
-    pub contracts_limit: i64,
+    /// Provide `contracts_limit` or `contracts_limit_fp` (or both — if both
+    /// are provided they must agree).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts_limit: Option<i64>,
+    /// The maximum number of contracts (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts_limit_fp: Option<String>,
 }
 
 impl CreateOrderGroupRequest {
-    /// Create a new order group request.
+    /// Create a new order group request from an integer count.
     ///
     /// # Arguments
     ///
@@ -40,7 +46,19 @@ impl CreateOrderGroupRequest {
         if contracts_limit < 1 {
             return Err(crate::error::Error::InvalidContractsLimit(contracts_limit));
         }
-        Ok(Self { contracts_limit })
+        Ok(Self {
+            contracts_limit: Some(contracts_limit),
+            contracts_limit_fp: None,
+        })
+    }
+
+    /// Create a new order group request from a fixed-point string.
+    #[must_use]
+    pub fn from_fp(contracts_limit_fp: impl Into<String>) -> Self {
+        Self {
+            contracts_limit: None,
+            contracts_limit_fp: Some(contracts_limit_fp.into()),
+        }
     }
 }
 
@@ -51,6 +69,61 @@ pub struct CreateOrderGroupResponse {
     pub order_group_id: String,
 }
 
+/// Request body for PUT /portfolio/order_groups/{order_group_id}/limit.
+///
+/// Provide `contracts_limit` or `contracts_limit_fp` (or both — if both are
+/// provided they must agree). The limit is a rolling 15-second window.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateOrderGroupLimitRequest {
+    /// The new maximum number of contracts for this group.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts_limit: Option<i64>,
+    /// The new maximum number of contracts (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts_limit_fp: Option<String>,
+}
+
+impl UpdateOrderGroupLimitRequest {
+    /// Create a new update order group limit request from an integer count.
+    ///
+    /// # Arguments
+    ///
+    /// * `contracts_limit` - New maximum contracts before auto-cancel (must be >= 1)
+    ///
+    /// # Panics
+    ///
+    /// Panics if `contracts_limit` is less than 1.
+    /// Use [`try_new`](Self::try_new) for fallible construction.
+    #[must_use]
+    pub fn new(contracts_limit: i64) -> Self {
+        Self::try_new(contracts_limit).expect("invalid contracts limit")
+    }
+
+    /// Create a new update order group limit request with validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `contracts_limit` is less than 1.
+    pub fn try_new(contracts_limit: i64) -> crate::error::Result<Self> {
+        if contracts_limit < 1 {
+            return Err(crate::error::Error::InvalidContractsLimit(contracts_limit));
+        }
+        Ok(Self {
+            contracts_limit: Some(contracts_limit),
+            contracts_limit_fp: None,
+        })
+    }
+
+    /// Create a new update order group limit request from a fixed-point string.
+    #[must_use]
+    pub fn from_fp(contracts_limit_fp: impl Into<String>) -> Self {
+        Self {
+            contracts_limit: None,
+            contracts_limit_fp: Some(contracts_limit_fp.into()),
+        }
+    }
+}
+
 /// Response from GET /portfolio/order_groups/{order_group_id}.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetOrderGroupResponse {
@@ -58,6 +131,12 @@ pub struct GetOrderGroupResponse {
     pub is_auto_cancel_enabled: bool,
     /// List of order IDs that belong to this order group.
     pub orders: Vec<String>,
+    /// Contracts limit for this order group.
+    #[serde(default)]
+    pub contracts_limit: Option<i64>,
+    /// Contracts limit (fixed-point decimal string).
+    #[serde(default)]
+    pub contracts_limit_fp: Option<String>,
 }
 
 /// An order group summary (used in list response).
@@ -67,6 +146,12 @@ pub struct OrderGroupSummary {
     pub id: String,
     /// Whether auto-cancel is enabled for this order group.
     pub is_auto_cancel_enabled: bool,
+    /// Contracts limit for this order group.
+    #[serde(default)]
+    pub contracts_limit: Option<i64>,
+    /// Contracts limit (fixed-point decimal string).
+    #[serde(default)]
+    pub contracts_limit_fp: Option<String>,
 }
 
 /// Query parameters for GET /portfolio/order_groups.
@@ -122,10 +207,20 @@ mod tests {
     #[test]
     fn test_create_order_group_request() {
         let req = CreateOrderGroupRequest::new(100);
-        assert_eq!(req.contracts_limit, 100);
+        assert_eq!(req.contracts_limit, Some(100));
 
         let json = serde_json::to_string(&req).unwrap();
         assert_eq!(json, r#"{"contracts_limit":100}"#);
+    }
+
+    #[test]
+    fn test_create_order_group_request_from_fp() {
+        let req = CreateOrderGroupRequest::from_fp("100.00");
+        assert_eq!(req.contracts_limit, None);
+        assert_eq!(req.contracts_limit_fp.as_deref(), Some("100.00"));
+
+        let json = serde_json::to_string(&req).unwrap();
+        assert_eq!(json, r#"{"contracts_limit_fp":"100.00"}"#);
     }
 
     #[test]
