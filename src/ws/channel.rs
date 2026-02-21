@@ -36,9 +36,11 @@ impl Channel {
 
     /// Returns true if this channel requires at least one market ticker.
     ///
-    /// Channels like `Fill` and `Communications` are user-scoped and don't
-    /// require market tickers. Market data channels like `OrderbookDelta`,
-    /// `Ticker`, and `Trade` require at least one market ticker.
+    /// Only [`OrderbookDelta`](Self::OrderbookDelta) requires market tickers.
+    /// Other market data channels (`Ticker`, `Trade`, `MarketLifecycle`,
+    /// `Multivariate`) support subscribing with an empty ticker list to
+    /// receive updates for all markets. User-scoped channels (`Fill`,
+    /// `MarketPositions`, `Communications`) never require tickers.
     pub fn requires_market_ticker(&self) -> bool {
         matches!(self, Self::OrderbookDelta)
     }
