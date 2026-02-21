@@ -43,6 +43,7 @@ pub struct Event {
     #[serde(default)]
     pub sub_title: Option<String>,
 
+    /// Deprecated: use series-level category instead.
     #[serde(default)]
     pub category: Option<String>,
 
@@ -65,6 +66,10 @@ pub struct Event {
     /// Time period for period-strike events.
     #[serde(default)]
     pub strike_period: Option<String>,
+
+    /// Event status (e.g., "open", "closed", "settled").
+    #[serde(default)]
+    pub status: Option<String>,
 
     /// Nested markets (only present if with_nested_markets=true).
     #[serde(default)]
@@ -94,6 +99,10 @@ pub struct Milestone {
 
     #[serde(default)]
     pub related_event_tickers: Option<Vec<String>>,
+
+    /// Milestone status (e.g., "upcoming", "active", "completed").
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// Response from GET /events.

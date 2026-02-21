@@ -275,9 +275,14 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 
 ## Important Notes
 
-1. **Market ticker requirements**: Channels `orderbook_delta`, `ticker`, `trade`, and `market_lifecycle_v2` require at least one market ticker. The client validates this before sending.
+1. **Market ticker requirements**: Only `orderbook_delta` strictly requires at
+   least one market ticker. Other market data channels (`ticker`, `trade`,
+   `market_lifecycle_v2`, `multivariate`) support subscribing with an empty
+   ticker list to receive updates for all markets.
 
-2. **Authentication-only channels**: `fill`, `market_positions`, and `communications` are user-scoped and don't require market tickers.
+2. **Authentication-only channels**: `fill`, `market_positions`,
+   `communications`, and `order_group_updates` are user-scoped and don't
+   require market tickers.
 
 3. **Broadcast channel lag**: If a subscriber falls behind, they will receive a `RecvError::Lagged(n)` indicating dropped messages. Increase `buffer_size` via `connect_with_options()` if needed.
 

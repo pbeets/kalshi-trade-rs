@@ -24,8 +24,15 @@ pub async fn get_order(http: &HttpClient, order_id: &str) -> Result<OrderRespons
     http.get(&path).await
 }
 
-pub async fn cancel_order(http: &HttpClient, order_id: &str) -> Result<CancelOrderResponse> {
-    let path = format!("/portfolio/orders/{}", order_id);
+pub async fn cancel_order(
+    http: &HttpClient,
+    order_id: &str,
+    subaccount: Option<i32>,
+) -> Result<CancelOrderResponse> {
+    let path = match subaccount {
+        Some(sub) => format!("/portfolio/orders/{}?subaccount={}", order_id, sub),
+        None => format!("/portfolio/orders/{}", order_id),
+    };
     http.delete_with_response(&path).await
 }
 

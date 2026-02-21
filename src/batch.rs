@@ -47,8 +47,8 @@ use crate::{
     KalshiClient,
     error::{Error, MAX_BATCH_SIZE, Result},
     models::{
-        BatchCancelOrderResult, BatchCancelOrdersRequest, BatchCreateOrdersRequest,
-        BatchOrderResult, CreateOrderRequest, Order,
+        BatchCancelOrderItem, BatchCancelOrderResult, BatchCancelOrdersRequest,
+        BatchCreateOrdersRequest, BatchOrderResult, CreateOrderRequest, Order,
     },
 };
 
@@ -510,7 +510,67 @@ impl<'a> BatchManager<'a> {
             }
 
             // Send the batch with retry logic
+            #[allow(deprecated)]
             let request = BatchCancelOrdersRequest::new(chunk.to_vec());
+            let client = self.client;
+            match self
+                .execute_with_retry(|| {
+                    let req = request.clone();
+                    async move { client.batch_cancel_orders(req).await }
+                })
+                .await
+            {
+                Ok(response) => all_results.extend(response.orders),
+                Err(e) => {
+                    return BatchOperationResult {
+                        completed: AggregatedCancelResponse {
+                            orders: all_results,
+                        },
+                        error: Some(e),
+                    };
+                }
+            }
+        }
+
+        BatchOperationResult {
+            completed: AggregatedCancelResponse {
+                orders: all_results,
+            },
+            error: None,
+        }
+    }
+
+    /// Cancel multiple orders with per-order subaccount support.
+    ///
+    /// Like [`cancel_orders`](Self::cancel_orders) but accepts
+    /// [`BatchCancelOrderItem`] entries, allowing each cancellation to target
+    /// a different subaccount.
+    pub async fn cancel_orders_with_items(
+        &self,
+        items: Vec<BatchCancelOrderItem>,
+    ) -> BatchOperationResult<AggregatedCancelResponse> {
+        if items.is_empty() {
+            return BatchOperationResult {
+                completed: AggregatedCancelResponse { orders: vec![] },
+                error: None,
+            };
+        }
+
+        let mut all_results = Vec::with_capacity(items.len());
+
+        for chunk in items.chunks(MAX_BATCH_SIZE) {
+            let cost = chunk.len() as f64 * CANCEL_ORDER_COST;
+
+            let wait_time = {
+                let mut limiter = self.rate_limiter.lock().await;
+                limiter.consume(cost)
+            };
+
+            if !wait_time.is_zero() {
+                tokio::time::sleep(wait_time).await;
+            }
+
+            let request = BatchCancelOrdersRequest::with_orders(chunk.to_vec());
             let client = self.client;
             match self
                 .execute_with_retry(|| {
@@ -792,6 +852,7 @@ mod tests {
                 self_trade_prevention_type: None,
                 order_group_id: None,
                 cancel_order_on_pause: None,
+                subaccount_number: None,
             }
         }
 

@@ -10,6 +10,9 @@ use super::query::QueryBuilder;
 /// associated with the group by including the `order_group_id` when creating them.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateOrderGroupRequest {
+    /// Name for the order group.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// The maximum number of contracts that can be matched within this group.
     /// When this limit is hit, all orders in the group are cancelled.
     /// Provide `contracts_limit` or `contracts_limit_fp` (or both — if both
@@ -19,6 +22,9 @@ pub struct CreateOrderGroupRequest {
     /// The maximum number of contracts (fixed-point decimal string).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contracts_limit_fp: Option<String>,
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl CreateOrderGroupRequest {
@@ -47,8 +53,10 @@ impl CreateOrderGroupRequest {
             return Err(crate::error::Error::InvalidContractsLimit(contracts_limit));
         }
         Ok(Self {
+            name: None,
             contracts_limit: Some(contracts_limit),
             contracts_limit_fp: None,
+            subaccount: None,
         })
     }
 
@@ -56,9 +64,25 @@ impl CreateOrderGroupRequest {
     #[must_use]
     pub fn from_fp(contracts_limit_fp: impl Into<String>) -> Self {
         Self {
+            name: None,
             contracts_limit: None,
             contracts_limit_fp: Some(contracts_limit_fp.into()),
+            subaccount: None,
         }
+    }
+
+    /// Set a name for the order group.
+    #[must_use]
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Set the subaccount number (0 for primary, 1-32 for subaccounts).
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
     }
 }
 
@@ -144,6 +168,15 @@ pub struct GetOrderGroupResponse {
 pub struct OrderGroupSummary {
     /// Unique identifier for the order group.
     pub id: String,
+    /// Name of the order group.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// Status of the order group.
+    #[serde(default)]
+    pub status: Option<String>,
+    /// When the order group was created.
+    #[serde(default)]
+    pub created_time: Option<String>,
     /// Whether auto-cancel is enabled for this order group.
     pub is_auto_cancel_enabled: bool,
     /// Contracts limit for this order group.

@@ -99,8 +99,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let size = match rfq.contracts {
                         Some(c) if c > 0 => format!("{} contracts", c),
                         _ => rfq
-                            .target_cost_dollars()
-                            .map(|d| format!("${:.2} target", d))
+                            .target_cost_dollars
+                            .as_deref()
+                            .map(|d| format!("${} target", d))
                             .unwrap_or_else(|| "unknown size".to_string()),
                     };
                     println!(

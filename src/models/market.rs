@@ -28,6 +28,7 @@ pub enum MarketStatus {
     Determined,
     Disputed,
     Amended,
+    Settled,
     Finalized,
     /// Unknown status returned by the API.
     #[serde(other)]
@@ -42,6 +43,7 @@ impl MarketStatus {
             MarketStatus::Inactive => "inactive",
             MarketStatus::Active => "active",
             MarketStatus::Closed => "closed",
+            MarketStatus::Settled => "settled",
             MarketStatus::Determined => "determined",
             MarketStatus::Disputed => "disputed",
             MarketStatus::Amended => "amended",
@@ -58,6 +60,8 @@ impl MarketStatus {
 pub enum MarketResult {
     Yes,
     No,
+    /// Scalar result for scalar markets.
+    Scalar,
     #[serde(rename = "")]
     None,
     /// Unknown result returned by the API.
@@ -159,6 +163,9 @@ pub struct Market {
     pub yes_sub_title: Option<String>,
     #[serde(default)]
     pub no_sub_title: Option<String>,
+    /// Market category.
+    #[serde(default)]
+    pub category: Option<String>,
 
     #[serde(default)]
     pub created_time: Option<String>,
@@ -177,28 +184,62 @@ pub struct Market {
 
     pub status: MarketStatus,
 
+    /// Units for price fields (e.g., "usd_cent").
+    #[serde(default)]
+    pub response_price_units: Option<String>,
+    /// Risk limit in cents.
+    #[serde(default)]
+    pub risk_limit_cents: Option<i64>,
+    /// Minimum price movement in cents.
+    #[serde(default)]
+    pub tick_size: Option<i64>,
+
+    /// Best YES bid price in cents.
+    #[serde(default)]
+    pub yes_bid: Option<i64>,
     /// Best YES bid price in dollars.
     #[serde(default)]
     pub yes_bid_dollars: Option<String>,
+    /// Best YES ask price in cents.
+    #[serde(default)]
+    pub yes_ask: Option<i64>,
     /// Best YES ask price in dollars.
     #[serde(default)]
     pub yes_ask_dollars: Option<String>,
+    /// Best NO bid price in cents.
+    #[serde(default)]
+    pub no_bid: Option<i64>,
     /// Best NO bid price in dollars.
     #[serde(default)]
     pub no_bid_dollars: Option<String>,
+    /// Best NO ask price in cents.
+    #[serde(default)]
+    pub no_ask: Option<i64>,
     /// Best NO ask price in dollars.
     #[serde(default)]
     pub no_ask_dollars: Option<String>,
+    /// Last trade price in cents.
+    #[serde(default)]
+    pub last_price: Option<i64>,
     /// Last trade price in dollars.
     #[serde(default)]
     pub last_price_dollars: Option<String>,
 
+    /// Previous YES bid (24h ago) in cents.
+    #[serde(default)]
+    pub previous_yes_bid: Option<i64>,
     /// Previous YES bid (24h ago) in dollars.
     #[serde(default)]
     pub previous_yes_bid_dollars: Option<String>,
+    /// Previous YES ask (24h ago) in cents.
+    #[serde(default)]
+    pub previous_yes_ask: Option<i64>,
     /// Previous YES ask (24h ago) in dollars.
     #[serde(default)]
     pub previous_yes_ask_dollars: Option<String>,
+    /// Previous price (24h ago) in cents.
+    #[serde(default)]
+    pub previous_price: Option<i64>,
     /// Previous price (24h ago) in dollars.
     #[serde(default)]
     pub previous_price_dollars: Option<String>,
@@ -222,9 +263,15 @@ pub struct Market {
     #[serde(default)]
     pub open_interest_fp: Option<String>,
 
+    /// Notional value per contract in cents.
+    #[serde(default)]
+    pub notional_value: Option<i64>,
     /// Notional value per contract in dollars.
     #[serde(default)]
     pub notional_value_dollars: Option<String>,
+    /// Available order liquidity in cents.
+    #[serde(default)]
+    pub liquidity: Option<i64>,
     /// Available order liquidity in dollars.
     #[serde(default)]
     pub liquidity_dollars: Option<String>,
@@ -272,6 +319,21 @@ pub struct Market {
     pub primary_participant_key: Option<String>,
     #[serde(default)]
     pub is_provisional: Option<bool>,
+    /// Time of the last non-trading metadata update.
+    #[serde(default)]
+    pub updated_time: Option<String>,
+    /// Maximum contracts cap for this market.
+    #[serde(default)]
+    pub cap_count: Option<i64>,
+    /// Whether fractional trading is enabled for this market.
+    #[serde(default)]
+    pub fractional_trading_enabled: Option<bool>,
+    /// Settlement value in cents.
+    #[serde(default)]
+    pub settlement_value: Option<i64>,
+    /// Expiration value.
+    #[serde(default)]
+    pub expiration_value: Option<String>,
 }
 
 /// Response from GET /markets.
@@ -317,6 +379,10 @@ pub struct GetMarketsParams {
     pub max_settled_ts: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mve_filter: Option<MveFilter>,
+    /// Return markets with metadata updated later than this Unix timestamp.
+    /// Tracks non-trading changes only. Incompatible with any other filters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_updated_ts: Option<i64>,
 }
 
 impl GetMarketsParams {
@@ -408,6 +474,15 @@ impl GetMarketsParams {
         self
     }
 
+    /// Return markets with metadata updated later than this Unix timestamp.
+    ///
+    /// Tracks non-trading changes only. Incompatible with any other filters.
+    #[must_use]
+    pub fn min_updated_ts(mut self, ts: i64) -> Self {
+        self.min_updated_ts = Some(ts);
+        self
+    }
+
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
@@ -424,6 +499,7 @@ impl GetMarketsParams {
         qb.push_opt("min_settled_ts", self.min_settled_ts);
         qb.push_opt("max_settled_ts", self.max_settled_ts);
         qb.push_opt("mve_filter", self.mve_filter.map(|f| f.as_str()));
+        qb.push_opt("min_updated_ts", self.min_updated_ts);
         qb.build()
     }
 }
@@ -596,7 +672,7 @@ pub enum TakerSide {
 pub struct Trade {
     pub trade_id: String,
     pub ticker: String,
-    /// Trade price (deprecated).
+    /// Deprecated: use `yes_price` or `no_price` instead.
     #[serde(default)]
     pub price: Option<f64>,
     /// Contract quantity.
@@ -1099,6 +1175,13 @@ mod tests {
         let json = r#""void""#;
         let result: MarketResult = serde_json::from_str(json).unwrap();
         assert_eq!(result, MarketResult::Unknown);
+    }
+
+    #[test]
+    fn test_market_result_deserialize_scalar() {
+        let json = r#""scalar""#;
+        let result: MarketResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result, MarketResult::Scalar);
     }
 
     #[test]

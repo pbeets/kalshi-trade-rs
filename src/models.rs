@@ -68,16 +68,16 @@ pub use market::{
 };
 pub use milestone::{GetMilestonesParams, MilestoneInfo, MilestoneResponse, MilestonesResponse};
 pub use multivariate::{
-    CollectionVariable, CreateMarketInCollectionRequest, CreateMarketInCollectionResponse,
-    GetLookupHistoryParams, GetMultivariateCollectionsParams, LookupHistoryEntry,
-    LookupHistoryResponse, LookupTickersRequest, LookupTickersResponse,
+    AssociatedEvent, CollectionEvent, CollectionVariable, CreateMarketInCollectionRequest,
+    CreateMarketInCollectionResponse, GetLookupHistoryParams, GetMultivariateCollectionsParams,
+    LookupHistoryEntry, LookupHistoryResponse, LookupTickersRequest, LookupTickersResponse,
     MultivariateCollectionResponse, MultivariateCollectionsResponse, MultivariateEventCollection,
 };
 pub use order::{
-    AmendOrderRequest, AmendOrderResponse, BatchCancelOrderResult, BatchCancelOrdersRequest,
-    BatchCancelOrdersResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
-    BatchOrderError, BatchOrderResult, CancelOrderResponse, CreateOrderRequest,
-    DecreaseOrderRequest, GetOrdersParams, GetQueuePositionsParams, Order,
+    AmendOrderRequest, AmendOrderResponse, BatchCancelOrderItem, BatchCancelOrderResult,
+    BatchCancelOrdersRequest, BatchCancelOrdersResponse, BatchCreateOrdersRequest,
+    BatchCreateOrdersResponse, BatchOrderError, BatchOrderResult, CancelOrderResponse,
+    CreateOrderRequest, DecreaseOrderRequest, GetOrdersParams, GetQueuePositionsParams, Order,
     OrderQueuePositionResponse, OrderResponse, OrdersResponse, QueuePosition,
     QueuePositionsResponse, TimeInForce,
 };

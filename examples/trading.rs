@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .as_nanos();
     let new_client_order_id = format!("example-amended-{}", ts);
 
-    let amend_request = AmendOrderRequest::new(
+    let amend_request = AmendOrderRequest::with_client_order_ids(
         &market.ticker,
         Side::Yes,
         Action::Buy,
