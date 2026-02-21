@@ -43,6 +43,7 @@ pub struct Event {
     #[serde(default)]
     pub sub_title: Option<String>,
 
+    /// Deprecated: use series-level category instead.
     #[serde(default)]
     pub category: Option<String>,
 

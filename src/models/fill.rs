@@ -9,12 +9,12 @@ use super::query::QueryBuilder;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fill {
     pub fill_id: String,
-    /// Legacy field, same as fill_id.
+    /// Deprecated: legacy field, same as `fill_id`.
     #[serde(default)]
     pub trade_id: Option<String>,
     pub order_id: String,
     pub ticker: String,
-    /// Legacy field, same as ticker.
+    /// Deprecated: legacy field, same as `ticker`.
     #[serde(default)]
     pub market_ticker: Option<String>,
     pub side: Side,
@@ -38,10 +38,10 @@ pub struct Fill {
     #[serde(default)]
     pub client_order_id: Option<String>,
     pub created_time: String,
-    /// Legacy Unix timestamp field.
+    /// Deprecated: legacy Unix timestamp field.
     #[serde(default)]
     pub ts: Option<i64>,
-    /// Legacy price field.
+    /// Deprecated: use `yes_price` or `no_price` instead.
     #[serde(default)]
     pub price: Option<f64>,
     /// Exchange fee cost as a fixed-point dollar string.

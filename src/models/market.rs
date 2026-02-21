@@ -269,10 +269,10 @@ pub struct Market {
     /// Notional value per contract in dollars.
     #[serde(default)]
     pub notional_value_dollars: Option<String>,
-    /// Deprecated: always returns 0. This field will be removed in a future API version.
+    /// Available order liquidity in cents.
     #[serde(default)]
     pub liquidity: Option<i64>,
-    /// Deprecated: always returns 0. This field will be removed in a future API version.
+    /// Available order liquidity in dollars.
     #[serde(default)]
     pub liquidity_dollars: Option<String>,
 
@@ -672,7 +672,7 @@ pub enum TakerSide {
 pub struct Trade {
     pub trade_id: String,
     pub ticker: String,
-    /// Trade price (deprecated).
+    /// Deprecated: use `yes_price` or `no_price` instead.
     #[serde(default)]
     pub price: Option<f64>,
     /// Contract quantity.

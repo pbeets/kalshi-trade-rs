@@ -25,6 +25,7 @@ pub struct MarketPosition {
     pub realized_pnl: i64,
     #[serde(default)]
     pub realized_pnl_dollars: Option<String>,
+    /// Deprecated: aggregate size of resting orders in contract units.
     pub resting_orders_count: i64,
     /// Resting orders count (fixed-point decimal string).
     #[serde(default)]

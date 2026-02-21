@@ -73,7 +73,7 @@ pub struct Order {
     pub taker_fees_dollars: Option<String>,
     #[serde(default)]
     pub maker_fees_dollars: Option<String>,
-    /// Deprecated.
+    /// Deprecated: always returns 0. Use the `get_order_queue_position` endpoint instead.
     #[serde(default)]
     pub queue_position: Option<i64>,
     #[serde(default)]
@@ -238,7 +238,7 @@ pub struct CreateOrderRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_order_id: Option<String>,
 
-    /// Deprecated: market orders removed. Only limit orders supported.
+    /// Order type (limit or market).
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order_type: Option<OrderType>,
