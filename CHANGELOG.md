@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `OrderbookAggregator` now drops delta messages that arrive before a snapshot
+  instead of creating ghost orderbook entries. Previously, early deltas would
+  insert empty uninitialized books into the state map, causing `full_book()` and
+  `tracked_markets()` to return stale or invalid data.
+
+### Changed
+
+- **Breaking:** Removed `initialized` field from `OrderbookSummary`. The
+  aggregator now guarantees that summaries are only produced for fully
+  initialized orderbooks, making the field redundant. Remove any
+  `summary.initialized` checks from your code.
+- `Channel::requires_market_ticker()` now returns `true` only for
+  `OrderbookDelta`. Other market data channels (`Ticker`, `Trade`,
+  `MarketLifecycle`, `Multivariate`) support subscribing with an empty ticker
+  list to receive updates for all markets.
+
 ## [0.2.0] - 2026-01-18
 
 ### Added
