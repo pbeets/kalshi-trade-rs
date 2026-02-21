@@ -3,6 +3,7 @@
 //! These modules contain endpoint-specific logic. The public API is exposed
 //! through flat methods on [`KalshiClient`](crate::KalshiClient).
 
+pub(crate) mod account;
 pub(crate) mod api_keys;
 pub(crate) mod communications;
 pub(crate) mod events;

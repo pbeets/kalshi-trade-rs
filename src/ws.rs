@@ -173,9 +173,9 @@ pub use client::{KalshiStreamClient, KalshiStreamHandle};
 pub use command::{CommunicationsSharding, SubscribeResult, UnsubscribeResult};
 pub use message::{
     Action, CommunicationData, FillData, MarketLifecycleData, MarketLifecycleEventType,
-    MarketPositionData, MultivariateLookupData, MveLeg, OrderbookDeltaData, OrderbookSnapshotData,
-    PriceLevel, QuoteAcceptedData, QuoteData, RfqData, RfqDeletedData, Side, StreamMessage,
-    StreamUpdate, TickerData, TradeData,
+    MarketPositionData, MultivariateLookupData, MveLeg, OrderGroupEventType, OrderGroupUpdateData,
+    OrderbookDeltaData, OrderbookSnapshotData, PriceLevel, QuoteAcceptedData, QuoteData, RfqData,
+    RfqDeletedData, Side, StreamMessage, StreamUpdate, TickerData, TradeData,
 };
 
 /// Connection strategy for the WebSocket client.

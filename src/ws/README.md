@@ -19,9 +19,9 @@ Complete reference for WebSocket streaming supported by this library.
 | Category | Channels | Coverage |
 |----------|----------|----------|
 | Public Channels | 4 | 100% |
-| Authenticated Channels | 3 | 100% |
+| Authenticated Channels | 4 | 100% |
 | Other Channels | 1 | 100% |
-| **Total** | **8** | **100%** |
+| **Total** | **9** | **100%** |
 
 ---
 
@@ -60,6 +60,7 @@ These channels require valid API credentials to subscribe.
 | ✅ | `fill` | `Channel::Fill` | `FillData` | User order fill notifications |
 | ✅ | `market_positions` | `Channel::MarketPositions` | `MarketPositionData` | Real-time position updates |
 | ✅ | `communications` | `Channel::Communications` | `CommunicationData` | RFQ and quote notifications |
+| ✅ | `order_group_updates` | `Channel::OrderGroupUpdates` | `OrderGroupUpdateData` | Order group lifecycle events |
 
 **Source**: `src/ws/channel.rs`
 
@@ -89,6 +90,7 @@ All message types are defined in `src/ws/message.rs`:
 | `MarketPositionData` | Position update | `user_id`, `market_ticker`, `position`, `position_cost`, `realized_pnl` |
 | `MarketLifecycleData` | Lifecycle event | `event_type`, `market_ticker`, timestamps, `result` |
 | `CommunicationData` | RFQ/Quote events | Tagged enum: `RfqCreated`, `RfqDeleted`, `QuoteCreated`, `QuoteAccepted` |
+| `OrderGroupUpdateData` | Order group events | `order_group_id`, `event_type`, `contracts_limit_fp` |
 
 ### System Messages
 

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `trigger_order_group()` endpoint to manually trigger an order group's
+  auto-cancel (PUT `/portfolio/order_groups/{id}/trigger`).
+- New `update_order_group_limit()` endpoint to change an order group's contracts
+  limit (PUT `/portfolio/order_groups/{id}/limit`).
+- New `get_api_limits()` endpoint to retrieve API tier and rate limits
+  (GET `/account/limits`).
+- `contracts_limit_fp` fixed-point string field on `CreateOrderGroupRequest`,
+  `UpdateOrderGroupLimitRequest`, `GetOrderGroupResponse`, and `OrderGroupSummary`.
+  The integer `contracts_limit` field is now optional (provide one or both).
+- New `OrderGroupUpdates` WebSocket channel for order group lifecycle events
+  (`OrderGroupUpdateData`, `OrderGroupEventType`).
+- Fixed-point `_fp` fields added to WebSocket message types: `delta_fp` on
+  `OrderbookDeltaData`, `volume_fp`/`open_interest_fp` on `TickerData`,
+  `count_fp` on `TradeData`, `count_fp`/`post_position_fp` on `FillData`,
+  and `position_fp`/`volume_fp` on `MarketPositionData`.
+
 ### Fixed
 
 - `OrderbookAggregator` now drops delta messages that arrive before a snapshot

@@ -471,6 +471,7 @@ mod tests {
             delta: 50,
             side: Side::Yes,
             price_dollars: None,
+            delta_fp: None,
             client_order_id: None,
         };
         agg.handle_delta(&delta, Some(1));
@@ -610,6 +611,7 @@ mod tests {
                 delta: 75,
                 side: Side::Yes,
                 price_dollars: None,
+                delta_fp: None,
                 client_order_id: None,
             },
             Some(1),
@@ -621,6 +623,7 @@ mod tests {
                 delta: -200,
                 side: Side::Yes,
                 price_dollars: None,
+                delta_fp: None,
                 client_order_id: None,
             },
             Some(2),
@@ -648,6 +651,7 @@ mod tests {
                 delta: 100,
                 side: Side::Yes,
                 price_dollars: None,
+                delta_fp: None,
                 client_order_id: None,
             },
             Some(1),

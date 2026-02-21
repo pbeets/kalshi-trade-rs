@@ -21,6 +21,8 @@ pub enum Channel {
     /// Market state changes and event lifecycle
     #[serde(rename = "market_lifecycle_v2")]
     MarketLifecycle,
+    /// Order group lifecycle events (requires authentication)
+    OrderGroupUpdates,
     /// Multivariate collection lookup notifications
     Multivariate,
 }
@@ -30,7 +32,7 @@ impl Channel {
     pub fn requires_auth(&self) -> bool {
         matches!(
             self,
-            Self::Fill | Self::MarketPositions | Self::Communications
+            Self::Fill | Self::MarketPositions | Self::Communications | Self::OrderGroupUpdates
         )
     }
 
@@ -55,6 +57,7 @@ impl Channel {
             Self::MarketPositions => "market_positions",
             Self::Communications => "communications",
             Self::MarketLifecycle => "market_lifecycle_v2",
+            Self::OrderGroupUpdates => "order_group_updates",
             Self::Multivariate => "multivariate",
         }
     }

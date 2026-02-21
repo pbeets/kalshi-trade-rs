@@ -12,6 +12,7 @@
 use kalshi_trade_rs::{
     Action, CreateOrderGroupRequest, CreateOrderRequest, GetMarketsParams, GetOrderGroupsParams,
     KalshiClient, KalshiConfig, MarketFilterStatus, OrderType, Side, TimeInForce,
+    UpdateOrderGroupLimitRequest,
 };
 
 #[tokio::main]
@@ -108,14 +109,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Page 1: {} groups", page1.order_groups.len());
     println!();
 
-    // 6. Reset Order Group
+    // 6. Update Order Group Limit
+    println!("=== Update Order Group Limit ===");
+    println!("Updating contracts limit to 20...\n");
+    let update_request = UpdateOrderGroupLimitRequest::new(20);
+    client
+        .update_order_group_limit(order_group_id, update_request)
+        .await?;
+    println!("Limit updated to 20.");
+    println!();
+
+    // 7. Reset Order Group
     println!("=== Reset Order Group ===");
     println!("Resetting matched contracts counter...\n");
     client.reset_order_group(order_group_id).await?;
     println!("Reset complete.");
     println!();
 
-    // 7. Delete Order Group
+    // 8. Trigger Order Group
+    println!("=== Trigger Order Group ===");
+    println!("Triggering order group (cancels all orders)...\n");
+    client.trigger_order_group(order_group_id).await?;
+    println!("Order group triggered.");
+    println!();
+
+    // 9. Delete Order Group
     println!("=== Delete Order Group ===");
     println!("Deleting the order group (this cancels all orders)...\n");
     client.delete_order_group(order_group_id).await?;
@@ -146,7 +164,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  get_order_group(id)             - Get order group details");
     println!("  list_order_groups()             - List all order groups");
     println!("  list_order_groups_with_params() - List with pagination");
+    println!("  update_order_group_limit(id, r) - Update contracts limit");
     println!("  reset_order_group(id)           - Reset matched contracts counter");
+    println!("  trigger_order_group(id)         - Trigger auto-cancel manually");
     println!("  delete_order_group(id)          - Delete group and cancel orders");
     println!();
 

@@ -6,29 +6,29 @@ pub use websocket::WebSocketClient;
 
 use crate::{
     api::{
-        api_keys, communications, events, exchange, fcm, incentive_programs, live_data, markets,
-        milestones, multivariate, order_groups, orders, portfolio, search, series,
+        account, api_keys, communications, events, exchange, fcm, incentive_programs, live_data,
+        markets, milestones, multivariate, order_groups, orders, portfolio, search, series,
         structured_targets, subaccounts,
     },
     auth::KalshiConfig,
     error::Result,
     models::{
         AcceptQuoteRequest, AmendOrderRequest, AmendOrderResponse, ApiKeysResponse,
-        BalanceResponse, BatchCancelOrdersRequest, BatchCancelOrdersResponse,
-        BatchCandlesticksResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
-        BatchLiveDataResponse, CancelOrderResponse, CandlesticksResponse, CommunicationsIdResponse,
-        CreateApiKeyRequest, CreateApiKeyResponse, CreateMarketInCollectionRequest,
-        CreateMarketInCollectionResponse, CreateOrderGroupRequest, CreateOrderGroupResponse,
-        CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest, CreateSubaccountRequest,
-        CreateSubaccountResponse, DecreaseOrderRequest, DeleteApiKeyResponse,
-        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
-        EventResponse, EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
-        ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
-        GenerateApiKeyRequest, GenerateApiKeyResponse, GetBatchCandlesticksParams,
-        GetBatchLiveDataParams, GetCandlesticksParams, GetEventCandlesticksParams,
-        GetEventForecastPercentileHistoryParams, GetEventParams, GetEventsParams,
-        GetFcmOrdersParams, GetFcmPositionsParams, GetFeeChangesParams, GetFillsParams,
-        GetLookupHistoryParams, GetMarketsParams, GetMilestonesParams,
+        ApiTierLimitsResponse, BalanceResponse, BatchCancelOrdersRequest,
+        BatchCancelOrdersResponse, BatchCandlesticksResponse, BatchCreateOrdersRequest,
+        BatchCreateOrdersResponse, BatchLiveDataResponse, CancelOrderResponse,
+        CandlesticksResponse, CommunicationsIdResponse, CreateApiKeyRequest, CreateApiKeyResponse,
+        CreateMarketInCollectionRequest, CreateMarketInCollectionResponse, CreateOrderGroupRequest,
+        CreateOrderGroupResponse, CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest,
+        CreateSubaccountRequest, CreateSubaccountResponse, DecreaseOrderRequest,
+        DeleteApiKeyResponse, EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
+        EventMetadataResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
+        ExchangeScheduleResponse, ExchangeStatusResponse, FeeChangesResponse, FillsResponse,
+        FiltersBySportResponse, GenerateApiKeyRequest, GenerateApiKeyResponse,
+        GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
+        GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
+        GetEventsParams, GetFcmOrdersParams, GetFcmPositionsParams, GetFeeChangesParams,
+        GetFillsParams, GetLookupHistoryParams, GetMarketsParams, GetMilestonesParams,
         GetMultivariateCollectionsParams, GetMultivariateEventsParams, GetOrderGroupResponse,
         GetOrderGroupsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
         GetQueuePositionsParams, GetQuoteResponse, GetRfqResponse, GetSettlementsParams,
@@ -43,7 +43,7 @@ use crate::{
         SettlementsResponse, StructuredTargetResponse, StructuredTargetsResponse,
         SubaccountBalancesResponse, SubaccountTransfersResponse, TagsByCategoriesResponse,
         TradesResponse, TransferBetweenSubaccountsRequest, TransferResponse,
-        UserDataTimestampResponse,
+        UpdateOrderGroupLimitRequest, UserDataTimestampResponse,
     },
 };
 
@@ -1083,6 +1083,71 @@ impl KalshiClient {
     /// ```
     pub async fn reset_order_group(&self, order_group_id: &str) -> Result<()> {
         order_groups::reset_order_group(&self.http, order_group_id).await
+    }
+
+    /// Trigger an order group.
+    ///
+    /// Triggers the order group, cancelling all orders within it as if the
+    /// contracts limit had been hit.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to trigger
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// client.trigger_order_group("og_123").await?;
+    /// println!("Triggered order group");
+    /// ```
+    pub async fn trigger_order_group(&self, order_group_id: &str) -> Result<()> {
+        order_groups::trigger_order_group(&self.http, order_group_id).await
+    }
+
+    /// Update the contracts limit for an order group.
+    ///
+    /// Changes the maximum number of contracts that can be matched within
+    /// this group before auto-cancel is triggered.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to update
+    /// * `request` - The new contracts limit
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::UpdateOrderGroupLimitRequest;
+    ///
+    /// let request = UpdateOrderGroupLimitRequest::new(200);
+    /// client.update_order_group_limit("og_123", request).await?;
+    /// println!("Updated order group limit");
+    /// ```
+    pub async fn update_order_group_limit(
+        &self,
+        order_group_id: &str,
+        request: UpdateOrderGroupLimitRequest,
+    ) -> Result<()> {
+        order_groups::update_order_group_limit(&self.http, order_group_id, request).await
+    }
+
+    // =========================================================================
+    // Account API
+    // =========================================================================
+
+    /// Get API tier and rate limits.
+    ///
+    /// Returns the user's API tier and associated rate limits.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let limits = client.get_api_limits().await?;
+    /// println!("Tier: {}", limits.usage_tier);
+    /// println!("Read limit: {}", limits.read_limit);
+    /// ```
+    pub async fn get_api_limits(&self) -> Result<ApiTierLimitsResponse> {
+        account::get_api_limits(&self.http).await
     }
 
     // =========================================================================
