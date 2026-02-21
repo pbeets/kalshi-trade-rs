@@ -767,7 +767,21 @@ impl KalshiClient {
     /// println!("Canceled {} contracts", response.reduced_by.unwrap_or(0));
     /// ```
     pub async fn cancel_order(&self, order_id: &str) -> Result<CancelOrderResponse> {
-        orders::cancel_order(&self.http, order_id).await
+        orders::cancel_order(&self.http, order_id, None).await
+    }
+
+    /// Cancel an order for a specific subaccount.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - The order ID to cancel
+    /// * `subaccount` - Subaccount number (0 for primary, 1-32 for subaccounts)
+    pub async fn cancel_order_for_subaccount(
+        &self,
+        order_id: &str,
+        subaccount: i32,
+    ) -> Result<CancelOrderResponse> {
+        orders::cancel_order(&self.http, order_id, Some(subaccount)).await
     }
 
     /// Amend an existing order.
@@ -785,16 +799,15 @@ impl KalshiClient {
     /// ```ignore
     /// use kalshi_trade_rs::{AmendOrderRequest, Side, Action};
     ///
-    /// let request = AmendOrderRequest::new(
-    ///     "KXBTC-25JAN10-B50000",
-    ///     Side::Yes,
-    ///     Action::Buy,
-    ///     "my-order-1",
-    ///     "my-order-2",
-    /// ).yes_price(55);
+    /// // Amend using order_id alone (client_order_id fields are optional)
+    /// let request = AmendOrderRequest::new("KXBTC-25JAN10-B50000", Side::Yes, Action::Buy)
+    ///     .yes_price(55);
     /// let response = client.amend_order("abc123", request).await?;
-    /// println!("Amended: old price={}, new price={}",
-    ///     response.old_order.yes_price, response.order.yes_price);
+    ///
+    /// // Or with client order IDs
+    /// let request = AmendOrderRequest::with_client_order_ids(
+    ///     "KXBTC-25JAN10-B50000", Side::Yes, Action::Buy, "my-order-1", "my-order-2",
+    /// ).yes_price(55);
     /// ```
     pub async fn amend_order(
         &self,
@@ -1063,7 +1076,21 @@ impl KalshiClient {
     /// println!("Deleted order group");
     /// ```
     pub async fn delete_order_group(&self, order_group_id: &str) -> Result<()> {
-        order_groups::delete_order_group(&self.http, order_group_id).await
+        order_groups::delete_order_group(&self.http, order_group_id, None).await
+    }
+
+    /// Delete an order group for a specific subaccount.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to delete
+    /// * `subaccount` - Subaccount number (0 for primary, 1-32 for subaccounts)
+    pub async fn delete_order_group_for_subaccount(
+        &self,
+        order_group_id: &str,
+        subaccount: i32,
+    ) -> Result<()> {
+        order_groups::delete_order_group(&self.http, order_group_id, Some(subaccount)).await
     }
 
     /// Reset an order group.
@@ -1082,7 +1109,21 @@ impl KalshiClient {
     /// println!("Reset order group");
     /// ```
     pub async fn reset_order_group(&self, order_group_id: &str) -> Result<()> {
-        order_groups::reset_order_group(&self.http, order_group_id).await
+        order_groups::reset_order_group(&self.http, order_group_id, None).await
+    }
+
+    /// Reset an order group for a specific subaccount.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to reset
+    /// * `subaccount` - Subaccount number (0 for primary, 1-32 for subaccounts)
+    pub async fn reset_order_group_for_subaccount(
+        &self,
+        order_group_id: &str,
+        subaccount: i32,
+    ) -> Result<()> {
+        order_groups::reset_order_group(&self.http, order_group_id, Some(subaccount)).await
     }
 
     /// Trigger an order group.
@@ -1101,7 +1142,21 @@ impl KalshiClient {
     /// println!("Triggered order group");
     /// ```
     pub async fn trigger_order_group(&self, order_group_id: &str) -> Result<()> {
-        order_groups::trigger_order_group(&self.http, order_group_id).await
+        order_groups::trigger_order_group(&self.http, order_group_id, None).await
+    }
+
+    /// Trigger an order group for a specific subaccount.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to trigger
+    /// * `subaccount` - Subaccount number (0 for primary, 1-32 for subaccounts)
+    pub async fn trigger_order_group_for_subaccount(
+        &self,
+        order_group_id: &str,
+        subaccount: i32,
+    ) -> Result<()> {
+        order_groups::trigger_order_group(&self.http, order_group_id, Some(subaccount)).await
     }
 
     /// Update the contracts limit for an order group.

@@ -42,26 +42,59 @@ pub async fn list_order_groups(
 }
 
 /// Deletes an order group and cancels all orders within it.
-pub async fn delete_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
-    let path = format!("/portfolio/order_groups/{}", encode_id(order_group_id));
+pub async fn delete_order_group(
+    http: &HttpClient,
+    order_group_id: &str,
+    subaccount: Option<i32>,
+) -> Result<()> {
+    let path = match subaccount {
+        Some(sub) => format!(
+            "/portfolio/order_groups/{}?subaccount={}",
+            encode_id(order_group_id),
+            sub
+        ),
+        None => format!("/portfolio/order_groups/{}", encode_id(order_group_id)),
+    };
     http.delete(&path).await
 }
 
 /// Resets the matched contracts counter to zero, re-enabling order placement.
-pub async fn reset_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
-    let path = format!(
-        "/portfolio/order_groups/{}/reset",
-        encode_id(order_group_id)
-    );
+pub async fn reset_order_group(
+    http: &HttpClient,
+    order_group_id: &str,
+    subaccount: Option<i32>,
+) -> Result<()> {
+    let path = match subaccount {
+        Some(sub) => format!(
+            "/portfolio/order_groups/{}/reset?subaccount={}",
+            encode_id(order_group_id),
+            sub
+        ),
+        None => format!(
+            "/portfolio/order_groups/{}/reset",
+            encode_id(order_group_id)
+        ),
+    };
     http.put_empty_json(&path).await
 }
 
 /// Triggers an order group, cancelling all orders within it.
-pub async fn trigger_order_group(http: &HttpClient, order_group_id: &str) -> Result<()> {
-    let path = format!(
-        "/portfolio/order_groups/{}/trigger",
-        encode_id(order_group_id)
-    );
+pub async fn trigger_order_group(
+    http: &HttpClient,
+    order_group_id: &str,
+    subaccount: Option<i32>,
+) -> Result<()> {
+    let path = match subaccount {
+        Some(sub) => format!(
+            "/portfolio/order_groups/{}/trigger?subaccount={}",
+            encode_id(order_group_id),
+            sub
+        ),
+        None => format!(
+            "/portfolio/order_groups/{}/trigger",
+            encode_id(order_group_id)
+        ),
+    };
     http.put_empty_json(&path).await
 }
 

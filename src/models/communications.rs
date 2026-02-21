@@ -13,10 +13,16 @@ pub struct CreateRfqRequest {
     /// The number of contracts for the RFQ.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contracts: Option<i64>,
+    /// The number of contracts (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts_fp: Option<String>,
     /// The target cost for the RFQ in centi-cents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars.
+    /// Divide by 10,000 to get dollars. Deprecated: use `target_cost_dollars` instead.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_cost_centi_cents: Option<i64>,
+    /// Target cost as a fixed-point dollar string (e.g., "50.0000").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_cost_dollars: Option<String>,
     /// Whether to rest the remainder of the RFQ after execution.
     pub rest_remainder: bool,
     /// Whether to delete existing RFQs as part of this RFQ's creation.
@@ -25,6 +31,15 @@ pub struct CreateRfqRequest {
     /// The subtrader to create the RFQ for (FCM members only).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subtrader_id: Option<String>,
+    /// The side of the RFQ (yes or no).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub side: Option<String>,
+    /// Time in seconds before the RFQ expires (60-3600).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_in_seconds: Option<i64>,
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl CreateRfqRequest {
@@ -44,10 +59,15 @@ impl CreateRfqRequest {
         Ok(Self {
             market_ticker: market_ticker.into(),
             contracts: Some(contracts),
+            contracts_fp: None,
             target_cost_centi_cents: None,
+            target_cost_dollars: None,
             rest_remainder,
             replace_existing: None,
             subtrader_id: None,
+            side: None,
+            expires_in_seconds: None,
+            subaccount: None,
         })
     }
 
@@ -90,10 +110,15 @@ impl CreateRfqRequest {
         Ok(Self {
             market_ticker: market_ticker.into(),
             contracts: None,
+            contracts_fp: None,
             target_cost_centi_cents: Some(target_cost_centi_cents),
+            target_cost_dollars: None,
             rest_remainder,
             replace_existing: None,
             subtrader_id: None,
+            side: None,
+            expires_in_seconds: None,
+            subaccount: None,
         })
     }
 
@@ -120,7 +145,7 @@ impl CreateRfqRequest {
 
     /// Create a new RFQ request with target cost in dollars, with validation.
     ///
-    /// Converts the dollar amount to centi-cents for the API.
+    /// Sends the dollar amount as a fixed-point string via the `target_cost_dollars` field.
     ///
     /// # Errors
     ///
@@ -135,20 +160,24 @@ impl CreateRfqRequest {
                 target_cost_dollars,
             ));
         }
-        let centi_cents = (target_cost_dollars * 10000.0).round() as i64;
         Ok(Self {
             market_ticker: market_ticker.into(),
             contracts: None,
-            target_cost_centi_cents: Some(centi_cents),
+            contracts_fp: None,
+            target_cost_centi_cents: None,
+            target_cost_dollars: Some(format!("{:.4}", target_cost_dollars)),
             rest_remainder,
             replace_existing: None,
             subtrader_id: None,
+            side: None,
+            expires_in_seconds: None,
+            subaccount: None,
         })
     }
 
     /// Create a new RFQ request with target cost in dollars.
     ///
-    /// Converts the dollar amount to centi-cents for the API.
+    /// Sends the dollar amount as a fixed-point string via the `target_cost_dollars` field.
     ///
     /// # Arguments
     ///
@@ -182,6 +211,30 @@ impl CreateRfqRequest {
         self.subtrader_id = Some(id.into());
         self
     }
+
+    /// Set the side of the RFQ (yes or no).
+    #[must_use]
+    pub fn side(mut self, side: Side) -> Self {
+        self.side = Some(match side {
+            Side::Yes => "yes".to_string(),
+            Side::No => "no".to_string(),
+        });
+        self
+    }
+
+    /// Set the expiration time in seconds (60-3600).
+    #[must_use]
+    pub fn expires_in_seconds(mut self, seconds: i64) -> Self {
+        self.expires_in_seconds = Some(seconds);
+        self
+    }
+
+    /// Set the subaccount number (0 for primary, 1-32 for subaccounts).
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
 }
 
 /// Request body for POST /communications/quotes (create quote).
@@ -195,6 +248,12 @@ pub struct CreateQuoteRequest {
     pub no_bid: String,
     /// Whether to rest the remainder of the quote after execution.
     pub rest_remainder: bool,
+    /// Number of contracts to quote.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts: Option<i64>,
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl CreateQuoteRequest {
@@ -218,6 +277,8 @@ impl CreateQuoteRequest {
             yes_bid: yes_bid.into(),
             no_bid: no_bid.into(),
             rest_remainder,
+            contracts: None,
+            subaccount: None,
         }
     }
 
@@ -240,6 +301,8 @@ impl CreateQuoteRequest {
             yes_bid: format!("{:.4}", yes_price_cents as f64 / 100.0),
             no_bid: format!("{:.4}", no_price_cents as f64 / 100.0),
             rest_remainder,
+            contracts: None,
+            subaccount: None,
         })
     }
 
@@ -264,6 +327,20 @@ impl CreateQuoteRequest {
     ) -> Self {
         Self::try_from_cents(rfq_id, yes_price_cents, rest_remainder).expect("invalid quote price")
     }
+
+    /// Set the number of contracts to quote.
+    #[must_use]
+    pub fn contracts(mut self, contracts: i64) -> Self {
+        self.contracts = Some(contracts);
+        self
+    }
+
+    /// Set the subaccount number (0 for primary, 1-32 for subaccounts).
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
 }
 
 /// Request body for PUT /communications/quotes/{quote_id}/accept.
@@ -271,6 +348,9 @@ impl CreateQuoteRequest {
 pub struct AcceptQuoteRequest {
     /// The side of the quote to accept ("yes" or "no").
     pub accepted_side: String,
+    /// Number of contracts to accept (for partial acceptance).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contracts: Option<i64>,
 }
 
 impl AcceptQuoteRequest {
@@ -286,6 +366,7 @@ impl AcceptQuoteRequest {
                 Side::Yes => "yes".to_string(),
                 Side::No => "no".to_string(),
             },
+            contracts: None,
         }
     }
 
@@ -294,6 +375,7 @@ impl AcceptQuoteRequest {
     pub fn yes() -> Self {
         Self {
             accepted_side: "yes".to_string(),
+            contracts: None,
         }
     }
 
@@ -302,7 +384,15 @@ impl AcceptQuoteRequest {
     pub fn no() -> Self {
         Self {
             accepted_side: "no".to_string(),
+            contracts: None,
         }
+    }
+
+    /// Set the number of contracts to accept (for partial acceptance).
+    #[must_use]
+    pub fn contracts(mut self, contracts: i64) -> Self {
+        self.contracts = Some(contracts);
+        self
     }
 }
 
@@ -523,10 +613,16 @@ pub struct Rfq {
     /// Number of contracts requested in the RFQ.
     #[serde(default)]
     pub contracts: Option<i64>,
+    /// Number of contracts (fixed-point decimal string).
+    #[serde(default)]
+    pub contracts_fp: Option<String>,
     /// Total value of the RFQ in centi-cents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars.
+    /// Divide by 10,000 to get dollars. Deprecated: use `target_cost_dollars`.
     #[serde(default)]
     pub target_cost_centi_cents: Option<i64>,
+    /// Target cost as a fixed-point dollar string.
+    #[serde(default)]
+    pub target_cost_dollars: Option<String>,
     /// Current status of the RFQ (open, closed).
     #[serde(default)]
     pub status: Option<String>,
@@ -553,12 +649,20 @@ pub struct Rfq {
     /// User ID of the RFQ creator (private field).
     #[serde(default)]
     pub creator_user_id: Option<String>,
+    /// The side of the RFQ (yes or no).
+    #[serde(default)]
+    pub side: Option<String>,
+    /// Timestamp when the RFQ expires.
+    #[serde(default)]
+    pub expires_ts: Option<String>,
 }
 
 impl Rfq {
-    /// Returns the target cost in dollars, if available.
+    /// Returns the target cost in dollars computed from centi-cents, if available.
+    ///
+    /// Prefer using the `target_cost_dollars` field directly when available.
     #[must_use]
-    pub fn target_cost_dollars(&self) -> Option<f64> {
+    pub fn target_cost_as_dollars(&self) -> Option<f64> {
         self.target_cost_centi_cents.map(|cc| cc as f64 / 10000.0)
     }
 }
@@ -627,21 +731,35 @@ pub struct Quote {
     #[serde(default)]
     pub rfq_creator_user_id: Option<String>,
     /// Total value requested in RFQ in centi-cents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars.
+    /// Divide by 10,000 to get dollars. Deprecated: use `rfq_target_cost_dollars`.
     #[serde(default)]
     pub rfq_target_cost_centi_cents: Option<i64>,
+    /// RFQ target cost as a fixed-point dollar string.
+    #[serde(default)]
+    pub rfq_target_cost_dollars: Option<String>,
     /// Order ID for RFQ creator (private field).
     #[serde(default)]
     pub rfq_creator_order_id: Option<String>,
+    /// Number of contracts (fixed-point decimal string).
+    #[serde(default)]
+    pub contracts_fp: Option<String>,
     /// Order ID for quote creator (private field).
     #[serde(default)]
     pub creator_order_id: Option<String>,
+    /// The side of the quote (yes or no).
+    #[serde(default)]
+    pub side: Option<String>,
+    /// Timestamp when the quote expires.
+    #[serde(default)]
+    pub expires_ts: Option<String>,
 }
 
 impl Quote {
-    /// Returns the RFQ target cost in dollars, if available.
+    /// Returns the RFQ target cost in dollars computed from centi-cents, if available.
+    ///
+    /// Prefer using the `rfq_target_cost_dollars` field directly when available.
     #[must_use]
-    pub fn rfq_target_cost_dollars(&self) -> Option<f64> {
+    pub fn rfq_target_cost_as_dollars(&self) -> Option<f64> {
         self.rfq_target_cost_centi_cents
             .map(|cc| cc as f64 / 10000.0)
     }
@@ -710,7 +828,8 @@ mod tests {
     fn test_create_rfq_with_target_cost_dollars() {
         let rfq = CreateRfqRequest::with_target_cost_dollars("TICKER", 50.0, true);
         assert_eq!(rfq.market_ticker, "TICKER");
-        assert_eq!(rfq.target_cost_centi_cents, Some(500000)); // $50 = 500000 centi-cents
+        assert!(rfq.target_cost_centi_cents.is_none());
+        assert_eq!(rfq.target_cost_dollars.as_deref(), Some("50.0000"));
     }
 
     #[test]
@@ -760,13 +879,15 @@ mod tests {
     }
 
     #[test]
-    fn test_rfq_target_cost_dollars() {
+    fn test_rfq_target_cost_as_dollars() {
         let rfq = Rfq {
             id: "rfq123".to_string(),
             creator_id: "creator123".to_string(),
             market_ticker: "TICKER".to_string(),
             contracts: None,
+            contracts_fp: None,
             target_cost_centi_cents: Some(500000), // $50
+            target_cost_dollars: None,
             status: Some("open".to_string()),
             created_ts: "2024-01-01T00:00:00Z".to_string(),
             updated_ts: None,
@@ -776,12 +897,14 @@ mod tests {
             rest_remainder: None,
             cancellation_reason: None,
             creator_user_id: None,
+            side: None,
+            expires_ts: None,
         };
-        assert!((rfq.target_cost_dollars().unwrap() - 50.0).abs() < f64::EPSILON);
+        assert!((rfq.target_cost_as_dollars().unwrap() - 50.0).abs() < f64::EPSILON);
     }
 
     #[test]
-    fn test_quote_rfq_target_cost_dollars() {
+    fn test_quote_rfq_target_cost_as_dollars() {
         let quote = Quote {
             id: "quote123".to_string(),
             rfq_id: "rfq123".to_string(),
@@ -806,10 +929,14 @@ mod tests {
             creator_user_id: None,
             rfq_creator_user_id: None,
             rfq_target_cost_centi_cents: Some(500000), // $50
+            rfq_target_cost_dollars: None,
             rfq_creator_order_id: None,
+            contracts_fp: None,
             creator_order_id: None,
+            side: None,
+            expires_ts: None,
         };
-        assert!((quote.rfq_target_cost_dollars().unwrap() - 50.0).abs() < f64::EPSILON);
+        assert!((quote.rfq_target_cost_as_dollars().unwrap() - 50.0).abs() < f64::EPSILON);
     }
 
     #[test]

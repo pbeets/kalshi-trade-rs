@@ -27,6 +27,9 @@ pub struct StructuredTarget {
     /// Last update timestamp (RFC3339).
     #[serde(default)]
     pub last_updated_ts: Option<String>,
+    /// Status of the structured target.
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// Query parameters for GET /structured_targets.

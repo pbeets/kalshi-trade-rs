@@ -67,6 +67,9 @@ pub struct TransferBetweenSubaccountsRequest {
     pub to_subaccount: i32,
     /// Amount to transfer in cents.
     pub amount: i64,
+    /// Client-specified transfer ID for idempotency.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_transfer_id: Option<String>,
 }
 
 impl TransferBetweenSubaccountsRequest {
@@ -116,6 +119,7 @@ impl TransferBetweenSubaccountsRequest {
             from_subaccount: from,
             to_subaccount: to,
             amount,
+            client_transfer_id: None,
         })
     }
 

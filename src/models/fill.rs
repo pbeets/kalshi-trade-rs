@@ -41,6 +41,15 @@ pub struct Fill {
     /// Legacy Unix timestamp field.
     #[serde(default)]
     pub ts: Option<i64>,
+    /// Legacy price field.
+    #[serde(default)]
+    pub price: Option<f64>,
+    /// Exchange fee cost as a fixed-point dollar string.
+    #[serde(default)]
+    pub fee_cost: Option<String>,
+    /// Subaccount number this fill belongs to (0 for primary, 1-32 for subaccounts).
+    #[serde(default)]
+    pub subaccount_number: Option<i32>,
 }
 
 /// Response from the get_fills endpoint.

@@ -54,7 +54,8 @@ pub use error::{DisconnectReason, Error, MAX_BATCH_SIZE, Result};
 pub use models::{
     AcceptQuoteRequest, Action, AmendOrderRequest, AmendOrderResponse, Announcement,
     AnnouncementStatus, AnnouncementType, ApiKey, ApiKeysResponse, ApiTierLimitsResponse,
-    BalanceResponse, BatchCancelOrderResult, BatchCancelOrdersRequest, BatchCancelOrdersResponse,
+    BalanceResponse, BatchCancelOrderItem, BatchCancelOrderResult, BatchCancelOrdersRequest,
+    BatchCancelOrdersResponse,
     BatchCandlesticksResponse, BatchCreateOrdersRequest, BatchCreateOrdersResponse,
     BatchLiveDataResponse, BatchOrderError, BatchOrderResult, CancelOrderResponse, Candlestick,
     CandlestickPeriod, CandlesticksResponse, CommunicationsIdResponse, CompetitionFilter,

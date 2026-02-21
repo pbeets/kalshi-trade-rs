@@ -66,6 +66,10 @@ pub struct Event {
     #[serde(default)]
     pub strike_period: Option<String>,
 
+    /// Event status (e.g., "open", "closed", "settled").
+    #[serde(default)]
+    pub status: Option<String>,
+
     /// Nested markets (only present if with_nested_markets=true).
     #[serde(default)]
     pub markets: Option<Vec<Market>>,
@@ -94,6 +98,10 @@ pub struct Milestone {
 
     #[serde(default)]
     pub related_event_tickers: Option<Vec<String>>,
+
+    /// Milestone status (e.g., "upcoming", "active", "completed").
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// Response from GET /events.

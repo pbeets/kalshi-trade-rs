@@ -35,6 +35,12 @@ pub struct MarketPosition {
     pub fees_paid_dollars: Option<String>,
     #[serde(default)]
     pub last_updated_ts: Option<String>,
+    /// Settlement result for this market position.
+    #[serde(default)]
+    pub market_result: Option<String>,
+    /// Total cost in cents.
+    #[serde(default)]
+    pub total_cost: Option<i64>,
 }
 
 /// A position aggregated at the event level.

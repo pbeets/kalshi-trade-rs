@@ -88,6 +88,9 @@ pub struct Order {
     pub order_group_id: Option<String>,
     #[serde(default)]
     pub cancel_order_on_pause: Option<bool>,
+    /// Subaccount number this order belongs to (0 for primary, 1-32 for subaccounts).
+    #[serde(default)]
+    pub subaccount_number: Option<i32>,
 }
 
 /// Response from the get_orders endpoint.
@@ -287,6 +290,18 @@ pub struct CreateOrderRequest {
     /// Auto-cancel if exchange trading pauses.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cancel_order_on_pause: Option<bool>,
+
+    /// Deprecated: Use `reduce_only` instead. Only accepts value of 0.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sell_position_floor: Option<i64>,
+
+    /// Number of contracts (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count_fp: Option<String>,
+
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl CreateOrderRequest {
@@ -312,6 +327,9 @@ impl CreateOrderRequest {
             self_trade_prevention_type: None,
             order_group_id: None,
             cancel_order_on_pause: None,
+            sell_position_floor: None,
+            count_fp: None,
+            subaccount: None,
         }
     }
 
@@ -436,6 +454,28 @@ impl CreateOrderRequest {
         self.cancel_order_on_pause = Some(cancel);
         self
     }
+
+    /// Deprecated: Use `reduce_only` instead. Only accepts value of 0.
+    #[must_use]
+    #[deprecated(note = "Use reduce_only instead. Only accepts value of 0.")]
+    pub fn sell_position_floor(mut self, floor: i64) -> Self {
+        self.sell_position_floor = Some(floor);
+        self
+    }
+
+    /// Set the number of contracts as a fixed-point decimal string.
+    #[must_use]
+    pub fn count_fp(mut self, count_fp: impl Into<String>) -> Self {
+        self.count_fp = Some(count_fp.into());
+        self
+    }
+
+    /// Set the subaccount number (0 for primary, 1-32 for subaccounts).
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
 }
 
 /// Response from DELETE /portfolio/orders/{order_id} (cancel order).
@@ -459,11 +499,13 @@ pub struct AmendOrderRequest {
     /// Action of the order.
     pub action: Action,
 
-    /// Original client-specified order ID to be amended.
-    pub client_order_id: String,
+    /// Original client-specified order ID to be amended (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_order_id: Option<String>,
 
-    /// New client-specified order ID after amendment.
-    pub updated_client_order_id: String,
+    /// New client-specified order ID after amendment (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_client_order_id: Option<String>,
 
     /// Updated yes price in cents (1-99).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -484,12 +526,42 @@ pub struct AmendOrderRequest {
     /// Updated quantity for the order.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub count: Option<i64>,
+
+    /// Updated quantity (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count_fp: Option<String>,
+
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl AmendOrderRequest {
-    /// Create a new amend order request.
+    /// Create a new amend order request with required fields only.
+    ///
+    /// Orders can be identified by `order_id` alone; `client_order_id` and
+    /// `updated_client_order_id` are optional.
     #[must_use]
-    pub fn new(
+    pub fn new(ticker: impl Into<String>, side: Side, action: Action) -> Self {
+        Self {
+            ticker: ticker.into(),
+            side,
+            action,
+            client_order_id: None,
+            updated_client_order_id: None,
+            yes_price: None,
+            no_price: None,
+            yes_price_dollars: None,
+            no_price_dollars: None,
+            count: None,
+            count_fp: None,
+            subaccount: None,
+        }
+    }
+
+    /// Create a new amend order request with client order IDs.
+    #[must_use]
+    pub fn with_client_order_ids(
         ticker: impl Into<String>,
         side: Side,
         action: Action,
@@ -500,14 +572,30 @@ impl AmendOrderRequest {
             ticker: ticker.into(),
             side,
             action,
-            client_order_id: client_order_id.into(),
-            updated_client_order_id: updated_client_order_id.into(),
+            client_order_id: Some(client_order_id.into()),
+            updated_client_order_id: Some(updated_client_order_id.into()),
             yes_price: None,
             no_price: None,
             yes_price_dollars: None,
             no_price_dollars: None,
             count: None,
+            count_fp: None,
+            subaccount: None,
         }
+    }
+
+    /// Set the original client-specified order ID.
+    #[must_use]
+    pub fn client_order_id(mut self, id: impl Into<String>) -> Self {
+        self.client_order_id = Some(id.into());
+        self
+    }
+
+    /// Set the new client-specified order ID after amendment.
+    #[must_use]
+    pub fn updated_client_order_id(mut self, id: impl Into<String>) -> Self {
+        self.updated_client_order_id = Some(id.into());
+        self
     }
 
     #[must_use]
@@ -539,6 +627,20 @@ impl AmendOrderRequest {
         self.count = Some(count);
         self
     }
+
+    /// Set the updated quantity as a fixed-point decimal string.
+    #[must_use]
+    pub fn count_fp(mut self, count_fp: impl Into<String>) -> Self {
+        self.count_fp = Some(count_fp.into());
+        self
+    }
+
+    /// Set the subaccount number (0 for primary, 1-32 for subaccounts).
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
 }
 
 /// Response from POST /portfolio/orders/{order_id}/amend.
@@ -560,6 +662,18 @@ pub struct DecreaseOrderRequest {
     /// Target remaining quantity.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reduce_to: Option<i64>,
+
+    /// Amount to reduce by (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reduce_by_fp: Option<String>,
+
+    /// Target remaining quantity (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reduce_to_fp: Option<String>,
+
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl DecreaseOrderRequest {
@@ -569,6 +683,9 @@ impl DecreaseOrderRequest {
         Self {
             reduce_by: Some(amount),
             reduce_to: None,
+            reduce_by_fp: None,
+            reduce_to_fp: None,
+            subaccount: None,
         }
     }
 
@@ -578,7 +695,17 @@ impl DecreaseOrderRequest {
         Self {
             reduce_by: None,
             reduce_to: Some(target),
+            reduce_by_fp: None,
+            reduce_to_fp: None,
+            subaccount: None,
         }
+    }
+
+    /// Set the subaccount number (0 for primary, 1-32 for subaccounts).
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
     }
 }
 
@@ -653,15 +780,51 @@ pub struct BatchCreateOrdersResponse {
     pub orders: Vec<BatchOrderResult>,
 }
 
+/// A single order to cancel with optional subaccount.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCancelOrderItem {
+    /// Order ID to cancel.
+    pub order_id: String,
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
+}
+
+impl BatchCancelOrderItem {
+    /// Create a new batch cancel order item.
+    #[must_use]
+    pub fn new(order_id: impl Into<String>) -> Self {
+        Self {
+            order_id: order_id.into(),
+            subaccount: None,
+        }
+    }
+
+    /// Set the subaccount number.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
+}
+
 /// Request body for DELETE /portfolio/orders/batched (batch cancel).
+///
+/// Supports two formats:
+/// - Legacy: `ids` array of order ID strings
+/// - New: `orders` array with per-order subaccount support
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchCancelOrdersRequest {
-    /// Array of order IDs to cancel.
-    pub ids: Vec<String>,
+    /// Array of order IDs to cancel (legacy format).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ids: Option<Vec<String>>,
+    /// Array of orders to cancel with per-order subaccount support.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub orders: Option<Vec<BatchCancelOrderItem>>,
 }
 
 impl BatchCancelOrdersRequest {
-    /// Create a new batch cancel request.
+    /// Create a new batch cancel request using order IDs (legacy format).
     ///
     /// # Panics
     ///
@@ -672,14 +835,41 @@ impl BatchCancelOrdersRequest {
         Self::try_new(ids).expect("batch size exceeded")
     }
 
-    /// Create a new batch cancel request with validation.
+    /// Create a new batch cancel request with validation (legacy format).
     ///
     /// Returns an error if the batch exceeds the maximum size of 20 orders.
     pub fn try_new(ids: Vec<String>) -> crate::error::Result<Self> {
         if ids.len() > crate::error::MAX_BATCH_SIZE {
             return Err(crate::error::Error::BatchSizeExceeded(ids.len()));
         }
-        Ok(Self { ids })
+        Ok(Self {
+            ids: Some(ids),
+            orders: None,
+        })
+    }
+
+    /// Create a new batch cancel request with per-order subaccount support.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `orders.len() > 20`. Use [`try_with_orders`](Self::try_with_orders)
+    /// for fallible construction.
+    #[must_use]
+    pub fn with_orders(orders: Vec<BatchCancelOrderItem>) -> Self {
+        Self::try_with_orders(orders).expect("batch size exceeded")
+    }
+
+    /// Create a new batch cancel request with per-order subaccount support and validation.
+    ///
+    /// Returns an error if the batch exceeds the maximum size of 20 orders.
+    pub fn try_with_orders(orders: Vec<BatchCancelOrderItem>) -> crate::error::Result<Self> {
+        if orders.len() > crate::error::MAX_BATCH_SIZE {
+            return Err(crate::error::Error::BatchSizeExceeded(orders.len()));
+        }
+        Ok(Self {
+            ids: None,
+            orders: Some(orders),
+        })
     }
 }
 
@@ -726,6 +916,9 @@ pub struct QueuePosition {
     pub market_ticker: String,
     /// Queue position - number of contracts ahead in the queue.
     pub queue_position: i64,
+    /// Queue position (fixed-point decimal string).
+    #[serde(default)]
+    pub queue_position_fp: Option<String>,
 }
 
 /// Response from GET /portfolio/orders/queue_positions.
@@ -741,6 +934,9 @@ pub struct QueuePositionsResponse {
 pub struct OrderQueuePositionResponse {
     /// Queue position - number of contracts ahead in the queue.
     pub queue_position: i64,
+    /// Queue position (fixed-point decimal string).
+    #[serde(default)]
+    pub queue_position_fp: Option<String>,
 }
 
 /// Query parameters for GET /portfolio/orders/queue_positions.
@@ -840,5 +1036,44 @@ mod tests {
             BatchCancelOrdersRequest::try_new(too_many),
             Err(crate::error::Error::BatchSizeExceeded(21))
         ));
+    }
+
+    #[test]
+    fn test_batch_cancel_with_orders() {
+        let orders = vec![
+            BatchCancelOrderItem::new("order-1").subaccount(1),
+            BatchCancelOrderItem::new("order-2"),
+        ];
+        let req = BatchCancelOrdersRequest::with_orders(orders);
+        assert!(req.ids.is_none());
+        assert_eq!(req.orders.as_ref().unwrap().len(), 2);
+        assert_eq!(req.orders.as_ref().unwrap()[0].subaccount, Some(1));
+        assert!(req.orders.as_ref().unwrap()[1].subaccount.is_none());
+    }
+
+    #[test]
+    fn test_amend_order_optional_client_ids() {
+        let req = AmendOrderRequest::new("TICKER", Side::Yes, Action::Buy)
+            .yes_price(55)
+            .count(10);
+        assert!(req.client_order_id.is_none());
+        assert!(req.updated_client_order_id.is_none());
+        assert_eq!(req.count, Some(10));
+
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(!json.contains("client_order_id"));
+    }
+
+    #[test]
+    fn test_amend_order_with_client_ids() {
+        let req = AmendOrderRequest::with_client_order_ids(
+            "TICKER",
+            Side::Yes,
+            Action::Buy,
+            "old-id",
+            "new-id",
+        );
+        assert_eq!(req.client_order_id.as_deref(), Some("old-id"));
+        assert_eq!(req.updated_client_order_id.as_deref(), Some("new-id"));
     }
 }
