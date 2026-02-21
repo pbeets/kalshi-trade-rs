@@ -216,11 +216,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             last_summary_time = std::time::Instant::now();
             for ticker in &market_tickers {
                 match aggregator.full_book(ticker) {
-                    Some(ladder) if aggregator.is_initialized(ticker) => {
-                        print_ladder(&ladder);
-                    }
-                    Some(_) => println!("{}: waiting for snapshot...", ticker),
-                    None => println!("{}: not tracked", ticker),
+                    Some(ladder) => print_ladder(&ladder),
+                    None => println!("{}: waiting for snapshot...", ticker),
                 }
             }
         }

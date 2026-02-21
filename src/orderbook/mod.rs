@@ -30,11 +30,9 @@
 //! // Query orderbook state
 //! loop {
 //!     if let Some(summary) = aggregator.summary("TICKER-1") {
-//!         if summary.initialized {
-//!             println!("Spread: {:?} cents", summary.spread);
-//!             println!("Best bid: {:?}", summary.best_bid);
-//!             println!("Best ask: {:?}", summary.best_ask);
-//!         }
+//!         println!("Spread: {:?} cents", summary.spread);
+//!         println!("Best bid: {:?}", summary.best_bid);
+//!         println!("Best ask: {:?}", summary.best_ask);
 //!     }
 //!     tokio::time::sleep(Duration::from_millis(100)).await;
 //! }

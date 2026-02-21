@@ -27,8 +27,6 @@ pub struct OrderbookSummary {
     pub total_yes_liquidity: i64,
     /// Total NO side liquidity.
     pub total_no_liquidity: i64,
-    /// Whether the orderbook has been initialized with a snapshot.
-    pub initialized: bool,
 }
 
 /// What changed in an orderbook update.
@@ -256,9 +254,14 @@ impl OrderbookAggregator {
     fn handle_delta(&self, delta: &crate::ws::OrderbookDeltaData, seq: Option<i64>) {
         let ticker = delta.market_ticker.clone();
 
-        let (new_qty, should_emit) = {
+        let new_qty = {
             let mut state = self.state.write().expect("state lock poisoned");
-            let orderbook = state.entry(ticker.clone()).or_default();
+            let Some(orderbook) = state.get_mut(&ticker) else {
+                return;
+            };
+            if !orderbook.is_initialized() {
+                return;
+            }
 
             // Check sequence gap for this specific market
             if let (Some(last), Some(new)) = (orderbook.last_seq(), seq)
@@ -273,13 +276,10 @@ impl OrderbookAggregator {
             }
 
             orderbook.update_seq(seq);
-            let new_qty = orderbook.apply_delta(delta);
-
-            (new_qty, orderbook.is_initialized())
+            orderbook.apply_delta(delta)
         };
 
-        // Only emit updates if we've seen a snapshot
-        if should_emit && let Some(summary) = self.summary(&ticker) {
+        if let Some(summary) = self.summary(&ticker) {
             let _ = self.update_sender.send(OrderbookUpdate {
                 ticker,
                 summary,
@@ -328,7 +328,6 @@ impl OrderbookAggregator {
             midpoint: orderbook.midpoint(),
             total_yes_liquidity: orderbook.total_yes_liquidity(),
             total_no_liquidity: orderbook.total_no_liquidity(),
-            initialized: orderbook.is_initialized(),
         })
     }
 
@@ -553,7 +552,6 @@ mod tests {
         assert_eq!(summary.midpoint, Some(46.0));
         assert_eq!(summary.total_yes_liquidity, 300);
         assert_eq!(summary.total_no_liquidity, 150);
-        assert!(summary.initialized);
     }
 
     #[test]
@@ -586,6 +584,78 @@ mod tests {
         assert_eq!(agg.depth_at_price("TEST", Side::No, 55), 150);
         assert_eq!(agg.depth_at_price("TEST", Side::Yes, 99), 0); // No level
         assert_eq!(agg.depth_at_price("UNKNOWN", Side::Yes, 45), 0); // Unknown market
+    }
+
+    #[test]
+    fn test_full_book() {
+        let agg = OrderbookAggregator::new();
+
+        assert!(agg.full_book("UNKNOWN").is_none());
+
+        // Snapshot creates initial book
+        let snapshot = OrderbookSnapshotData {
+            market_ticker: "TEST".to_string(),
+            yes: Some(vec![[45, 100], [44, 200]]),
+            yes_dollars: None,
+            no: Some(vec![[55, 150]]),
+            no_dollars: None,
+        };
+        agg.handle_snapshot(&snapshot);
+
+        // Apply deltas: add a new level, remove an existing one
+        agg.handle_delta(
+            &OrderbookDeltaData {
+                market_ticker: "TEST".to_string(),
+                price: 46,
+                delta: 75,
+                side: Side::Yes,
+                price_dollars: None,
+                client_order_id: None,
+            },
+            Some(1),
+        );
+        agg.handle_delta(
+            &OrderbookDeltaData {
+                market_ticker: "TEST".to_string(),
+                price: 44,
+                delta: -200,
+                side: Side::Yes,
+                price_dollars: None,
+                client_order_id: None,
+            },
+            Some(2),
+        );
+
+        let ladder = agg.full_book("TEST").unwrap();
+        // Level 46 was added, level 44 was removed
+        assert_eq!(ladder.yes_levels.len(), 2);
+        assert_eq!(ladder.yes_levels[&46], 75);
+        assert_eq!(ladder.yes_levels[&45], 100);
+        assert!(!ladder.yes_levels.contains_key(&44));
+        // NO side unchanged
+        assert_eq!(ladder.no_levels[&55], 150);
+    }
+
+    #[test]
+    fn test_delta_before_snapshot_ignored() {
+        let agg = OrderbookAggregator::new();
+
+        // Deltas before snapshot: no entry exists, delta is dropped
+        agg.handle_delta(
+            &OrderbookDeltaData {
+                market_ticker: "TEST".to_string(),
+                price: 45,
+                delta: 100,
+                side: Side::Yes,
+                price_dollars: None,
+                client_order_id: None,
+            },
+            Some(1),
+        );
+
+        // No entry was created — full_book returns None
+        assert!(agg.full_book("TEST").is_none());
+        assert!(agg.tracked_markets().is_empty());
     }
 
     #[test]

@@ -15,8 +15,8 @@
 //! cargo run --example stream_firehose
 //! ```
 
-use std::time::Duration;
 use kalshi_trade_rs::{Channel, KalshiConfig, KalshiStreamClient, StreamMessage};
+use std::time::Duration;
 use tokio::time::timeout;
 
 #[tokio::main]
@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         "[TRADE]  {} | {} contracts @ {}¢ | taker: {:?}",
                         trade.market_ticker, trade.count, trade.yes_price, trade.taker_side
                     );
-                },
+                }
                 StreamMessage::MarketLifecycle(lifecycle) => {
                     println!(
                         "[LIFECYCLE] {} | event={:?} | open={:?} | close={:?} | result={:?}",
@@ -115,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             leg.market_ticker, leg.side
                         );
                     }
-                },
+                }
                 StreamMessage::MarketPosition(pos) => {
                     println!(
                         "[POSITION] {} | position={:?} | cost={:?} | pnl={:?}",
