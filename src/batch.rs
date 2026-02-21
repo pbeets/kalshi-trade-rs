@@ -510,6 +510,7 @@ impl<'a> BatchManager<'a> {
             }
 
             // Send the batch with retry logic
+            #[allow(deprecated)]
             let request = BatchCancelOrdersRequest::new(chunk.to_vec());
             let client = self.client;
             match self

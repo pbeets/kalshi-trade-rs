@@ -662,6 +662,10 @@ impl Rfq {
     ///
     /// Prefer using the `target_cost_dollars` field directly when available.
     #[must_use]
+    #[deprecated(
+        since = "0.3.0",
+        note = "Use the `target_cost_dollars` field directly."
+    )]
     pub fn target_cost_as_dollars(&self) -> Option<f64> {
         self.target_cost_centi_cents.map(|cc| cc as f64 / 10000.0)
     }
@@ -759,6 +763,10 @@ impl Quote {
     ///
     /// Prefer using the `rfq_target_cost_dollars` field directly when available.
     #[must_use]
+    #[deprecated(
+        since = "0.3.0",
+        note = "Use the `rfq_target_cost_dollars` field directly."
+    )]
     pub fn rfq_target_cost_as_dollars(&self) -> Option<f64> {
         self.rfq_target_cost_centi_cents
             .map(|cc| cc as f64 / 10000.0)
@@ -879,6 +887,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_rfq_target_cost_as_dollars() {
         let rfq = Rfq {
             id: "rfq123".to_string(),
@@ -904,6 +913,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_quote_rfq_target_cost_as_dollars() {
         let quote = Quote {
             id: "quote123".to_string(),

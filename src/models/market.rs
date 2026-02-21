@@ -269,10 +269,10 @@ pub struct Market {
     /// Notional value per contract in dollars.
     #[serde(default)]
     pub notional_value_dollars: Option<String>,
-    /// Available order liquidity in cents.
+    /// Deprecated: always returns 0. This field will be removed in a future API version.
     #[serde(default)]
     pub liquidity: Option<i64>,
-    /// Available order liquidity in dollars.
+    /// Deprecated: always returns 0. This field will be removed in a future API version.
     #[serde(default)]
     pub liquidity_dollars: Option<String>,
 

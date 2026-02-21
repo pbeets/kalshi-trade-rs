@@ -238,7 +238,7 @@ pub struct CreateOrderRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_order_id: Option<String>,
 
-    /// Order type (limit or market).
+    /// Deprecated: market orders removed. Only limit orders supported.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order_type: Option<OrderType>,
@@ -831,6 +831,11 @@ impl BatchCancelOrdersRequest {
     /// Panics if `ids.len() > 20`. Use [`try_new`](Self::try_new)
     /// for fallible construction.
     #[must_use]
+    #[deprecated(
+        since = "0.3.0",
+        note = "Uses legacy `ids` format. Use `with_orders()` for per-order subaccount support."
+    )]
+    #[allow(deprecated)]
     pub fn new(ids: Vec<String>) -> Self {
         Self::try_new(ids).expect("batch size exceeded")
     }
@@ -838,6 +843,10 @@ impl BatchCancelOrdersRequest {
     /// Create a new batch cancel request with validation (legacy format).
     ///
     /// Returns an error if the batch exceeds the maximum size of 20 orders.
+    #[deprecated(
+        since = "0.3.0",
+        note = "Uses legacy `ids` format. Use `try_with_orders()` for per-order subaccount support."
+    )]
     pub fn try_new(ids: Vec<String>) -> crate::error::Result<Self> {
         if ids.len() > crate::error::MAX_BATCH_SIZE {
             return Err(crate::error::Error::BatchSizeExceeded(ids.len()));
@@ -876,6 +885,7 @@ impl BatchCancelOrdersRequest {
 impl TryFrom<Vec<String>> for BatchCancelOrdersRequest {
     type Error = crate::error::Error;
 
+    #[allow(deprecated)]
     fn try_from(ids: Vec<String>) -> crate::error::Result<Self> {
         Self::try_new(ids)
     }
@@ -1027,6 +1037,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_batch_cancel_validation() {
         let ids: Vec<String> = (0..20).map(|i| format!("order-{}", i)).collect();
         assert!(BatchCancelOrdersRequest::try_new(ids).is_ok());
