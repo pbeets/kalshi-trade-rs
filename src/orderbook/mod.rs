@@ -76,5 +76,6 @@ mod aggregator;
 mod state;
 
 pub use aggregator::{
-    OrderbookAggregator, OrderbookDelta, OrderbookSummary, OrderbookUpdate, SequenceGap,
+    OrderbookAggregator, OrderbookDelta, OrderbookLadder, OrderbookSummary, OrderbookUpdate,
+    SequenceGap,
 };

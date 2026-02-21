@@ -19,10 +19,43 @@ use std::time::Duration;
 use tokio::time::timeout;
 
 use kalshi_trade_rs::{
-    GetMarketsParams, KalshiClient, MarketFilterStatus, OrderbookAggregator,
+    GetMarketsParams, KalshiClient, MarketFilterStatus, OrderbookAggregator, OrderbookLadder,
     auth::KalshiConfig,
     ws::{Channel, KalshiStreamClient},
 };
+
+fn print_ladder(ladder: &OrderbookLadder) {
+    println!("\n=== {} ===", ladder.ticker);
+    println!("{:<6} {:>8}  {:<8}", "PRICE", "YES QTY", "NO QTY");
+    println!("{}", "-".repeat(26));
+
+    // Collect all price points from both sides
+    let mut prices: Vec<i64> = ladder
+        .yes_levels
+        .keys()
+        .chain(ladder.no_levels.keys())
+        .copied()
+        .collect();
+    prices.sort_unstable();
+    prices.dedup();
+
+    for price in prices.iter().rev() {
+        let yes_qty = ladder.yes_levels.get(price).copied().unwrap_or(0);
+        let no_qty = ladder.no_levels.get(price).copied().unwrap_or(0);
+        let yes_str = if yes_qty > 0 {
+            yes_qty.to_string()
+        } else {
+            "-".to_string()
+        };
+        let no_str = if no_qty > 0 {
+            no_qty.to_string()
+        } else {
+            "-".to_string()
+        };
+        println!("{:<6} {:>8}  {:<8}", price, yes_str, no_str);
+    }
+    println!();
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -178,31 +211,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Pull-based: Print summary every 5 seconds
+        // Pull-based: Print full orderbook ladder every 5 seconds
         if last_summary_time.elapsed() > Duration::from_secs(5) {
             last_summary_time = std::time::Instant::now();
-            println!("\n--- Orderbook Summary ---");
             for ticker in &market_tickers {
-                if let Some(summary) = aggregator.summary(ticker) {
-                    if summary.initialized {
-                        println!(
-                            "{}: bid={:?} ask={:?} spread={:?}¢ mid={:.1}¢ yes_liq={} no_liq={}",
-                            ticker,
-                            summary.best_bid,
-                            summary.best_ask,
-                            summary.spread,
-                            summary.midpoint.unwrap_or(0.0),
-                            summary.total_yes_liquidity,
-                            summary.total_no_liquidity
-                        );
-                    } else {
-                        println!("{}: waiting for snapshot...", ticker);
+                match aggregator.full_book(ticker) {
+                    Some(ladder) if aggregator.is_initialized(ticker) => {
+                        print_ladder(&ladder);
                     }
-                } else {
-                    println!("{}: not tracked", ticker);
+                    Some(_) => println!("{}: waiting for snapshot...", ticker),
+                    None => println!("{}: not tracked", ticker),
                 }
             }
-            println!("-------------------------\n");
         }
     }
 
