@@ -20,24 +20,22 @@ pub struct Fill {
     pub side: Side,
     pub action: Action,
     pub count: i64,
-    /// Count (fixed-point decimal string).
-    #[serde(default)]
-    pub count_fp: Option<String>,
+    /// Count (fixed-point decimal string, e.g. `"10.00"`).
+    pub count_fp: String,
     /// Price in cents.
     pub yes_price: i64,
     /// Price in cents.
     pub no_price: i64,
     /// Price in fixed-point dollars.
-    #[serde(default)]
-    pub yes_price_fixed: Option<String>,
+    pub yes_price_fixed: String,
     /// Price in fixed-point dollars.
-    #[serde(default)]
-    pub no_price_fixed: Option<String>,
+    pub no_price_fixed: String,
     /// Whether this fill removed liquidity.
     pub is_taker: bool,
     #[serde(default)]
     pub client_order_id: Option<String>,
-    pub created_time: String,
+    #[serde(default)]
+    pub created_time: Option<String>,
     /// Deprecated: legacy Unix timestamp field.
     #[serde(default)]
     pub ts: Option<i64>,
@@ -45,8 +43,7 @@ pub struct Fill {
     #[serde(default)]
     pub price: Option<f64>,
     /// Exchange fee cost as a fixed-point dollar string.
-    #[serde(default)]
-    pub fee_cost: Option<String>,
+    pub fee_cost: String,
     /// Subaccount number this fill belongs to (0 for primary, 1-32 for subaccounts).
     #[serde(default)]
     pub subaccount_number: Option<i32>,

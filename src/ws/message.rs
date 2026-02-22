@@ -264,6 +264,9 @@ pub struct FillData {
     /// Side that was purchased.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub purchased_side: Option<Side>,
+    /// Exchange fee cost as a fixed-point dollar string.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fee_cost: Option<String>,
 }
 
 /// Market position data for user position updates.

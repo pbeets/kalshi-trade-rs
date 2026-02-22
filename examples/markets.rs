@@ -168,10 +168,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for trade in &trades.trades {
         println!(
-            "  {} | {} contracts @ ${:.2} YES | taker: {:?} | {}",
+            "  {} | {} contracts @ {} YES | taker: {:?} | {}",
             trade.ticker,
-            trade.count,
-            cents_to_dollars(trade.yes_price),
+            trade.count_fp,
+            trade.yes_price_dollars,
             trade.taker_side,
             trade.created_time
         );
@@ -189,10 +189,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             for trade in &market_trades.trades {
                 println!(
-                    "  {} contracts @ ${:.2} YES (${:.2} NO) | {:?}",
-                    trade.count,
-                    cents_to_dollars(trade.yes_price),
-                    cents_to_dollars(trade.no_price),
+                    "  {} contracts @ {} YES ({} NO) | {:?}",
+                    trade.count_fp,
+                    trade.yes_price_dollars,
+                    trade.no_price_dollars,
                     trade.taker_side
                 );
             }

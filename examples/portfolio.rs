@@ -88,13 +88,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for fill in &fills.fills {
         println!(
-            "  {} {} {} {} @ ${:.2} ({})",
+            "  {} {} {} {} @ {} ({}, fee: {})",
             fill.ticker,
             fill.action,
-            fill.count,
+            fill.count_fp,
             fill.side,
-            cents_to_dollars(fill.yes_price),
-            if fill.is_taker { "taker" } else { "maker" }
+            fill.yes_price_fixed,
+            if fill.is_taker { "taker" } else { "maker" },
+            fill.fee_cost,
         );
     }
     println!();
@@ -161,14 +162,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for settlement in settlements.settlements.iter().take(5) {
         let ticker = &settlement.ticker;
-        let pnl = settlement.revenue;
         let result = format!("{:?}", settlement.market_result);
 
         println!(
-            "  {} | result: {} | P&L: ${:.2}",
+            "  {} | result: {} | P&L: ${:.2} | fee: {} | yes: {} no: {}",
             ticker,
             result,
-            cents_to_dollars(pnl)
+            cents_to_dollars(settlement.revenue),
+            settlement.fee_cost,
+            settlement.yes_count_fp,
+            settlement.no_count_fp,
         );
     }
 
