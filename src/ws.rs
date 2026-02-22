@@ -172,7 +172,7 @@ use std::time::Duration;
 
 pub use channel::Channel;
 pub use client::{KalshiStreamClient, KalshiStreamHandle};
-pub use command::{CommunicationsSharding, SubscribeResult, UnsubscribeResult};
+pub use command::{CommunicationsSharding, SubscribeOptions, SubscribeResult, UnsubscribeResult};
 pub use message::{
     Action, CommunicationData, FillData, MarketLifecycleData, MarketLifecycleEventType,
     MarketPositionData, MultivariateLookupData, MveLeg, OrderGroupEventType, OrderGroupUpdateData,

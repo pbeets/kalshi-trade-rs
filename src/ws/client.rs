@@ -410,6 +410,81 @@ impl KalshiStreamHandle {
         Ok(())
     }
 
+    /// Subscribe to a channel with additional options.
+    ///
+    /// This is like [`subscribe`](Self::subscribe) but accepts a [`SubscribeOptions`](super::SubscribeOptions)
+    /// struct for advanced settings like `skip_ticker_ack` and sharding.
+    ///
+    /// # Arguments
+    ///
+    /// * `channel` - The channel to subscribe to.
+    /// * `markets` - Markets to subscribe to.
+    /// * `options` - Additional subscription options.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use kalshi_trade_rs::ws::{Channel, KalshiStreamHandle, SubscribeOptions};
+    /// # async fn example(handle: &mut KalshiStreamHandle) -> Result<(), Box<dyn std::error::Error>> {
+    /// let options = SubscribeOptions {
+    ///     skip_ticker_ack: Some(true),
+    ///     ..Default::default()
+    /// };
+    /// handle.subscribe_with_options(Channel::Ticker, &["INXD-25JAN17-B5955"], options).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn subscribe_with_options(
+        &mut self,
+        channel: Channel,
+        markets: &[&str],
+        options: super::command::SubscribeOptions,
+    ) -> Result<()> {
+        // Validate: channels requiring markets must have at least one
+        if markets.is_empty() && channel.requires_market_ticker() {
+            return Err(Error::MissingMarketTickers(channel.as_str().to_string()));
+        }
+
+        let markets_set: HashSet<String> = markets.iter().map(|s| s.to_string()).collect();
+
+        // For options-based subscribe, always do a fresh subscription
+        let result = self
+            .subscribe_raw_with_options(
+                &[channel],
+                markets,
+                options.sharding,
+                options.skip_ticker_ack,
+            )
+            .await?;
+
+        // Check for failures
+        if !result.failed.is_empty() {
+            let errors: Vec<String> = result
+                .failed
+                .iter()
+                .map(|e| format!("{}: {}", e.code, e.message))
+                .collect();
+            return Err(Error::Api(errors.join("; ")));
+        }
+
+        // Extract the SID and update state
+        if let Some(sub) = result.successful.first() {
+            let mut subs = self
+                .subscriptions
+                .write()
+                .expect("subscription lock poisoned");
+            subs.insert(
+                channel,
+                SubscriptionState {
+                    sid: sub.sid,
+                    markets: markets_set,
+                },
+            );
+        }
+
+        Ok(())
+    }
+
     /// Remove specific markets from a channel subscription.
     ///
     /// This removes the specified markets from an existing subscription. If you want
@@ -639,7 +714,7 @@ impl KalshiStreamHandle {
         sharding: super::command::CommunicationsSharding,
     ) -> Result<()> {
         let result = self
-            .subscribe_raw_with_sharding(&[Channel::Communications], &[], Some(sharding))
+            .subscribe_raw_with_options(&[Channel::Communications], &[], Some(sharding), None)
             .await?;
 
         // Check for failures
@@ -674,16 +749,17 @@ impl KalshiStreamHandle {
         channels: &[Channel],
         markets: &[&str],
     ) -> Result<SubscribeResult> {
-        self.subscribe_raw_with_sharding(channels, markets, None)
+        self.subscribe_raw_with_options(channels, markets, None, None)
             .await
     }
 
-    /// Raw subscribe with optional sharding support.
-    async fn subscribe_raw_with_sharding(
+    /// Raw subscribe with optional sharding and skip_ticker_ack support.
+    async fn subscribe_raw_with_options(
         &self,
         channels: &[Channel],
         markets: &[&str],
         sharding: Option<super::command::CommunicationsSharding>,
+        skip_ticker_ack: Option<bool>,
     ) -> Result<SubscribeResult> {
         let (tx, rx) = oneshot::channel();
 
@@ -696,6 +772,7 @@ impl KalshiStreamHandle {
             channels: channel_strings,
             market_tickers: market_strings,
             sharding,
+            skip_ticker_ack,
             response: tx,
         };
 
@@ -1291,6 +1368,12 @@ mod tests {
                 no_bid_dollars: None,
                 volume_fp: None,
                 open_interest_fp: None,
+                time: None,
+                yes_bid_size_fp: None,
+                yes_ask_size_fp: None,
+                bid_size_fp: None,
+                ask_size_fp: None,
+                last_trade_size_fp: None,
             }),
         };
 

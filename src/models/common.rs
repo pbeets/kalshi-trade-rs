@@ -42,6 +42,7 @@ impl fmt::Display for Action {
 #[serde(rename_all = "lowercase")]
 pub enum OrderType {
     Limit,
+    #[deprecated(note = "Market orders are no longer supported by the Kalshi API. Use limit orders instead.")]
     Market,
 }
 

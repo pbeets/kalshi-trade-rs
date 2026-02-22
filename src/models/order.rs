@@ -238,11 +238,6 @@ pub struct CreateOrderRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_order_id: Option<String>,
 
-    /// Order type (limit or market).
-    #[serde(rename = "type")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order_type: Option<OrderType>,
-
     /// Yes price in cents (1-99).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yes_price: Option<i64>,
@@ -314,7 +309,6 @@ impl CreateOrderRequest {
             action,
             count,
             client_order_id: None,
-            order_type: None,
             yes_price: None,
             no_price: None,
             yes_price_dollars: None,
@@ -336,12 +330,6 @@ impl CreateOrderRequest {
     #[must_use]
     pub fn client_order_id(mut self, id: impl Into<String>) -> Self {
         self.client_order_id = Some(id.into());
-        self
-    }
-
-    #[must_use]
-    pub fn order_type(mut self, order_type: OrderType) -> Self {
-        self.order_type = Some(order_type);
         self
     }
 

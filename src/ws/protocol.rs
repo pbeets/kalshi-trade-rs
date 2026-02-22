@@ -28,6 +28,7 @@ pub fn build_subscribe(
     channels: &[Channel],
     market_tickers: &[&str],
     sharding: Option<&CommunicationsSharding>,
+    skip_ticker_ack: Option<bool>,
 ) -> String {
     let channel_strings: Vec<&str> = channels.iter().map(|c| c.as_str()).collect();
 
@@ -58,6 +59,11 @@ pub fn build_subscribe(
         if let Some(shard_key) = sharding.shard_key {
             params["shard_key"] = serde_json::json!(shard_key);
         }
+    }
+
+    // Add skip_ticker_ack flag if set
+    if skip_ticker_ack == Some(true) {
+        params["skip_ticker_ack"] = serde_json::json!(true);
     }
 
     serde_json::json!({
@@ -238,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_build_subscribe_single_ticker() {
-        let result = build_subscribe(1, &[Channel::OrderbookDelta], &["AAPL-YES"], None);
+        let result = build_subscribe(1, &[Channel::OrderbookDelta], &["AAPL-YES"], None, None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 1);
@@ -257,6 +263,7 @@ mod tests {
             2,
             &[Channel::OrderbookDelta, Channel::Ticker],
             &["AAPL-YES", "GOOG-NO"],
+            None,
             None,
         );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
@@ -277,7 +284,7 @@ mod tests {
     #[test]
     fn test_build_subscribe_no_tickers() {
         // Subscribe to all markets by omitting market_ticker(s)
-        let result = build_subscribe(3, &[Channel::Ticker], &[], None);
+        let result = build_subscribe(3, &[Channel::Ticker], &[], None, None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 3);
@@ -300,6 +307,7 @@ mod tests {
             ],
             &["TEST"],
             None,
+            None,
         );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
@@ -312,7 +320,7 @@ mod tests {
     #[test]
     fn test_build_subscribe_with_sharding() {
         let sharding = CommunicationsSharding::new(4, 2);
-        let result = build_subscribe(5, &[Channel::Communications], &[], Some(&sharding));
+        let result = build_subscribe(5, &[Channel::Communications], &[], Some(&sharding), None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 5);
@@ -323,6 +331,37 @@ mod tests {
         );
         assert_eq!(parsed["params"]["shard_factor"], 4);
         assert_eq!(parsed["params"]["shard_key"], 2);
+    }
+
+    #[test]
+    fn test_build_subscribe_with_skip_ticker_ack() {
+        let result = build_subscribe(6, &[Channel::Ticker], &["MARKET-A"], None, Some(true));
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 6);
+        assert_eq!(parsed["cmd"], "subscribe");
+        assert_eq!(
+            parsed["params"]["channels"],
+            serde_json::json!(["ticker"])
+        );
+        assert_eq!(parsed["params"]["skip_ticker_ack"], true);
+    }
+
+    #[test]
+    fn test_build_subscribe_without_skip_ticker_ack() {
+        let result = build_subscribe(7, &[Channel::Ticker], &["MARKET-A"], None, None);
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert!(parsed["params"].get("skip_ticker_ack").is_none());
+    }
+
+    #[test]
+    fn test_build_subscribe_skip_ticker_ack_false() {
+        let result = build_subscribe(8, &[Channel::Ticker], &["MARKET-A"], None, Some(false));
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        // skip_ticker_ack=false should not add the field
+        assert!(parsed["params"].get("skip_ticker_ack").is_none());
     }
 
     #[test]

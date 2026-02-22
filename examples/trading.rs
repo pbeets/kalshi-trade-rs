@@ -13,7 +13,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use kalshi_trade_rs::{
     Action, AmendOrderRequest, CreateOrderRequest, DecreaseOrderRequest, GetMarketsParams,
     GetOrdersParams, GetQueuePositionsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
-    OrderStatus, OrderType, Side, TimeInForce, cents_to_dollars,
+    OrderStatus, Side, TimeInForce, cents_to_dollars,
 };
 
 #[tokio::main]
@@ -71,7 +71,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let create_request = CreateOrderRequest::new(&market.ticker, Side::Yes, Action::Buy, 5)
         .client_order_id(&client_order_id)
-        .order_type(OrderType::Limit)
         .yes_price(safe_price)
         .post_only(true) // Ensures we only add liquidity, never take
         .time_in_force(TimeInForce::GoodTillCanceled);

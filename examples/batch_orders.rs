@@ -12,7 +12,7 @@
 use kalshi_trade_rs::{
     Action, BatchCancelOrderItem, BatchCancelOrdersRequest, BatchCreateOrdersRequest,
     CreateOrderRequest, GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
-    OrderType, Side, TimeInForce, cents_to_dollars,
+    Side, TimeInForce, cents_to_dollars,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -60,7 +60,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let client_order_id = format!("batch-{}-{}", i, base_ts + i as u128);
         let order = CreateOrderRequest::new(&market.ticker, Side::Yes, Action::Buy, 1)
             .client_order_id(&client_order_id)
-            .order_type(OrderType::Limit)
             .yes_price(i as i64) // 1, 2, 3 cents
             .post_only(true)
             .time_in_force(TimeInForce::GoodTillCanceled);
@@ -81,7 +80,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let client_order_id = format!("batch-4-{}", base_ts + 4);
         let order = CreateOrderRequest::new(&market2.ticker, Side::No, Action::Buy, 1)
             .client_order_id(&client_order_id)
-            .order_type(OrderType::Limit)
             .no_price(1) // 1 cent
             .post_only(true)
             .time_in_force(TimeInForce::GoodTillCanceled);

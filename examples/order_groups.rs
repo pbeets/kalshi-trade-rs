@@ -11,7 +11,7 @@
 
 use kalshi_trade_rs::{
     Action, CreateOrderGroupRequest, CreateOrderRequest, GetMarketsParams, GetOrderGroupsParams,
-    KalshiClient, KalshiConfig, MarketFilterStatus, OrderType, Side, TimeInForce,
+    KalshiClient, KalshiConfig, MarketFilterStatus, Side, TimeInForce,
     UpdateOrderGroupLimitRequest,
 };
 
@@ -58,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Creating an order with order_group_id...\n");
 
     let order = CreateOrderRequest::new(&market.ticker, Side::Yes, Action::Buy, 1)
-        .order_type(OrderType::Limit)
         .yes_price(1) // 1 cent - far from market
         .post_only(true)
         .time_in_force(TimeInForce::GoodTillCanceled)

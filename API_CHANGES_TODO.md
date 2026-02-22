@@ -347,79 +347,27 @@ Added `subaccount` to `GetOrderGroupsParams` and `get_order_group()` API functio
 
 ### ~~4.6 — `market_id` on Incentive Programs API~~ ✅
 
-Added `market_id: Option<String>` to `IncentiveProgram`.
+Added `market_id: Option<String>` and `target_size_fp: Option<String>` to `IncentiveProgram`.
 
 ---
 
-## BATCH 5: February 11–12, 2026
+## ~~BATCH 5: February 11–12, 2026~~ ✅ DONE
 
-### 5.1 — CreateOrder Removes `type` Field
+### ~~5.1 — CreateOrder Removes `type` Field~~ ✅
 
-**Changelog**: Feb 11, 2026 — "CreateOrder no longer offers market type"
+Removed `order_type` field from `CreateOrderRequest`. Deprecated `OrderType::Market` variant (kept for historical data on `Order` response).
 
-**What changed**: `POST /portfolio/orders` removed `type` field. `type=market` is no longer offered. Only limit orders are supported.
+### ~~5.2 — `fractional_trading_enabled` on Market~~ ✅
 
-**What to do**:
-- Check `CreateOrderRequest` in `src/models/order.rs`
-- If it has a `type` or `order_type` field, either remove it or make it optional and default to limit
-- Check `OrderType` enum — if `Market` variant exists, consider deprecating or keeping for backwards compat with historical data
-- Update documentation
+Already implemented (`fractional_trading_enabled` on `Market` struct).
 
-**Files to modify**: `src/models/order.rs`, `src/models/common.rs`
+### ~~5.3 — WebSocket QoL: Ticker High-Precision Time and `skip_ticker_ack`~~ ✅
 
----
+Added `time: Option<String>` to `TickerData`. Added `skip_ticker_ack` flag threading through `SubscribeOptions` → `StreamCommand::Subscribe` → `build_subscribe` → wire protocol. Added `subscribe_with_options()` public API.
 
-### 5.2 — `fractional_trading_enabled` on Market
+### ~~5.4 — L1 Orderbook Sizes on Ticker WebSocket~~ ✅
 
-**Changelog**: Feb 11, 2026 — "fractional_trading_enabled added to market response payloads"
-
-**What changed**: Market payloads now consistently include `fractional_trading_enabled` across `GET /events`, `GET /events/{ticker}`, `GET /markets`, `GET /markets/{ticker}`.
-
-**What to do**:
-- Add `fractional_trading_enabled: Option<bool>` to `Market` struct in `src/models/market.rs`
-
-**Current state**: `Market` struct does NOT have `fractional_trading_enabled`.
-
-**Files to modify**: `src/models/market.rs`
-
----
-
-### 5.3 — WebSocket QoL: Ticker High-Precision Time and `skip_ticker_ack`
-
-**Changelog**: Feb 11, 2026 — "Websocket QoL Improvements"
-
-**What changed**:
-- `ticker` channel now provides high-precision `time` field (string, likely ISO or nanosecond timestamp)
-- New `skip_ticker_ack` subscription-level flag that skips market tickers in the OK message after channel update
-
-**What to do**:
-- Add `time: Option<String>` to `TickerData` in `src/ws/message.rs`
-- Support `skip_ticker_ack` flag in subscription commands. Check how subscribe commands are built in the WS client and add this optional flag.
-
-**Current state**: `TickerData` (line 139) has `ts: i64` but no `time` field.
-
-**Files to modify**: `src/ws/message.rs`, `src/ws/client.rs` (subscription command building)
-
----
-
-### 5.4 — L1 Orderbook Sizes on Ticker WebSocket
-
-**Changelog**: Feb 12, 2026 — "L1 orderbook sizes added to ticker WebSocket channel"
-
-**What changed**: Ticker channel now includes top-of-book sizes:
-- `yes_bid_size_fp` / `bid_size_fp`: Contracts at best bid
-- `yes_ask_size_fp` / `ask_size_fp`: Contracts at best ask
-- `last_trade_size_fp`: Contracts in most recent trade
-
-**What to do**:
-- Add to `TickerData` in `src/ws/message.rs`:
-  - `yes_bid_size_fp: Option<String>`
-  - `yes_ask_size_fp: Option<String>`
-  - `bid_size_fp: Option<String>`
-  - `ask_size_fp: Option<String>`
-  - `last_trade_size_fp: Option<String>`
-
-**Files to modify**: `src/ws/message.rs`
+Added `yes_bid_size_fp`, `yes_ask_size_fp`, `bid_size_fp`, `ask_size_fp`, `last_trade_size_fp` to `TickerData`.
 
 ---
 

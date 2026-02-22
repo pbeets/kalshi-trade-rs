@@ -126,6 +126,16 @@ impl CommunicationsSharding {
     }
 }
 
+/// Options for subscribe operations.
+#[derive(Debug, Clone, Default)]
+pub struct SubscribeOptions {
+    /// Optional sharding config for communications channel.
+    pub sharding: Option<CommunicationsSharding>,
+    /// When `true`, the server skips market tickers in the OK message after a
+    /// ticker channel update. This reduces acknowledgement payload size.
+    pub skip_ticker_ack: Option<bool>,
+}
+
 /// Commands that can be sent to the WebSocket stream handler.
 #[derive(Debug)]
 pub enum StreamCommand {
@@ -137,6 +147,8 @@ pub enum StreamCommand {
         market_tickers: Vec<String>,
         /// Optional sharding config for communications channel.
         sharding: Option<CommunicationsSharding>,
+        /// When `true`, skip market tickers in ticker channel OK messages.
+        skip_ticker_ack: Option<bool>,
         /// Oneshot channel to receive the subscription result.
         response: oneshot::Sender<Result<SubscribeResult, String>>,
     },

@@ -520,6 +520,7 @@ impl KalshiStreamSession {
                 channels,
                 market_tickers,
                 sharding,
+                skip_ticker_ack,
                 response,
             } => {
                 // Convert channel strings to Channel enums for protocol
@@ -574,7 +575,7 @@ impl KalshiStreamSession {
                 // Kalshi will respond with N separate responses (one per channel),
                 // all sharing the same request ID but with different sids.
                 let msg =
-                    protocol::build_subscribe(request_id, &channels, &tickers, sharding.as_ref());
+                    protocol::build_subscribe(request_id, &channels, &tickers, sharding.as_ref(), skip_ticker_ack);
                 debug!(
                     "Sending subscribe request {} for {} channels: {}",
                     request_id, num_channels, msg

@@ -314,6 +314,24 @@ pub struct TickerData {
     /// Open interest (fixed-point decimal string).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub open_interest_fp: Option<String>,
+    /// High-precision timestamp (ISO 8601 or nanosecond string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
+    /// Contracts at best yes bid (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_bid_size_fp: Option<String>,
+    /// Contracts at best yes ask (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_ask_size_fp: Option<String>,
+    /// Contracts at best bid (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bid_size_fp: Option<String>,
+    /// Contracts at best ask (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ask_size_fp: Option<String>,
+    /// Contracts in most recent trade (fixed-point decimal string).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_trade_size_fp: Option<String>,
 }
 
 /// Trade data for public trade notifications.
