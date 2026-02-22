@@ -129,10 +129,12 @@
 //! - [`Channel::OrderbookDelta`] - Orderbook changes
 //! - [`Channel::MarketLifecycle`] - Market status changes
 //!
-//! User channels (no market tickers needed):
+//! User channels (require authentication, no market tickers needed):
 //! - [`Channel::Fill`] - Your executed fills
 //! - [`Channel::MarketPositions`] - Position changes
 //! - [`Channel::Communications`] - RFQ/quote updates
+//! - [`Channel::OrderGroupUpdates`] - Order group lifecycle events
+//! - [`Channel::UserOrders`] - Real-time order updates (created, updated, canceled, executed)
 //! - [`Channel::Multivariate`] - Multivariate event updates
 //!
 //! # Subscription Management
@@ -175,7 +177,8 @@ pub use message::{
     Action, CommunicationData, FillData, MarketLifecycleData, MarketLifecycleEventType,
     MarketPositionData, MultivariateLookupData, MveLeg, OrderGroupEventType, OrderGroupUpdateData,
     OrderbookDeltaData, OrderbookSnapshotData, PriceLevel, QuoteAcceptedData, QuoteData, RfqData,
-    RfqDeletedData, Side, StreamMessage, StreamUpdate, TickerData, TradeData,
+    RfqDeletedData, Side, StreamMessage, StreamUpdate, TickerData, TradeData, UserOrderData,
+    UserOrderEventType,
 };
 
 /// Connection strategy for the WebSocket client.

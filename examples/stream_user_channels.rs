@@ -1,4 +1,4 @@
-//! Example: Stream user-scoped channels (Fill, MarketPositions, Communications).
+//! Example: Stream user-scoped channels.
 //!
 //! This example demonstrates subscribing to authenticated channels that track
 //! user-specific activity. These channels don't require market tickers - they
@@ -9,6 +9,8 @@
 //! - `Fill`: Notifications when your orders are filled
 //! - `MarketPositions`: Real-time position updates
 //! - `Communications`: RFQ and quote notifications
+//! - `OrderGroupUpdates`: Order group lifecycle events
+//! - `UserOrders`: Real-time order updates (created, updated, canceled, executed)
 //!
 //! # Usage
 //!
@@ -65,6 +67,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     handle.subscribe(Channel::Communications, &[]).await?;
     println!("  Communications -> subscribed");
 
+    handle.subscribe(Channel::OrderGroupUpdates, &[]).await?;
+    println!("  OrderGroupUpdates -> subscribed");
+
+    handle.subscribe(Channel::UserOrders, &[]).await?;
+    println!("  UserOrders -> subscribed");
+
     println!("\nWaiting for updates (60 seconds)...");
     println!("Tip: Create/fill orders in another terminal to see Fill updates\n");
 
@@ -111,6 +119,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 StreamMessage::Communication(comm) => {
                     println!("[COMMUNICATION] {:?}", comm);
                 }
+                StreamMessage::OrderGroupUpdate(og) => {
+                    println!(
+                        "[ORDER GROUP] {} | event={:?}",
+                        og.order_group_id, og.event_type
+                    );
+                }
+                StreamMessage::UserOrder(order) => {
+                    println!(
+                        "[USER ORDER] {} | event={:?} | ticker={} | status={:?}",
+                        order.order_id,
+                        order.event_type,
+                        order.ticker.as_deref().unwrap_or("?"),
+                        order.status
+                    );
+                }
                 StreamMessage::Unsubscribed => {
                     println!("[UNSUBSCRIBED] sid={}", update.sid);
                 }
@@ -135,6 +158,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     handle.unsubscribe_all(Channel::Fill).await?;
     handle.unsubscribe_all(Channel::MarketPositions).await?;
     handle.unsubscribe_all(Channel::Communications).await?;
+    handle.unsubscribe_all(Channel::OrderGroupUpdates).await?;
+    handle.unsubscribe_all(Channel::UserOrders).await?;
 
     println!("Shutting down...");
     client.shutdown().await?;

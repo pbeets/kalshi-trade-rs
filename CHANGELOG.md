@@ -89,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `subaccount` filter on `ListRfqsParams` for per-subaccount RFQ queries.
 - `subaccount` filter on `GetOrderGroupsParams` for per-subaccount order group
   queries. New `get_order_group_for_subaccount()` method on `KalshiClient`.
-- `market_id` field on `IncentiveProgram`.
+- `market_id` and `target_size_fp` fields on `IncentiveProgram`.
 
 ### Fixed
 

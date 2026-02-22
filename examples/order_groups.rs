@@ -160,14 +160,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Available API Methods
     println!("=== Available Order Group Methods ===");
-    println!("  create_order_group()            - Create new order group");
-    println!("  get_order_group(id)             - Get order group details");
-    println!("  list_order_groups()             - List all order groups");
-    println!("  list_order_groups_with_params() - List with pagination");
-    println!("  update_order_group_limit(id, r) - Update contracts limit");
-    println!("  reset_order_group(id)           - Reset matched contracts counter");
-    println!("  trigger_order_group(id)         - Trigger auto-cancel manually");
-    println!("  delete_order_group(id)          - Delete group and cancel orders");
+    println!("  create_order_group()                     - Create new order group");
+    println!("  get_order_group(id)                      - Get order group details");
+    println!("  get_order_group_for_subaccount(id, sub)  - Get for specific subaccount");
+    println!("  list_order_groups()                      - List all order groups");
+    println!("  list_order_groups_with_params()          - List with pagination/subaccount");
+    println!("  update_order_group_limit(id, r)          - Update contracts limit");
+    println!("  reset_order_group(id)                    - Reset matched contracts counter");
+    println!("  trigger_order_group(id)                  - Trigger auto-cancel manually");
+    println!("  delete_order_group(id)                   - Delete group and cancel orders");
     println!();
 
     println!("=== Done ===");

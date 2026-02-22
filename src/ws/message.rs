@@ -52,6 +52,9 @@ pub enum UserOrderEventType {
 pub struct UserOrderData {
     /// The order identifier.
     pub order_id: String,
+    /// The type of event (created, updated, canceled, executed).
+    #[serde(default)]
+    pub event_type: Option<UserOrderEventType>,
     /// Market ticker identifier.
     #[serde(default)]
     pub ticker: Option<String>,
@@ -193,7 +196,7 @@ pub enum StreamMessage {
     /// Order group update notification.
     OrderGroupUpdate(OrderGroupUpdateData),
     /// User order update notification.
-    UserOrder(UserOrderData),
+    UserOrder(Box<UserOrderData>),
     /// Multivariate collection lookup notification.
     MultivariateLookup(MultivariateLookupData),
     /// Connection was closed cleanly.
@@ -696,9 +699,8 @@ impl StreamMessage {
             "order_group_updates" => serde_json::from_value::<OrderGroupUpdateData>(value)
                 .map(StreamMessage::OrderGroupUpdate),
             // User order update notifications
-            "user_orders" => {
-                serde_json::from_value::<UserOrderData>(value).map(StreamMessage::UserOrder)
-            }
+            "user_orders" => serde_json::from_value::<UserOrderData>(value)
+                .map(|d| StreamMessage::UserOrder(Box::new(d))),
             // Multivariate lookup notifications
             "multivariate_lookup" => serde_json::from_value::<MultivariateLookupData>(value)
                 .map(StreamMessage::MultivariateLookup),

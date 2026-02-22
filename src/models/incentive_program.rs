@@ -36,6 +36,9 @@ pub struct IncentiveProgram {
     /// Target size for the program.
     #[serde(default)]
     pub target_size: Option<i64>,
+    /// Target size (fixed-point decimal string).
+    #[serde(default)]
+    pub target_size_fp: Option<String>,
     /// The market ID associated with this incentive program.
     #[serde(default)]
     pub market_id: Option<String>,
