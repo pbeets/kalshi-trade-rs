@@ -1762,10 +1762,10 @@ impl KalshiClient {
     ///
     /// ```ignore
     /// let balances = client.get_subaccount_balances().await?;
-    /// for balance in balances.balances {
-    ///     println!("Subaccount {}: ${:.2}",
-    ///         balance.subaccount_id,
-    ///         balance.balance_dollars()
+    /// for balance in balances.subaccount_balances {
+    ///     println!("Subaccount {}: {}",
+    ///         balance.subaccount_number,
+    ///         balance.balance
     ///     );
     /// }
     /// ```

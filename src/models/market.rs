@@ -677,19 +677,16 @@ pub struct Trade {
     pub price: Option<f64>,
     /// Contract quantity.
     pub count: i64,
-    /// Contract quantity (fixed-point decimal string).
-    #[serde(default)]
-    pub count_fp: Option<String>,
+    /// Contract quantity (fixed-point decimal string, e.g. `"10.00"`).
+    pub count_fp: String,
     /// Yes side price in cents.
     pub yes_price: i64,
     /// No side price in cents.
     pub no_price: i64,
-    /// Yes price in dollars.
-    #[serde(default)]
-    pub yes_price_dollars: Option<String>,
-    /// No price in dollars.
-    #[serde(default)]
-    pub no_price_dollars: Option<String>,
+    /// Yes price in fixed-point dollars.
+    pub yes_price_dollars: String,
+    /// No price in fixed-point dollars.
+    pub no_price_dollars: String,
     pub taker_side: TakerSide,
     pub created_time: String,
 }
@@ -1278,13 +1275,15 @@ mod tests {
             "count_fp": "10.5",
             "yes_price": 50,
             "no_price": 50,
+            "yes_price_dollars": "0.50",
+            "no_price_dollars": "0.50",
             "taker_side": "yes",
             "created_time": "2025-01-10T12:00:00Z"
         }"#;
         let trade: Trade = serde_json::from_str(json).unwrap();
         assert_eq!(trade.trade_id, "abc123");
         assert_eq!(trade.count, 10);
-        assert_eq!(trade.count_fp, Some("10.5".to_string()));
+        assert_eq!(trade.count_fp, "10.5");
         assert_eq!(trade.taker_side, TakerSide::Yes);
     }
 

@@ -35,12 +35,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on `Rfq` and `Quote` response types.
 - Partial acceptance support: `contracts` field on `AcceptQuoteRequest` and
   `CreateQuoteRequest`.
-- Fixed-point `_fp` fields on REST API types: `count_fp` on `CreateOrderRequest`
-  and `AmendOrderRequest`, `reduce_by_fp`/`reduce_to_fp` on
-  `DecreaseOrderRequest`, `queue_position_fp` on `QueuePosition` and
-  `OrderQueuePositionResponse`, `contracts_fp` on `CreateRfqRequest`/`Rfq`/`Quote`,
-  `contracts_limit_fp` on `CreateOrderGroupRequest`/`UpdateOrderGroupLimitRequest`/
-  `GetOrderGroupResponse`/`OrderGroupSummary`.
+- Fixed-point `_fp` fields on REST API response types: `count_fp` on `Fill` and
+  `Trade`; `fill_count_fp`/`remaining_count_fp`/`initial_count_fp` on `Order`;
+  `yes_count_fp`/`no_count_fp` on `Settlement`; `position_fp`/
+  `resting_orders_count_fp` on `MarketPosition`; `total_cost_shares_fp` on
+  `EventPosition`; `volume_fp`/`open_interest_fp` on `Market` and `Candlestick`;
+  `queue_position_fp` on `QueuePosition` and `OrderQueuePositionResponse`;
+  `contracts_fp` on `Rfq`/`Quote`; `contracts_limit_fp` on
+  `GetOrderGroupResponse`/`OrderGroupSummary`; `volume_fp` on `SeriesVolume`.
+  Request types: `count_fp` on `CreateOrderRequest`/`AmendOrderRequest`,
+  `reduce_by_fp`/`reduce_to_fp` on `DecreaseOrderRequest`, `contracts_fp` on
+  `CreateRfqRequest`, `contracts_limit_fp` on `CreateOrderGroupRequest`/
+  `UpdateOrderGroupLimitRequest`.
 - Fixed-point `_fp` fields on WebSocket message types: `delta_fp` on
   `OrderbookDeltaData`, `volume_fp`/`open_interest_fp` on `TickerData`,
   `count_fp` on `TradeData`, `count_fp`/`post_position_fp` on `FillData`,
@@ -57,7 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   update time.
 - `name` and `subaccount` fields on `CreateOrderGroupRequest`; `name`, `status`,
   `created_time` on `OrderGroupSummary`.
-- `fee_cost` on `Fill` for exchange fee cost as a fixed-point dollar string.
+- `fee_cost` on `Fill` and `Settlement` for exchange fee cost as a fixed-point
+  dollar string.
+- `fee_cost` on WebSocket `FillData` for exchange fee cost.
+- `subaccount` filter on `GetSettlementsParams` and `GetFillsParams` for
+  per-subaccount settlement and fill queries.
 - `market_result` and `total_cost` on `MarketPosition`.
 - `status` field on `Event`, `Milestone`, and `StructuredTarget`.
 - Series metadata fields: `category`, `status`, `tags`, `settlement_sources`
@@ -102,6 +112,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   aggregator now guarantees that summaries are only produced for fully
   initialized orderbooks, making the field redundant. Remove any
   `summary.initialized` checks from your code.
+- **Breaking:** `SubaccountBalance::balance` changed from `i64` (centicents) to
+  `String` (fixed-point dollar string, e.g. `"500.0000"`). The
+  `balance_dollars()` helper has been removed — the balance is now already in
+  dollars. `updated_ts` changed from `Option<i64>` to `i64` (now always present
+  in the API response).
+- **Breaking:** Several fields promoted from `Option<String>` to `String` to
+  match the official API spec: `Fill::count_fp`, `Fill::yes_price_fixed`,
+  `Fill::no_price_fixed`, `Fill::fee_cost`, `Settlement::yes_count_fp`,
+  `Settlement::no_count_fp`, `Settlement::fee_cost`, `Trade::count_fp`,
+  `Trade::yes_price_dollars`, `Trade::no_price_dollars`.
+- **Breaking:** `Fill::created_time` changed from `String` to `Option<String>`
+  (optional per the API spec).
 - `CreateRfqRequest::with_target_cost_dollars()` now sends the dollar amount via
   the `target_cost_dollars` field instead of converting to centi-cents.
 - `Channel::requires_market_ticker()` now returns `true` only for

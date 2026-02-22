@@ -16,25 +16,22 @@ pub struct Settlement {
     pub market_result: MarketResult,
     /// Number of YES contracts held at settlement.
     pub yes_count: i64,
-    /// Number of YES contracts (fixed-point decimal string).
-    #[serde(default)]
-    pub yes_count_fp: Option<String>,
+    /// Number of YES contracts (fixed-point decimal string, e.g. `"10.00"`).
+    pub yes_count_fp: String,
     /// Total cost of YES contracts in cents.
     pub yes_total_cost: i64,
     /// Number of NO contracts held at settlement.
     pub no_count: i64,
-    /// Number of NO contracts (fixed-point decimal string).
-    #[serde(default)]
-    pub no_count_fp: Option<String>,
+    /// Number of NO contracts (fixed-point decimal string, e.g. `"10.00"`).
+    pub no_count_fp: String,
     /// Total cost of NO contracts in cents.
     pub no_total_cost: i64,
     /// Revenue from settlement in cents.
     pub revenue: i64,
     /// Settlement timestamp.
     pub settled_time: String,
-    /// Fee cost in dollars.
-    #[serde(default)]
-    pub fee_cost: Option<String>,
+    /// Fee cost as a fixed-point dollar string.
+    pub fee_cost: String,
     /// Settlement value in cents.
     #[serde(default)]
     pub value: Option<i64>,
@@ -69,6 +66,9 @@ pub struct GetSettlementsParams {
     /// Filter items before this Unix timestamp.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_ts: Option<i64>,
+    /// Filter by subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl GetSettlementsParams {
@@ -143,6 +143,15 @@ impl GetSettlementsParams {
         self
     }
 
+    /// Filter by subaccount number.
+    ///
+    /// Use 0 for the primary account, or 1-32 for numbered subaccounts.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
+
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
@@ -152,6 +161,7 @@ impl GetSettlementsParams {
         qb.push_opt("event_ticker", self.event_ticker.as_ref());
         qb.push_opt("min_ts", self.min_ts);
         qb.push_opt("max_ts", self.max_ts);
+        qb.push_opt("subaccount", self.subaccount);
         qb.build()
     }
 }

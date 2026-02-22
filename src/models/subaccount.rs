@@ -172,30 +172,15 @@ pub struct SubaccountBalancesResponse {
 
 /// Balance for a single subaccount.
 ///
-/// **Note:** This endpoint returns balance in **centicents** (1/100th of a cent),
-/// which differs from `GET /portfolio/balance` which returns balance in cents.
-/// Use [`balance_dollars()`](Self::balance_dollars) for convenient conversion.
+/// The `balance` field is a fixed-point dollar string (e.g., `"500.0000"`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubaccountBalance {
     /// Subaccount number (0 for primary, 1-32 for subaccounts).
     pub subaccount_number: i32,
-    /// Available balance in centicents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars.
-    pub balance: i64,
+    /// Available balance as a fixed-point dollar string.
+    pub balance: String,
     /// Last update timestamp (Unix seconds).
-    #[serde(default)]
-    pub updated_ts: Option<i64>,
-}
-
-impl SubaccountBalance {
-    /// Returns the balance in dollars.
-    ///
-    /// Converts from centicents (API unit) to dollars by dividing by 10,000.
-    #[inline]
-    #[must_use]
-    pub fn balance_dollars(&self) -> f64 {
-        self.balance as f64 / 10000.0
-    }
+    pub updated_ts: i64,
 }
 
 /// Query parameters for GET /portfolio/subaccounts/transfers.
@@ -333,14 +318,12 @@ mod tests {
     }
 
     #[test]
-    fn test_balance_dollars() {
-        // Balance is in centicents (1/100th of a cent), so 5000000 centicents = $500
-        let balance = SubaccountBalance {
-            subaccount_number: 0,
-            balance: 5000000,
-            updated_ts: None,
-        };
-        assert!((balance.balance_dollars() - 500.0).abs() < f64::EPSILON);
+    fn test_balance_deserialization() {
+        let json = r#"{"subaccount_number": 0, "balance": "500.0000", "updated_ts": 1706400000}"#;
+        let balance: SubaccountBalance = serde_json::from_str(json).unwrap();
+        assert_eq!(balance.subaccount_number, 0);
+        assert_eq!(balance.balance, "500.0000");
+        assert_eq!(balance.updated_ts, 1706400000);
     }
 
     #[test]
