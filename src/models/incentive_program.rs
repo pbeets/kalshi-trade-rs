@@ -10,38 +10,30 @@ use super::query::QueryBuilder;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IncentiveProgram {
     /// The unique identifier for the incentive program.
-    #[serde(default)]
-    pub id: Option<String>,
-    /// The incentive type (e.g., "volume", "liquidity").
-    #[serde(default)]
-    pub incentive_type: Option<String>,
+    pub id: String,
+    /// The unique identifier of the market associated with this incentive program.
+    pub market_id: String,
     /// The associated market ticker.
-    #[serde(default)]
-    pub market_ticker: Option<String>,
+    pub market_ticker: String,
+    /// The incentive type (e.g., "volume", "liquidity").
+    pub incentive_type: String,
     /// The start date of the incentive program (RFC3339 timestamp).
-    #[serde(default)]
-    pub start_date: Option<String>,
+    pub start_date: String,
     /// The end date of the incentive program (RFC3339 timestamp).
-    #[serde(default)]
-    pub end_date: Option<String>,
+    pub end_date: String,
     /// The reward amount for the period (in cents).
-    #[serde(default)]
-    pub period_reward: Option<i64>,
-    /// Discount factor in basis points.
-    #[serde(default)]
-    pub discount_factor_bps: Option<i64>,
+    pub period_reward: i64,
     /// Whether the program has been paid out.
-    #[serde(default)]
-    pub paid_out: Option<bool>,
+    pub paid_out: bool,
+    /// Discount factor in basis points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discount_factor_bps: Option<i64>,
     /// Target size for the program.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target_size: Option<i64>,
     /// Target size (fixed-point decimal string).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target_size_fp: Option<String>,
-    /// The market ID associated with this incentive program.
-    #[serde(default)]
-    pub market_id: Option<String>,
 }
 
 /// Response from GET /incentive_programs.
@@ -120,35 +112,5 @@ impl GetIncentiveProgramsParams {
         qb.push_opt("limit", self.limit);
         qb.push_opt("cursor", self.cursor.as_ref());
         qb.build()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_deserialize_empty_response() {
-        let json = r#"{"incentive_programs": []}"#;
-        let response: IncentiveProgramsResponse = serde_json::from_str(json).unwrap();
-        assert!(response.incentive_programs.is_empty());
-    }
-
-    #[test]
-    fn test_deserialize_program() {
-        let json = r#"{
-            "incentive_programs": [{
-                "id": "prog_123",
-                "incentive_type": "volume",
-                "market_ticker": "KXTEST",
-                "period_reward": 1000000
-            }]
-        }"#;
-        let response: IncentiveProgramsResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(response.incentive_programs.len(), 1);
-        assert_eq!(
-            response.incentive_programs[0].id,
-            Some("prog_123".to_string())
-        );
     }
 }

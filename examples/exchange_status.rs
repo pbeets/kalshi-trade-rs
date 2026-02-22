@@ -215,30 +215,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!();
 
         for program in programs.incentive_programs.iter().take(10) {
-            let incentive_type = program.incentive_type.as_deref().unwrap_or("unknown");
-            let market = program.market_ticker.as_deref().unwrap_or("(no market)");
-            let paid = program.paid_out.unwrap_or(false);
-
             println!(
                 "  {} [{}] {}",
-                market,
-                incentive_type,
-                if paid { "(paid)" } else { "" }
+                program.market_ticker,
+                program.incentive_type,
+                if program.paid_out { "(paid)" } else { "" }
             );
 
-            if let Some(reward) = program.period_reward {
-                // Convert cents to dollars
-                println!("    Reward: ${:.2}", reward as f64 / 100.0);
-            }
-
-            if let Some(start) = &program.start_date {
-                print!("    Period: {}", start);
-                if let Some(end) = &program.end_date {
-                    println!(" to {}", end);
-                } else {
-                    println!(" (ongoing)");
-                }
-            }
+            // Convert cents to dollars
+            println!("    Reward: ${:.2}", program.period_reward as f64 / 100.0);
+            println!("    Period: {} to {}", program.start_date, program.end_date);
 
             if let Some(discount) = program.discount_factor_bps {
                 println!("    Discount: {} bps", discount);
@@ -265,12 +251,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             volume_programs.incentive_programs.len()
         );
         for program in volume_programs.incentive_programs.iter().take(5) {
-            let market = program.market_ticker.as_deref().unwrap_or("(unknown)");
-            let reward = program
-                .period_reward
-                .map(|r| format!("${:.2}", r as f64 / 100.0))
-                .unwrap_or_default();
-            println!("  - {} {}", market, reward);
+            let reward = format!("${:.2}", program.period_reward as f64 / 100.0);
+            println!("  - {} {}", program.market_ticker, reward);
         }
     }
     println!();

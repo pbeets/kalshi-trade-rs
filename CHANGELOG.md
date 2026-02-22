@@ -89,7 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `subaccount` filter on `ListRfqsParams` for per-subaccount RFQ queries.
 - `subaccount` filter on `GetOrderGroupsParams` for per-subaccount order group
   queries. New `get_order_group_for_subaccount()` method on `KalshiClient`.
-- `market_id` and `target_size_fp` fields on `IncentiveProgram`.
+- `market_id` (required) and `target_size_fp` (optional) fields on `IncentiveProgram`.
+- Tightened `IncentiveProgram` struct: `id`, `market_id`, `market_ticker`,
+  `incentive_type`, `start_date`, `end_date`, `period_reward`, and `paid_out`
+  are now non-optional to match the official Kalshi OpenAPI spec.
 
 ### Fixed
 

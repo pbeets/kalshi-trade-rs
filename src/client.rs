@@ -2061,7 +2061,7 @@ impl KalshiClient {
     /// ```ignore
     /// let programs = client.get_incentive_programs().await?;
     /// for program in programs.incentive_programs {
-    ///     println!("{}: {:?}", program.name.unwrap_or_default(), program.status);
+    ///     println!("{} [{}]: reward={}", program.market_ticker, program.incentive_type, program.period_reward);
     /// }
     /// ```
     pub async fn get_incentive_programs(&self) -> Result<IncentiveProgramsResponse> {
@@ -2083,7 +2083,7 @@ impl KalshiClient {
     ///     .limit(50);
     /// let programs = client.get_incentive_programs_with_params(params).await?;
     /// for program in programs.incentive_programs {
-    ///     println!("{}: {:?}", program.name.unwrap_or_default(), program.status);
+    ///     println!("{} [{}]: reward={}", program.market_ticker, program.incentive_type, program.period_reward);
     /// }
     /// ```
     pub async fn get_incentive_programs_with_params(

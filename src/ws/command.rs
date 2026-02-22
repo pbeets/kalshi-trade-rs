@@ -134,6 +134,9 @@ pub struct SubscribeOptions {
     /// When `true`, the server skips market tickers in the OK message after a
     /// ticker channel update. This reduces acknowledgement payload size.
     pub skip_ticker_ack: Option<bool>,
+    /// When `true`, the server sends an initial snapshot of current ticker state
+    /// for all requested markets immediately upon subscribing.
+    pub send_initial_snapshot: Option<bool>,
 }
 
 /// Commands that can be sent to the WebSocket stream handler.
@@ -149,6 +152,8 @@ pub enum StreamCommand {
         sharding: Option<CommunicationsSharding>,
         /// When `true`, skip market tickers in ticker channel OK messages.
         skip_ticker_ack: Option<bool>,
+        /// When `true`, send initial ticker snapshot for requested markets.
+        send_initial_snapshot: Option<bool>,
         /// Oneshot channel to receive the subscription result.
         response: oneshot::Sender<Result<SubscribeResult, String>>,
     },

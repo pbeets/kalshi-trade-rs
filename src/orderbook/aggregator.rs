@@ -437,6 +437,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -457,6 +458,7 @@ mod tests {
         // First add a snapshot
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -467,6 +469,7 @@ mod tests {
         // Then apply a delta
         let delta = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             price: 46,
             delta: 50,
             side: Side::Yes,
@@ -486,6 +489,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: None,
@@ -506,6 +510,7 @@ mod tests {
 
         let snapshot1 = OrderbookSnapshotData {
             market_ticker: "TEST1".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: None,
@@ -515,6 +520,7 @@ mod tests {
 
         let snapshot2 = OrderbookSnapshotData {
             market_ticker: "TEST2".to_string(),
+            market_id: None,
             yes: Some(vec![[50, 200]]),
             yes_dollars: None,
             no: None,
@@ -537,6 +543,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // YES ask at 47
@@ -573,6 +580,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -596,6 +604,7 @@ mod tests {
         // Snapshot creates initial book
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -607,6 +616,7 @@ mod tests {
         agg.handle_delta(
             &OrderbookDeltaData {
                 market_ticker: "TEST".to_string(),
+                market_id: None,
                 price: 46,
                 delta: 75,
                 side: Side::Yes,
@@ -619,6 +629,7 @@ mod tests {
         agg.handle_delta(
             &OrderbookDeltaData {
                 market_ticker: "TEST".to_string(),
+                market_id: None,
                 price: 44,
                 delta: -200,
                 side: Side::Yes,
@@ -647,6 +658,7 @@ mod tests {
         agg.handle_delta(
             &OrderbookDeltaData {
                 market_ticker: "TEST".to_string(),
+                market_id: None,
                 price: 45,
                 delta: 100,
                 side: Side::Yes,
@@ -669,6 +681,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
+            market_id: None,
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: None,

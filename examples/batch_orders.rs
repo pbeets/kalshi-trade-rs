@@ -11,8 +11,8 @@
 
 use kalshi_trade_rs::{
     Action, BatchCancelOrderItem, BatchCancelOrdersRequest, BatchCreateOrdersRequest,
-    CreateOrderRequest, GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
-    Side, TimeInForce, cents_to_dollars,
+    CreateOrderRequest, GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus, Side,
+    TimeInForce, cents_to_dollars,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 

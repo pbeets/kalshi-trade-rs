@@ -242,6 +242,9 @@ pub type PriceLevelDollars = (String, i64);
 pub struct OrderbookSnapshotData {
     /// Market ticker identifier.
     pub market_ticker: String,
+    /// Market UUID identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market_id: Option<String>,
     /// Yes side price levels: [price_cents, contracts].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yes: Option<Vec<PriceLevel>>,
@@ -261,6 +264,9 @@ pub struct OrderbookSnapshotData {
 pub struct OrderbookDeltaData {
     /// Market ticker identifier.
     pub market_ticker: String,
+    /// Market UUID identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market_id: Option<String>,
     /// Price level being updated (1-99 cents).
     pub price: i64,
     /// Change in quantity (positive = increase, negative = decrease).
@@ -283,6 +289,9 @@ pub struct OrderbookDeltaData {
 pub struct TickerData {
     /// Market ticker identifier.
     pub market_ticker: String,
+    /// Market UUID identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market_id: Option<String>,
     /// Last traded price in cents (1-99).
     pub price: i64,
     /// Best bid price for yes side in cents (1-99).
@@ -305,7 +314,10 @@ pub struct TickerData {
     /// Yes bid in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yes_bid_dollars: Option<String>,
-    /// No bid in dollars.
+    /// Yes ask in dollars.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yes_ask_dollars: Option<String>,
+    /// No bid in dollars (not in official spec; may not be populated).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_bid_dollars: Option<String>,
     /// Volume (fixed-point decimal string).

@@ -454,6 +454,7 @@ impl KalshiStreamHandle {
                 markets,
                 options.sharding,
                 options.skip_ticker_ack,
+                options.send_initial_snapshot,
             )
             .await?;
 
@@ -714,7 +715,7 @@ impl KalshiStreamHandle {
         sharding: super::command::CommunicationsSharding,
     ) -> Result<()> {
         let result = self
-            .subscribe_raw_with_options(&[Channel::Communications], &[], Some(sharding), None)
+            .subscribe_raw_with_options(&[Channel::Communications], &[], Some(sharding), None, None)
             .await?;
 
         // Check for failures
@@ -749,17 +750,18 @@ impl KalshiStreamHandle {
         channels: &[Channel],
         markets: &[&str],
     ) -> Result<SubscribeResult> {
-        self.subscribe_raw_with_options(channels, markets, None, None)
+        self.subscribe_raw_with_options(channels, markets, None, None, None)
             .await
     }
 
-    /// Raw subscribe with optional sharding and skip_ticker_ack support.
+    /// Raw subscribe with optional sharding, skip_ticker_ack, and send_initial_snapshot support.
     async fn subscribe_raw_with_options(
         &self,
         channels: &[Channel],
         markets: &[&str],
         sharding: Option<super::command::CommunicationsSharding>,
         skip_ticker_ack: Option<bool>,
+        send_initial_snapshot: Option<bool>,
     ) -> Result<SubscribeResult> {
         let (tx, rx) = oneshot::channel();
 
@@ -773,6 +775,7 @@ impl KalshiStreamHandle {
             market_tickers: market_strings,
             sharding,
             skip_ticker_ack,
+            send_initial_snapshot,
             response: tx,
         };
 
@@ -1355,6 +1358,7 @@ mod tests {
             seq: Some(1),
             msg: super::super::message::StreamMessage::Ticker(super::super::message::TickerData {
                 market_ticker: "TEST".to_string(),
+                market_id: None,
                 price: 50,
                 yes_bid: 49,
                 yes_ask: 51,
@@ -1365,6 +1369,7 @@ mod tests {
                 ts: 1234567890,
                 price_dollars: None,
                 yes_bid_dollars: None,
+                yes_ask_dollars: None,
                 no_bid_dollars: None,
                 volume_fp: None,
                 open_interest_fp: None,
