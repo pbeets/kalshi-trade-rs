@@ -27,8 +27,16 @@ pub async fn create_order_group(
 pub async fn get_order_group(
     http: &HttpClient,
     order_group_id: &str,
+    subaccount: Option<i32>,
 ) -> Result<GetOrderGroupResponse> {
-    let path = format!("/portfolio/order_groups/{}", encode_id(order_group_id));
+    let path = match subaccount {
+        Some(sub) => format!(
+            "/portfolio/order_groups/{}?subaccount={}",
+            encode_id(order_group_id),
+            sub
+        ),
+        None => format!("/portfolio/order_groups/{}", encode_id(order_group_id)),
+    };
     http.get(&path).await
 }
 

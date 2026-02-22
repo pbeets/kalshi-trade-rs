@@ -83,6 +83,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `with_selected_markets()` constructor on `CreateMarketInCollectionRequest` and
   `LookupTickersRequest`.
 - `lookback_seconds` filter on `GetLookupHistoryParams`.
+- New `UserOrders` WebSocket channel for real-time order update notifications
+  (`UserOrderData`, `UserOrderEventType`). Requires authentication, supports
+  optional `market_tickers` filtering.
+- `subaccount` filter on `ListRfqsParams` for per-subaccount RFQ queries.
+- `subaccount` filter on `GetOrderGroupsParams` for per-subaccount order group
+  queries. New `get_order_group_for_subaccount()` method on `KalshiClient`.
+- `market_id` field on `IncentiveProgram`.
 
 ### Fixed
 

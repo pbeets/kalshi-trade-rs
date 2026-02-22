@@ -323,99 +323,31 @@ pub enum MarketResult {
 
 ---
 
-## BATCH 4: January 30 – February 5, 2026
+## ~~BATCH 4: January 30 – February 5, 2026~~ ✅ DONE
 
-### 4.1 — Queue Position Fixed-Point Field
+### ~~4.1 — Queue Position Fixed-Point Field~~ ✅
 
-**Changelog**: Jan 30, 2026 — "Order queue position returns fixed point field"
+Already implemented in batch 1 (`queue_position_fp` on `QueuePosition` and `OrderQueuePositionResponse`).
 
-**What changed**: `queue_position_fp` field added to queue position responses.
+### ~~4.2 — Subaccount Support for RFQs~~ ✅
 
-**What to do**:
-- Add `queue_position_fp: Option<String>` to queue position response types in order-related models
-- Check `OrderQueuePositionResponse` and `QueuePositionsResponse`
+`CreateRfqRequest.subaccount` was implemented in batch 2. Added `subaccount` filter to `ListRfqsParams`.
 
-**Files to modify**: `src/models/order.rs` (or wherever queue position types live)
+### ~~4.3 — Subaccount Support for RFQ Quotes~~ ✅
 
----
+Already implemented in batch 2 (`CreateQuoteRequest.subaccount`).
 
-### 4.2 — Subaccount Support for RFQs
+### ~~4.4 — User Orders WebSocket Channel~~ ✅
 
-**Changelog**: Feb 2, 2026 — "Subaccount support for RFQs"
+Added `UserOrders` channel, `UserOrderData`, `UserOrderEventType`, message parsing.
 
-**What changed**:
-- `POST /communications/rfqs` accepts optional `subaccount` parameter
-- `GET /communications/rfqs` accepts optional `subaccount` query parameter
+### ~~4.5 — Order Group Read Endpoints Subaccount Parameter~~ ✅
 
-**What to do**:
-- Add `subaccount: Option<i32>` to `CreateRfqRequest` in `src/models/communications.rs`
-- Add `subaccount: Option<i32>` to RFQ list query params
+Added `subaccount` to `GetOrderGroupsParams` and `get_order_group()` API function. Added `get_order_group_for_subaccount()` to client.
 
-**Files to modify**: `src/models/communications.rs`, `src/api/communications.rs`
+### ~~4.6 — `market_id` on Incentive Programs API~~ ✅
 
----
-
-### 4.3 — Subaccount Support for RFQ Quotes
-
-**Changelog**: Jan 22, 2026 — "Subaccount support for RFQ quotes"
-
-**What changed**: `POST /communications/quotes` accepts optional `subaccount` parameter.
-
-**What to do**:
-- Add `subaccount: Option<i32>` to `CreateQuoteRequest` in `src/models/communications.rs`
-
-**Files to modify**: `src/models/communications.rs`
-
----
-
-### 4.4 — User Orders WebSocket Channel
-
-**Changelog**: Feb 3, 2026 — "User orders WebSocket channel"
-
-**What changed**: New `user_orders` channel streams real-time order updates (created, updated, canceled, executed) for authenticated users. Supports optional `market_tickers` filter and dynamic `update_subscription` commands.
-
-**What to do**:
-- Add `UserOrders` variant to `Channel` enum in `src/ws/channel.rs`:
-  - Wire name: `"user_orders"`
-  - Requires auth: yes
-  - Does NOT require market ticker (supports optional tickers)
-- Add `UserOrderData` struct in `src/ws/message.rs`:
-  - Should mirror the `Order` REST type or have relevant order fields
-  - Include event_type (created, updated, canceled, executed)
-- Add `UserOrder(UserOrderData)` variant to `StreamMessage`
-- Update message parsing
-- Update `Channel::requires_auth()`
-- Export new types
-
-**Files to modify**: `src/ws/channel.rs`, `src/ws/message.rs`, `src/lib.rs`
-
----
-
-### 4.5 — Order Group Read Endpoints Subaccount Parameter
-
-**Changelog**: Feb 3, 2026 — "Order group read endpoints support optional subaccount parameter"
-
-**What changed**: `GET /portfolio/order_groups` and `GET /portfolio/order_groups/{id}` accept optional `subaccount` query parameter.
-
-**What to do**:
-- Add `subaccount: Option<i32>` to order group list params
-- Add optional `subaccount` query param to single order group get
-- Update `src/api/order_groups.rs` and `src/client.rs`
-
-**Files to modify**: `src/models/order_group.rs`, `src/api/order_groups.rs`, `src/client.rs`
-
----
-
-### 4.6 — `market_id` on Incentive Programs API
-
-**Changelog**: Feb 5, 2026 — "market_id added to Incentive Programs API"
-
-**What changed**: `GET /incentive_programs` now returns `market_id` field.
-
-**What to do**:
-- Add `market_id: Option<String>` to `IncentiveProgram` in `src/models/incentive_program.rs`
-
-**Files to modify**: `src/models/incentive_program.rs`
+Added `market_id: Option<String>` to `IncentiveProgram`.
 
 ---
 

@@ -23,6 +23,8 @@ pub enum Channel {
     MarketLifecycle,
     /// Order group lifecycle events (requires authentication)
     OrderGroupUpdates,
+    /// Real-time user order updates (requires authentication)
+    UserOrders,
     /// Multivariate collection lookup notifications
     Multivariate,
 }
@@ -32,7 +34,11 @@ impl Channel {
     pub fn requires_auth(&self) -> bool {
         matches!(
             self,
-            Self::Fill | Self::MarketPositions | Self::Communications | Self::OrderGroupUpdates
+            Self::Fill
+                | Self::MarketPositions
+                | Self::Communications
+                | Self::OrderGroupUpdates
+                | Self::UserOrders
         )
     }
 
@@ -58,6 +64,7 @@ impl Channel {
             Self::Communications => "communications",
             Self::MarketLifecycle => "market_lifecycle_v2",
             Self::OrderGroupUpdates => "order_group_updates",
+            Self::UserOrders => "user_orders",
             Self::Multivariate => "multivariate",
         }
     }

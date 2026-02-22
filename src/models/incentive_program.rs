@@ -36,6 +36,9 @@ pub struct IncentiveProgram {
     /// Target size for the program.
     #[serde(default)]
     pub target_size: Option<i64>,
+    /// The market ID associated with this incentive program.
+    #[serde(default)]
+    pub market_id: Option<String>,
 }
 
 /// Response from GET /incentive_programs.

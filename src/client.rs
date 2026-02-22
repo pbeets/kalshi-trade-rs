@@ -1021,7 +1021,21 @@ impl KalshiClient {
     /// println!("Orders: {:?}", response.orders);
     /// ```
     pub async fn get_order_group(&self, order_group_id: &str) -> Result<GetOrderGroupResponse> {
-        order_groups::get_order_group(&self.http, order_group_id).await
+        order_groups::get_order_group(&self.http, order_group_id, None).await
+    }
+
+    /// Get an order group by ID for a specific subaccount.
+    ///
+    /// # Arguments
+    ///
+    /// * `order_group_id` - The ID of the order group to retrieve
+    /// * `subaccount` - Subaccount number (0 for primary, 1-32 for subaccounts)
+    pub async fn get_order_group_for_subaccount(
+        &self,
+        order_group_id: &str,
+        subaccount: i32,
+    ) -> Result<GetOrderGroupResponse> {
+        order_groups::get_order_group(&self.http, order_group_id, Some(subaccount)).await
     }
 
     /// List all order groups with default parameters.

@@ -417,6 +417,10 @@ pub struct ListRfqsParams {
     /// Filter by creator user ID.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub creator_user_id: Option<String>,
+    /// Filter by subaccount number. When omitted, returns RFQs across all subaccounts.
+    /// When provided (including 0), filters to that specific subaccount.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl ListRfqsParams {
@@ -462,6 +466,13 @@ impl ListRfqsParams {
         self
     }
 
+    /// Filter by subaccount number.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
+
     #[must_use]
     pub fn to_query_string(&self) -> String {
         use crate::models::query::QueryBuilder;
@@ -472,6 +483,7 @@ impl ListRfqsParams {
         qb.push_opt("limit", self.limit);
         qb.push_opt("status", self.status.as_ref());
         qb.push_opt("creator_user_id", self.creator_user_id.as_ref());
+        qb.push_opt("subaccount", self.subaccount);
         qb.build()
     }
 }

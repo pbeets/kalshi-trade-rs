@@ -196,6 +196,10 @@ pub struct GetOrderGroupsParams {
     /// Number of results per page.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i32>,
+    /// Filter by subaccount number. When omitted, returns across all subaccounts.
+    /// When provided (including 0), filters to that specific subaccount.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl GetOrderGroupsParams {
@@ -217,11 +221,19 @@ impl GetOrderGroupsParams {
         self
     }
 
+    /// Filter by subaccount number.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
+
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
         qb.push_opt("cursor", self.cursor.as_ref());
         qb.push_opt("limit", self.limit);
+        qb.push_opt("subaccount", self.subaccount);
         qb.build()
     }
 }

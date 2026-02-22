@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::DisconnectReason;
 use crate::ws::Channel;
 // Re-export common types from models to avoid duplication
-pub use crate::models::{Action, Side};
+pub use crate::models::{Action, OrderStatus, OrderType, Side};
 
 /// Order group event types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -28,6 +28,117 @@ pub struct OrderGroupUpdateData {
     /// Contracts limit (fixed-point decimal string), present on limit updates.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contracts_limit_fp: Option<String>,
+}
+
+/// User order event types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UserOrderEventType {
+    /// A new order was created.
+    Created,
+    /// An existing order was amended/updated.
+    Updated,
+    /// An order was canceled.
+    Canceled,
+    /// An order was fully executed/filled.
+    Executed,
+    /// Unknown event type (forward compatibility).
+    #[serde(other)]
+    Unknown,
+}
+
+/// User order data for real-time order update notifications.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserOrderData {
+    /// The order identifier.
+    pub order_id: String,
+    /// Market ticker identifier.
+    #[serde(default)]
+    pub ticker: Option<String>,
+    /// Client-provided order identifier.
+    #[serde(default)]
+    pub client_order_id: Option<String>,
+    /// Side of the order.
+    #[serde(default)]
+    pub side: Option<Side>,
+    /// Action type (buy or sell).
+    #[serde(default)]
+    pub action: Option<Action>,
+    /// Order type (limit, market).
+    #[serde(default, rename = "type")]
+    pub order_type: Option<OrderType>,
+    /// Order status (resting, canceled, executed).
+    #[serde(default)]
+    pub status: Option<OrderStatus>,
+    /// Price in cents (1-99).
+    #[serde(default)]
+    pub yes_price: Option<i64>,
+    /// Price in cents (1-99).
+    #[serde(default)]
+    pub no_price: Option<i64>,
+    /// Price in fixed-point dollars.
+    #[serde(default)]
+    pub yes_price_dollars: Option<String>,
+    /// Price in fixed-point dollars.
+    #[serde(default)]
+    pub no_price_dollars: Option<String>,
+    /// Number of contracts filled.
+    #[serde(default)]
+    pub fill_count: Option<i64>,
+    /// Fill count (fixed-point decimal string).
+    #[serde(default)]
+    pub fill_count_fp: Option<String>,
+    /// Number of contracts remaining.
+    #[serde(default)]
+    pub remaining_count: Option<i64>,
+    /// Remaining count (fixed-point decimal string).
+    #[serde(default)]
+    pub remaining_count_fp: Option<String>,
+    /// Original number of contracts.
+    #[serde(default)]
+    pub initial_count: Option<i64>,
+    /// Initial count (fixed-point decimal string).
+    #[serde(default)]
+    pub initial_count_fp: Option<String>,
+    /// Taker fees in cents.
+    #[serde(default)]
+    pub taker_fees: Option<i64>,
+    /// Maker fees in cents.
+    #[serde(default)]
+    pub maker_fees: Option<i64>,
+    /// Taker fill cost in cents.
+    #[serde(default)]
+    pub taker_fill_cost: Option<i64>,
+    /// Maker fill cost in cents.
+    #[serde(default)]
+    pub maker_fill_cost: Option<i64>,
+    /// Taker fill cost in fixed-point dollars.
+    #[serde(default)]
+    pub taker_fill_cost_dollars: Option<String>,
+    /// Maker fill cost in fixed-point dollars.
+    #[serde(default)]
+    pub maker_fill_cost_dollars: Option<String>,
+    /// Taker fees in fixed-point dollars.
+    #[serde(default)]
+    pub taker_fees_dollars: Option<String>,
+    /// Maker fees in fixed-point dollars.
+    #[serde(default)]
+    pub maker_fees_dollars: Option<String>,
+    /// Order creation timestamp (ISO 8601).
+    #[serde(default)]
+    pub created_time: Option<String>,
+    /// Last update timestamp (ISO 8601).
+    #[serde(default)]
+    pub last_update_time: Option<String>,
+    /// Order expiration timestamp (ISO 8601).
+    #[serde(default)]
+    pub expiration_time: Option<String>,
+    /// Order group this order belongs to.
+    #[serde(default)]
+    pub order_group_id: Option<String>,
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    #[serde(default)]
+    pub subaccount_number: Option<i32>,
 }
 
 /// Market lifecycle event types.
@@ -81,6 +192,8 @@ pub enum StreamMessage {
     Communication(CommunicationData),
     /// Order group update notification.
     OrderGroupUpdate(OrderGroupUpdateData),
+    /// User order update notification.
+    UserOrder(UserOrderData),
     /// Multivariate collection lookup notification.
     MultivariateLookup(MultivariateLookupData),
     /// Connection was closed cleanly.
@@ -582,6 +695,10 @@ impl StreamMessage {
             // Order group update notifications
             "order_group_updates" => serde_json::from_value::<OrderGroupUpdateData>(value)
                 .map(StreamMessage::OrderGroupUpdate),
+            // User order update notifications
+            "user_orders" => {
+                serde_json::from_value::<UserOrderData>(value).map(StreamMessage::UserOrder)
+            }
             // Multivariate lookup notifications
             "multivariate_lookup" => serde_json::from_value::<MultivariateLookupData>(value)
                 .map(StreamMessage::MultivariateLookup),
