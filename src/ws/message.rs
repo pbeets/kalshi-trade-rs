@@ -495,6 +495,9 @@ pub struct MarketLifecycleData {
     /// Market determination result.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
+    /// Settlement value as fixed-point dollar string. Present on market_determined events.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settlement_value: Option<String>,
     /// Unix timestamp of determination.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub determination_ts: Option<i64>,

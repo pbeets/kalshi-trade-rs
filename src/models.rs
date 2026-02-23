@@ -12,6 +12,7 @@ mod event;
 mod exchange;
 mod fcm;
 mod fill;
+mod historical;
 mod incentive_program;
 mod live_data;
 mod market;
@@ -33,7 +34,7 @@ pub use api_key::{
     ApiKey, ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, DeleteApiKeyResponse,
     GenerateApiKeyRequest, GenerateApiKeyResponse,
 };
-pub use balance::BalanceResponse;
+pub use balance::{BalanceResponse, GetBalanceParams};
 pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
 pub use communications::{
     AcceptQuoteRequest, CommunicationsIdResponse, CreateQuoteRequest, CreateRfqRequest,
@@ -54,6 +55,11 @@ pub use exchange::{
 };
 pub use fcm::{GetFcmOrdersParams, GetFcmPositionsParams, SettlementStatus};
 pub use fill::{Fill, FillsResponse, GetFillsParams};
+pub use historical::{
+    GetHistoricalCandlesticksParams, GetHistoricalFillsParams, GetHistoricalMarketsParams,
+    GetHistoricalOrdersParams, HistoricalCandlestick, HistoricalCandlesticksResponse,
+    HistoricalCutoffResponse, HistoricalOhlc, HistoricalPriceOhlc,
+};
 pub use incentive_program::{
     GetIncentiveProgramsParams, IncentiveProgram, IncentiveProgramsResponse,
 };

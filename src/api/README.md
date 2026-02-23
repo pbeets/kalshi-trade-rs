@@ -37,7 +37,8 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | Structured Targets | 2 | 100% |
 | Incentive Programs | 1 | 100% |
 | FCM | 2 | 100% |
-| **Total** | **78** | **100%** |
+| Historical | 6 | 100% |
+| **Total** | **84** | **100%** |
 
 ---
 
@@ -280,6 +281,23 @@ Specialized endpoints for FCM (Futures Commission Merchant) members.
 | 🔲 | GET | `/fcm/positions` | `get_fcm_positions()` | FCM access required |
 
 **Source**: `src/api/fcm.rs`
+
+---
+
+## Historical API
+
+Endpoints for accessing archived historical data past the cutoff timestamp.
+
+| Status | Method | Endpoint | Rust Function | Notes |
+|--------|--------|----------|---------------|-------|
+| 🔲 | GET | `/historical/cutoff` | `get_historical_cutoff()` | No auth required |
+| 🔲 | GET | `/historical/markets` | `get_historical_markets()` | No auth required |
+| 🔲 | GET | `/historical/markets/{ticker}` | `get_historical_market()` | No auth required |
+| 🔲 | GET | `/historical/markets/{ticker}/candlesticks` | `get_historical_candlesticks()` | No auth; returns `HistoricalCandlesticksResponse` |
+| 🔲 | GET | `/historical/fills` | `get_historical_fills()` | Requires auth |
+| 🔲 | GET | `/historical/orders` | `get_historical_orders()` | Requires auth |
+
+**Source**: `src/api/historical.rs`
 
 ---
 
