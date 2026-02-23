@@ -6,9 +6,9 @@ pub use websocket::WebSocketClient;
 
 use crate::{
     api::{
-        account, api_keys, communications, events, exchange, fcm, incentive_programs, live_data,
-        markets, milestones, multivariate, order_groups, orders, portfolio, search, series,
-        structured_targets, subaccounts,
+        account, api_keys, communications, events, exchange, fcm, historical, incentive_programs,
+        live_data, markets, milestones, multivariate, order_groups, orders, portfolio, search,
+        series, structured_targets, subaccounts,
     },
     auth::KalshiConfig,
     error::Result,
@@ -24,26 +24,29 @@ use crate::{
         DeleteApiKeyResponse, EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
         EventMetadataResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
         ExchangeScheduleResponse, ExchangeStatusResponse, FeeChangesResponse, FillsResponse,
-        FiltersBySportResponse, GenerateApiKeyRequest, GenerateApiKeyResponse,
+        FiltersBySportResponse, GenerateApiKeyRequest, GenerateApiKeyResponse, GetBalanceParams,
         GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
         GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
         GetEventsParams, GetFcmOrdersParams, GetFcmPositionsParams, GetFeeChangesParams,
-        GetFillsParams, GetLookupHistoryParams, GetMarketsParams, GetMilestonesParams,
-        GetMultivariateCollectionsParams, GetMultivariateEventsParams, GetOrderGroupResponse,
-        GetOrderGroupsParams, GetOrderbookParams, GetOrdersParams, GetPositionsParams,
-        GetQueuePositionsParams, GetQuoteResponse, GetRfqResponse, GetSettlementsParams,
-        GetStructuredTargetsParams, GetSubaccountTransfersParams, GetTradesParams,
-        IncentiveProgramsResponse, ListQuotesParams, ListQuotesResponse, ListRfqsParams,
-        ListRfqsResponse, LiveDataResponse, LookupHistoryResponse, LookupTickersRequest,
-        LookupTickersResponse, MarketResponse, MarketsResponse, MilestoneResponse,
-        MilestonesResponse, MultivariateCollectionResponse, MultivariateCollectionsResponse,
-        MultivariateEventsResponse, OrderGroupsResponse, OrderQueuePositionResponse, OrderResponse,
-        OrderbookResponse, OrdersResponse, PositionsResponse, QueuePositionsResponse,
-        QuoteResponse, RestingOrderValueResponse, RfqResponse, SeriesListResponse, SeriesResponse,
-        SettlementsResponse, StructuredTargetResponse, StructuredTargetsResponse,
-        SubaccountBalancesResponse, SubaccountTransfersResponse, TagsByCategoriesResponse,
-        TradesResponse, TransferBetweenSubaccountsRequest, TransferResponse,
-        UpdateOrderGroupLimitRequest, UserDataTimestampResponse,
+        GetFillsParams, GetHistoricalCandlesticksParams, GetHistoricalFillsParams,
+        GetHistoricalMarketsParams, GetHistoricalOrdersParams, GetLookupHistoryParams,
+        GetMarketsParams, GetMilestonesParams, GetMultivariateCollectionsParams,
+        GetMultivariateEventsParams, GetOrderGroupResponse, GetOrderGroupsParams,
+        GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
+        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetStructuredTargetsParams,
+        GetSubaccountTransfersParams, GetTradesParams, HistoricalCandlesticksResponse,
+        HistoricalCutoffResponse, IncentiveProgramsResponse, ListQuotesParams, ListQuotesResponse,
+        ListRfqsParams, ListRfqsResponse, LiveDataResponse, LookupHistoryResponse,
+        LookupTickersRequest, LookupTickersResponse, MarketResponse, MarketsResponse,
+        MilestoneResponse, MilestonesResponse, MultivariateCollectionResponse,
+        MultivariateCollectionsResponse, MultivariateEventsResponse, OrderGroupsResponse,
+        OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
+        PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
+        RfqResponse, SeriesListResponse, SeriesResponse, SettlementsResponse,
+        StructuredTargetResponse, StructuredTargetsResponse, SubaccountBalancesResponse,
+        SubaccountTransfersResponse, TagsByCategoriesResponse, TradesResponse,
+        TransferBetweenSubaccountsRequest, TransferResponse, UpdateOrderGroupLimitRequest,
+        UserDataTimestampResponse,
     },
 };
 
@@ -138,7 +141,7 @@ impl KalshiClient {
 
     /// Get the current account balance.
     ///
-    /// Returns the available balance and portfolio value in cents.
+    /// Returns the combined balance and portfolio value across all subaccounts.
     ///
     /// # Example
     ///
@@ -147,7 +150,31 @@ impl KalshiClient {
     /// println!("Balance: ${:.2}", balance.balance as f64 / 100.0);
     /// ```
     pub async fn get_balance(&self) -> Result<BalanceResponse> {
-        portfolio::get_balance(&self.http).await
+        self.get_balance_with_params(GetBalanceParams::default())
+            .await
+    }
+
+    /// Get the account balance with custom query parameters.
+    ///
+    /// Use `subaccount(0)` for the primary account only, or `subaccount(n)` for
+    /// a specific subaccount. Omitting the subaccount returns the combined balance
+    /// across all subaccounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for subaccount filtering
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetBalanceParams::new().subaccount(0);
+    /// let balance = client.get_balance_with_params(params).await?;
+    /// ```
+    pub async fn get_balance_with_params(
+        &self,
+        params: GetBalanceParams,
+    ) -> Result<BalanceResponse> {
+        portfolio::get_balance(&self.http, params).await
     }
 
     /// Get all positions with default parameters.
@@ -2368,5 +2395,186 @@ impl KalshiClient {
         params: GetFcmPositionsParams,
     ) -> Result<PositionsResponse> {
         fcm::get_fcm_positions(&self.http, params).await
+    }
+
+    // =========================================================================
+    // Historical API
+    // =========================================================================
+
+    /// Get the cutoff timestamps for historical data.
+    ///
+    /// Returns timestamps indicating when historical market, trade, and order
+    /// data was last archived. Data older than these timestamps is available
+    /// through the historical endpoints.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let cutoff = client.get_historical_cutoff().await?;
+    /// println!("Markets archived through: {}", cutoff.market_settled_ts);
+    /// println!("Trades archived through: {}", cutoff.trades_created_ts);
+    /// ```
+    pub async fn get_historical_cutoff(&self) -> Result<HistoricalCutoffResponse> {
+        historical::get_historical_cutoff(&self.http).await
+    }
+
+    /// Get historical markets with default parameters.
+    ///
+    /// Returns settled markets that have been archived past the cutoff timestamp.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let markets = client.get_historical_markets().await?;
+    /// for market in markets.markets {
+    ///     println!("{}: {:?}", market.ticker, market.result);
+    /// }
+    /// ```
+    pub async fn get_historical_markets(&self) -> Result<MarketsResponse> {
+        self.get_historical_markets_with_params(GetHistoricalMarketsParams::default())
+            .await
+    }
+
+    /// Get historical markets with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetHistoricalMarketsParams::new()
+    ///     .event_ticker("KXBTC-25JAN")
+    ///     .limit(50);
+    /// let markets = client.get_historical_markets_with_params(params).await?;
+    /// ```
+    pub async fn get_historical_markets_with_params(
+        &self,
+        params: GetHistoricalMarketsParams,
+    ) -> Result<MarketsResponse> {
+        historical::get_historical_markets(&self.http, params).await
+    }
+
+    /// Get a specific historical market by ticker.
+    ///
+    /// # Arguments
+    ///
+    /// * `ticker` - The market ticker
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let market = client.get_historical_market("KXBTC-25JAN10-B50000").await?;
+    /// println!("{}: {:?}", market.market.ticker, market.market.result);
+    /// ```
+    pub async fn get_historical_market(&self, ticker: &str) -> Result<MarketResponse> {
+        historical::get_historical_market(&self.http, ticker).await
+    }
+
+    /// Get historical candlestick data for a market.
+    ///
+    /// Returns OHLCV data for a settled market that has been archived.
+    /// All monetary values are fixed-point dollar strings (e.g. `"0.5600"`).
+    /// Volume and open interest are fixed-point count strings (e.g. `"100.00"`).
+    ///
+    /// # Arguments
+    ///
+    /// * `ticker` - The market ticker
+    /// * `params` - Query parameters including time range and interval
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::{GetHistoricalCandlesticksParams, CandlestickPeriod};
+    ///
+    /// let params = GetHistoricalCandlesticksParams::new(1000000, 2000000, CandlestickPeriod::OneHour);
+    /// let candles = client.get_historical_candlesticks("KXBTC-25JAN10-B50000", params).await?;
+    /// for candle in candles.candlesticks {
+    ///     println!("Volume: {}", candle.volume);
+    /// }
+    /// ```
+    pub async fn get_historical_candlesticks(
+        &self,
+        ticker: &str,
+        params: GetHistoricalCandlesticksParams,
+    ) -> Result<HistoricalCandlesticksResponse> {
+        historical::get_historical_candlesticks(&self.http, ticker, params).await
+    }
+
+    /// Get historical fills with default parameters.
+    ///
+    /// Returns archived fill (trade execution) records.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let fills = client.get_historical_fills().await?;
+    /// for fill in fills.fills {
+    ///     println!("{}: {} @ {} cents", fill.ticker, fill.count, fill.yes_price);
+    /// }
+    /// ```
+    pub async fn get_historical_fills(&self) -> Result<FillsResponse> {
+        self.get_historical_fills_with_params(GetHistoricalFillsParams::default())
+            .await
+    }
+
+    /// Get historical fills with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetHistoricalFillsParams::new()
+    ///     .ticker("KXBTC-25JAN10-B50000")
+    ///     .limit(100);
+    /// let fills = client.get_historical_fills_with_params(params).await?;
+    /// ```
+    pub async fn get_historical_fills_with_params(
+        &self,
+        params: GetHistoricalFillsParams,
+    ) -> Result<FillsResponse> {
+        historical::get_historical_fills(&self.http, params).await
+    }
+
+    /// Get historical orders with default parameters.
+    ///
+    /// Returns archived order records.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let orders = client.get_historical_orders().await?;
+    /// for order in orders.orders {
+    ///     println!("{}: {:?}", order.order_id, order.status);
+    /// }
+    /// ```
+    pub async fn get_historical_orders(&self) -> Result<OrdersResponse> {
+        self.get_historical_orders_with_params(GetHistoricalOrdersParams::default())
+            .await
+    }
+
+    /// Get historical orders with custom query parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Query parameters for filtering and pagination
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let params = GetHistoricalOrdersParams::new()
+    ///     .ticker("KXBTC-25JAN10-B50000")
+    ///     .limit(100);
+    /// let orders = client.get_historical_orders_with_params(params).await?;
+    /// ```
+    pub async fn get_historical_orders_with_params(
+        &self,
+        params: GetHistoricalOrdersParams,
+    ) -> Result<OrdersResponse> {
+        historical::get_historical_orders(&self.http, params).await
     }
 }

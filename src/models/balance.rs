@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::query::QueryBuilder;
+
 /// Response from the get_balance endpoint.
 ///
 /// All monetary values are in cents.
@@ -41,6 +43,42 @@ impl BalanceResponse {
     #[must_use]
     pub fn portfolio_value_dollars(&self) -> f64 {
         self.portfolio_value as f64 / 100.0
+    }
+}
+
+/// Query parameters for the get_balance endpoint.
+///
+/// Omitting the `subaccount` field returns the combined balance across all subaccounts.
+/// Use `subaccount(0)` to get the primary account balance only.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetBalanceParams {
+    /// Filter by subaccount number (0 for primary, 1-32 for subaccounts).
+    /// When omitted, returns combined balance across all subaccounts.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
+}
+
+impl GetBalanceParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Filter by subaccount number.
+    ///
+    /// Use 0 for the primary account, or 1-32 for numbered subaccounts.
+    /// When omitted, returns combined balance across all subaccounts.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
+        qb.push_opt("subaccount", self.subaccount);
+        qb.build()
     }
 }
 

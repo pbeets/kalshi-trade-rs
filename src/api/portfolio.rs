@@ -7,14 +7,16 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        BalanceResponse, FillsResponse, GetFillsParams, GetOrdersParams, GetPositionsParams,
-        GetSettlementsParams, OrdersResponse, PositionsResponse, SettlementsResponse,
+        BalanceResponse, FillsResponse, GetBalanceParams, GetFillsParams, GetOrdersParams,
+        GetPositionsParams, GetSettlementsParams, OrdersResponse, PositionsResponse,
+        SettlementsResponse,
     },
 };
 
 /// Returns the available balance and portfolio value in cents.
-pub async fn get_balance(http: &HttpClient) -> Result<BalanceResponse> {
-    http.get("/portfolio/balance").await
+pub async fn get_balance(http: &HttpClient, params: GetBalanceParams) -> Result<BalanceResponse> {
+    let path = format!("/portfolio/balance{}", params.to_query_string());
+    http.get(&path).await
 }
 
 pub async fn get_positions(

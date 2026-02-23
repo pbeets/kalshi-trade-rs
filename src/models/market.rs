@@ -146,9 +146,13 @@ pub struct MveSelectedLeg {
     pub market_ticker: String,
     /// The side of the leg (e.g., "yes" or "no").
     pub side: String,
+    /// Settlement value of the YES side in dollars (only present after determination).
+    #[serde(default)]
+    pub yes_settlement_value_dollars: Option<String>,
 }
 
 /// A market on the Kalshi exchange.
+#[allow(deprecated)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Market {
     pub ticker: String,
@@ -270,9 +274,11 @@ pub struct Market {
     #[serde(default)]
     pub notional_value_dollars: Option<String>,
     /// Available order liquidity in cents.
+    #[deprecated(note = "Always returns 0. Use orderbook data instead.")]
     #[serde(default)]
     pub liquidity: Option<i64>,
     /// Available order liquidity in dollars.
+    #[deprecated(note = "Always returns '0.0000'. Use orderbook data instead.")]
     #[serde(default)]
     pub liquidity_dollars: Option<String>,
 

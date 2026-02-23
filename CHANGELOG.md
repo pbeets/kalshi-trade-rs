@@ -90,6 +90,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `subaccount` filter on `GetOrderGroupsParams` for per-subaccount order group
   queries. New `get_order_group_for_subaccount()` method on `KalshiClient`.
 - `market_id` (required) and `target_size_fp` (optional) fields on `IncentiveProgram`.
+- `GetBalanceParams` with `subaccount` filter for `GET /portfolio/balance`. New
+  `get_balance_with_params()` method on `KalshiClient`. Omitting subaccount
+  returns combined balance across all subaccounts; `subaccount(0)` filters to
+  primary only.
+- `settlement_value` field on `MarketLifecycleData` in WebSocket
+  `market_lifecycle_v2` channel. Present as a fixed-point dollar string on
+  `market_determined` events.
+- Historical data endpoints (6 new endpoints):
+  - `get_historical_cutoff()` — cutoff timestamps for archived data
+  - `get_historical_markets()` / `get_historical_markets_with_params()` —
+    settled markets older than cutoff
+  - `get_historical_market(ticker)` — single historical market
+  - `get_historical_candlesticks(ticker, params)` — candlesticks for historical
+    markets
+  - `get_historical_fills()` / `get_historical_fills_with_params()` — archived
+    fills
+  - `get_historical_orders()` / `get_historical_orders_with_params()` — archived
+    orders
+- New types: `HistoricalCutoffResponse`, `HistoricalCandlesticksResponse`,
+  `HistoricalCandlestick`, `HistoricalOhlc`, `HistoricalPriceOhlc`,
+  `GetHistoricalCandlesticksParams`, `GetHistoricalMarketsParams`,
+  `GetHistoricalFillsParams`, `GetHistoricalOrdersParams`.
+- `yes_settlement_value_dollars` field on `MveSelectedLeg`.
 - Tightened `IncentiveProgram` struct: `id`, `market_id`, `market_ticker`,
   `incentive_type`, `start_date`, `end_date`, `period_reward`, and `paid_out`
   are now non-optional to match the official Kalshi OpenAPI spec.
@@ -157,6 +180,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fill.trade_id`, `Fill.market_ticker`, `Fill.ts` — legacy field names.
 - `Event.category` — use series-level category instead.
 - `MarketPosition.resting_orders_count` — deprecated by the API.
+- `Market.liquidity` — always returns 0. Use orderbook data instead.
+- `Market.liquidity_dollars` — always returns `"0.0000"`. Use orderbook data
+  instead.
 
 ## [0.2.0] - 2026-01-18
 

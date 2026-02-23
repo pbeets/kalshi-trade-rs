@@ -347,7 +347,7 @@ Added `subaccount` to `GetOrderGroupsParams` and `get_order_group()` API functio
 
 ### ~~4.6 — `market_id` on Incentive Programs API~~ ✅
 
-Added `market_id: Option<String>` and `target_size_fp: Option<String>` to `IncentiveProgram`.
+Added `market_id: String` (required) and `target_size_fp: Option<String>` to `IncentiveProgram`. Tightened all required fields (`id`, `market_id`, `market_ticker`, `incentive_type`, `start_date`, `end_date`, `period_reward`, `paid_out`) to non-optional per the official OpenAPI spec.
 
 ---
 
@@ -371,85 +371,23 @@ Added `yes_bid_size_fp`, `yes_ask_size_fp`, `bid_size_fp`, `ask_size_fp`, `last_
 
 ---
 
-## BATCH 6: February 13–19, 2026
+## ~~BATCH 6: February 13–19, 2026~~ ✅ DONE
 
-### 6.1 — Market Liquidity Fields Deprecated
+### ~~6.1 — Market Liquidity Fields Deprecated~~ ✅
 
-**Changelog**: Feb 13, 2026 — "Market liquidity fields deprecated"
+Added `#[deprecated]` attributes to `liquidity` and `liquidity_dollars` fields on `Market` struct. Added `#[allow(deprecated)]` on the struct itself to suppress serde deserialization warnings.
 
-**What changed**: `liquidity` and `liquidity_dollars` on Market responses are deprecated and return 0.
+### ~~6.2 — Subaccount Filtering on `GET /portfolio/balance`~~ ✅
 
-**What to do**:
-- Add `#[deprecated]` attribute or doc comment to `liquidity_dollars` field on `Market` in `src/models/market.rs`
-- The field should remain for backwards compat but be documented as deprecated (always returns 0)
-- Note: `liquidity` (integer) might not exist; check and add deprecation note to whichever field(s) exist
+Added `GetBalanceParams` with `subaccount` builder. Updated `get_balance()` API function to accept params. Added `get_balance_with_params()` to client. Omitting subaccount returns combined balance across all subaccounts; `subaccount(0)` filters to primary only.
 
-**Current state**: `Market` has `liquidity_dollars: Option<String>` (line 230 of market.rs). No integer `liquidity` field found.
+### ~~6.3 — `settlement_value` on `market_lifecycle_v2` Determined Events~~ ✅
 
-**Files to modify**: `src/models/market.rs`
+Added `settlement_value: Option<String>` to `MarketLifecycleData` in WS message types.
 
----
+### ~~6.4 — Historical Data Endpoints~~ ✅
 
-### 6.2 — Subaccount Filtering on `GET /portfolio/balance`
-
-**Changelog**: Feb 17, 2026 — "Subaccount filtering on GET /portfolio/balance"
-
-**What changed**: `GET /portfolio/balance` now supports optional `subaccount` query parameter:
-- Omitted or `subaccount=0`: primary account balance
-- `subaccount=N`: specific subaccount balance
-
-**What to do**:
-- Current `get_balance()` takes no params. Need to add optional subaccount param.
-- Either add a `GetBalanceParams` builder, or add `get_balance_for_subaccount(subaccount: i32)` method
-- Update `src/api/portfolio.rs` and `src/client.rs`
-
-**Files to modify**: `src/models/balance.rs`, `src/api/portfolio.rs`, `src/client.rs`
-
----
-
-### 6.3 — `settlement_value` on `market_lifecycle_v2` Determined Events
-
-**Changelog**: Feb 19, 2026 — "settlement_value added to market_lifecycle_v2 determined events"
-
-**What changed**: `market_lifecycle_v2` WS channel includes `settlement_value` (fixed-point dollar string) on `market_determined` events.
-
-**What to do**:
-- Add `settlement_value: Option<String>` (with `skip_serializing_if`) to `MarketLifecycleData` in `src/ws/message.rs`
-
-**Current state** (line 286): `MarketLifecycleData` has `result: Option<String>` but NOT `settlement_value`.
-
-**Files to modify**: `src/ws/message.rs`
-
----
-
-### 6.4 — Historical Data Endpoints
-
-**Changelog**: Feb 19, 2026 — "Historical data endpoints and cutoff timestamps"
-
-**What changed**: Exchange data partitioned into live and historical tiers. New endpoints:
-- `GET /historical/cutoff` — returns cutoff timestamps (`market_settled_ts`, `trades_created_ts`, `orders_updated_ts`)
-- `GET /historical/markets` — settled markets older than cutoff
-- `GET /historical/markets/{ticker}` — single historical market
-- `GET /historical/markets/{ticker}/candlesticks` — candlesticks for historical markets
-- `GET /historical/fills` — fills older than cutoff
-- `GET /historical/orders` — canceled/executed orders older than cutoff
-
-**What to do**:
-- Create new model file `src/models/historical.rs`:
-  - `HistoricalCutoffResponse { market_settled_ts: i64, trades_created_ts: i64, orders_updated_ts: i64 }`
-  - Response types may reuse existing `Market`, `Fill`, `Order`, `Candlestick` types in paginated responses
-- Create new API file `src/api/historical.rs`:
-  - `get_historical_cutoff(http) -> Result<HistoricalCutoffResponse>`
-  - `get_historical_markets(http, params) -> Result<MarketsResponse>`
-  - `get_historical_market(http, ticker) -> Result<MarketResponse>`
-  - `get_historical_market_candlesticks(http, ticker, params) -> Result<CandlesticksResponse>`
-  - `get_historical_fills(http, params) -> Result<FillsResponse>`
-  - `get_historical_orders(http, params) -> Result<OrdersResponse>`
-- Wire up in `src/client.rs`
-- Register module in `src/api.rs` and `src/models.rs`
-- Export types from `src/lib.rs`
-
-**Files to modify**: new `src/models/historical.rs`, new `src/api/historical.rs`, `src/api.rs`, `src/models.rs`, `src/client.rs`, `src/lib.rs`
+Created `src/models/historical.rs` with `HistoricalCutoffResponse`, `GetHistoricalMarketsParams`, `GetHistoricalCandlesticksParams`, `GetHistoricalFillsParams`, `GetHistoricalOrdersParams`. Created `src/api/historical.rs` with 6 endpoint functions. Wired up in client with 10 methods (default + parameterized variants). Cutoff timestamps are ISO 8601 strings per API docs. Response types reuse existing `MarketsResponse`, `MarketResponse`, `CandlesticksResponse`, `FillsResponse`, `OrdersResponse`.
 
 ---
 
@@ -462,6 +400,6 @@ Added `yes_bid_size_fp`, `yes_ask_size_fp`, `bid_size_fp`, `ask_size_fp`, `last_
 | 3 | Jan 29 | 3.1–3.5 | Order subaccount, fee_cost, fill WS, balance |
 | 4 | Jan 30–Feb 5 | 4.1–4.6 | Queue FP, subaccount RFQ, user_orders WS, order groups |
 | 5 | Feb 11–12 | 5.1–5.4 | Remove market type, fractional trading, ticker WS enrichment |
-| 6 | Feb 13–19 | 6.1–6.4 | Deprecations, balance subaccount, lifecycle, historical |
+| ~~6~~ | ~~Feb 13–19~~ | ~~6.1–6.4~~ | ~~Deprecations, balance subaccount, lifecycle, historical~~ ✅ |
 
 **Total: 25 work items across 6 batches.**

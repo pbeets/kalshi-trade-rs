@@ -9,6 +9,7 @@ pub(crate) mod communications;
 pub(crate) mod events;
 pub(crate) mod exchange;
 pub(crate) mod fcm;
+pub(crate) mod historical;
 pub(crate) mod incentive_programs;
 pub(crate) mod live_data;
 pub(crate) mod markets;

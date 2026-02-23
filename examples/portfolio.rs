@@ -6,8 +6,8 @@
 //! Run with: cargo run --example portfolio
 
 use kalshi_trade_rs::{
-    GetFillsParams, GetOrdersParams, GetPositionsParams, GetSettlementsParams, KalshiClient,
-    KalshiConfig, OrderStatus, cents_to_dollars,
+    GetBalanceParams, GetFillsParams, GetOrdersParams, GetPositionsParams, GetSettlementsParams,
+    KalshiClient, KalshiConfig, OrderStatus, cents_to_dollars,
 };
 
 #[tokio::main]
@@ -21,8 +21,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = KalshiClient::new(config)?;
 
-    // 1. Get Balance
-    println!("=== Balance ===");
+    // 1. Get Balance (combined across all subaccounts)
+    println!("=== Balance (all subaccounts) ===");
 
     let balance = client.get_balance().await?;
 
@@ -31,6 +31,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "Portfolio Value: ${:.2}",
         cents_to_dollars(balance.portfolio_value)
+    );
+
+    println!();
+
+    // 1b. Get Balance for primary account only
+    println!("=== Balance (primary account only) ===");
+
+    let params = GetBalanceParams::new().subaccount(0);
+    let primary_balance = client.get_balance_with_params(params).await?;
+
+    println!(
+        "Primary Available: ${:.2}",
+        cents_to_dollars(primary_balance.balance)
+    );
+    println!(
+        "Primary Portfolio Value: ${:.2}",
+        cents_to_dollars(primary_balance.portfolio_value)
     );
 
     println!();
