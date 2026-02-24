@@ -37,10 +37,16 @@ pub struct StructuredTarget {
 pub struct GetStructuredTargetsParams {
     /// Maximum number of results (1-2000).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i64>,
+    pub page_size: Option<i64>,
     /// Cursor for pagination.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
+    /// Filter by target type.
+    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
+    pub target_type: Option<String>,
+    /// Filter by competition.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub competition: Option<String>,
 }
 
 impl GetStructuredTargetsParams {
@@ -54,8 +60,8 @@ impl GetStructuredTargetsParams {
     ///
     /// The value is clamped to the valid range of 1..=2000.
     #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        self.limit = Some(limit.clamp(1, 2000));
+    pub fn page_size(mut self, page_size: i64) -> Self {
+        self.page_size = Some(page_size.clamp(1, 2000));
         self
     }
 
@@ -66,12 +72,28 @@ impl GetStructuredTargetsParams {
         self
     }
 
+    /// Filter by target type.
+    #[must_use]
+    pub fn target_type(mut self, target_type: impl Into<String>) -> Self {
+        self.target_type = Some(target_type.into());
+        self
+    }
+
+    /// Filter by competition.
+    #[must_use]
+    pub fn competition(mut self, competition: impl Into<String>) -> Self {
+        self.competition = Some(competition.into());
+        self
+    }
+
     /// Build the query string.
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
-        qb.push_opt("limit", self.limit);
+        qb.push_opt("page_size", self.page_size);
         qb.push_opt("cursor", self.cursor.as_ref());
+        qb.push_opt("type", self.target_type.as_ref());
+        qb.push_opt("competition", self.competition.as_ref());
         qb.build()
     }
 }
@@ -104,15 +126,15 @@ mod tests {
     }
 
     #[test]
-    fn test_query_string_with_limit() {
-        let params = GetStructuredTargetsParams::new().limit(100);
-        assert!(params.to_query_string().contains("limit=100"));
+    fn test_query_string_with_page_size() {
+        let params = GetStructuredTargetsParams::new().page_size(100);
+        assert!(params.to_query_string().contains("page_size=100"));
     }
 
     #[test]
-    fn test_limit_clamping() {
-        let params = GetStructuredTargetsParams::new().limit(5000);
-        assert_eq!(params.limit, Some(2000)); // clamped to max
+    fn test_page_size_clamping() {
+        let params = GetStructuredTargetsParams::new().page_size(5000);
+        assert_eq!(params.page_size, Some(2000)); // clamped to max
     }
 
     #[test]

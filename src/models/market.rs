@@ -28,7 +28,6 @@ pub enum MarketStatus {
     Determined,
     Disputed,
     Amended,
-    Settled,
     Finalized,
     /// Unknown status returned by the API.
     #[serde(other)]
@@ -43,7 +42,6 @@ impl MarketStatus {
             MarketStatus::Inactive => "inactive",
             MarketStatus::Active => "active",
             MarketStatus::Closed => "closed",
-            MarketStatus::Settled => "settled",
             MarketStatus::Determined => "determined",
             MarketStatus::Disputed => "disputed",
             MarketStatus::Amended => "amended",
@@ -64,6 +62,7 @@ pub enum MarketResult {
     Scalar,
     #[serde(rename = "")]
     None,
+    Void,
     /// Unknown result returned by the API.
     #[serde(other)]
     Unknown,
@@ -159,133 +158,93 @@ pub struct Market {
     pub event_ticker: String,
     pub market_type: MarketType,
 
-    #[serde(default)]
-    pub title: Option<String>,
-    #[serde(default)]
-    pub subtitle: Option<String>,
-    #[serde(default)]
-    pub yes_sub_title: Option<String>,
-    #[serde(default)]
-    pub no_sub_title: Option<String>,
+    pub title: String,
+    pub subtitle: String,
+    pub yes_sub_title: String,
+    pub no_sub_title: String,
     /// Market category.
     #[serde(default)]
     pub category: Option<String>,
 
-    #[serde(default)]
-    pub created_time: Option<String>,
-    #[serde(default)]
-    pub open_time: Option<String>,
-    #[serde(default)]
-    pub close_time: Option<String>,
-    #[serde(default)]
-    pub expiration_time: Option<String>,
-    #[serde(default)]
-    pub latest_expiration_time: Option<String>,
+    pub created_time: String,
+    pub open_time: String,
+    pub close_time: String,
+    pub expiration_time: String,
+    pub latest_expiration_time: String,
     #[serde(default)]
     pub expected_expiration_time: Option<String>,
-    #[serde(default)]
-    pub settlement_timer_seconds: Option<i64>,
+    pub settlement_timer_seconds: i64,
 
     pub status: MarketStatus,
 
     /// Units for price fields (e.g., "usd_cent").
-    #[serde(default)]
-    pub response_price_units: Option<String>,
+    pub response_price_units: String,
     /// Risk limit in cents.
     #[serde(default)]
     pub risk_limit_cents: Option<i64>,
     /// Minimum price movement in cents.
-    #[serde(default)]
-    pub tick_size: Option<i64>,
+    pub tick_size: i64,
 
     /// Best YES bid price in cents.
-    #[serde(default)]
-    pub yes_bid: Option<i64>,
+    pub yes_bid: i64,
     /// Best YES bid price in dollars.
-    #[serde(default)]
-    pub yes_bid_dollars: Option<String>,
+    pub yes_bid_dollars: String,
     /// Best YES ask price in cents.
-    #[serde(default)]
-    pub yes_ask: Option<i64>,
+    pub yes_ask: i64,
     /// Best YES ask price in dollars.
-    #[serde(default)]
-    pub yes_ask_dollars: Option<String>,
+    pub yes_ask_dollars: String,
     /// Best NO bid price in cents.
-    #[serde(default)]
-    pub no_bid: Option<i64>,
+    pub no_bid: i64,
     /// Best NO bid price in dollars.
-    #[serde(default)]
-    pub no_bid_dollars: Option<String>,
+    pub no_bid_dollars: String,
     /// Best NO ask price in cents.
-    #[serde(default)]
-    pub no_ask: Option<i64>,
+    pub no_ask: i64,
     /// Best NO ask price in dollars.
-    #[serde(default)]
-    pub no_ask_dollars: Option<String>,
+    pub no_ask_dollars: String,
     /// Last trade price in cents.
-    #[serde(default)]
-    pub last_price: Option<i64>,
+    pub last_price: i64,
     /// Last trade price in dollars.
-    #[serde(default)]
-    pub last_price_dollars: Option<String>,
+    pub last_price_dollars: String,
 
     /// Previous YES bid (24h ago) in cents.
-    #[serde(default)]
-    pub previous_yes_bid: Option<i64>,
+    pub previous_yes_bid: i64,
     /// Previous YES bid (24h ago) in dollars.
-    #[serde(default)]
-    pub previous_yes_bid_dollars: Option<String>,
+    pub previous_yes_bid_dollars: String,
     /// Previous YES ask (24h ago) in cents.
-    #[serde(default)]
-    pub previous_yes_ask: Option<i64>,
+    pub previous_yes_ask: i64,
     /// Previous YES ask (24h ago) in dollars.
-    #[serde(default)]
-    pub previous_yes_ask_dollars: Option<String>,
+    pub previous_yes_ask_dollars: String,
     /// Previous price (24h ago) in cents.
-    #[serde(default)]
-    pub previous_price: Option<i64>,
+    pub previous_price: i64,
     /// Previous price (24h ago) in dollars.
-    #[serde(default)]
-    pub previous_price_dollars: Option<String>,
+    pub previous_price_dollars: String,
 
     /// Total contracts traded.
-    #[serde(default)]
-    pub volume: Option<i64>,
+    pub volume: i64,
     /// Total contracts traded (fixed-point decimal string).
-    #[serde(default)]
-    pub volume_fp: Option<String>,
+    pub volume_fp: String,
     /// 24-hour trading volume.
-    #[serde(default)]
-    pub volume_24h: Option<i64>,
+    pub volume_24h: i64,
     /// 24-hour trading volume (fixed-point decimal string).
-    #[serde(default)]
-    pub volume_24h_fp: Option<String>,
+    pub volume_24h_fp: String,
     /// Contracts outstanding.
-    #[serde(default)]
-    pub open_interest: Option<i64>,
+    pub open_interest: i64,
     /// Contracts outstanding (fixed-point decimal string).
-    #[serde(default)]
-    pub open_interest_fp: Option<String>,
+    pub open_interest_fp: String,
 
     /// Notional value per contract in cents.
-    #[serde(default)]
-    pub notional_value: Option<i64>,
+    pub notional_value: i64,
     /// Notional value per contract in dollars.
-    #[serde(default)]
-    pub notional_value_dollars: Option<String>,
+    pub notional_value_dollars: String,
     /// Available order liquidity in cents.
     #[deprecated(note = "Always returns 0. Use orderbook data instead.")]
-    #[serde(default)]
-    pub liquidity: Option<i64>,
+    pub liquidity: i64,
     /// Available order liquidity in dollars.
     #[deprecated(note = "Always returns '0.0000'. Use orderbook data instead.")]
-    #[serde(default)]
-    pub liquidity_dollars: Option<String>,
+    pub liquidity_dollars: String,
 
-    #[serde(default)]
-    pub result: Option<MarketResult>,
-    #[serde(default)]
-    pub can_close_early: Option<bool>,
+    pub result: MarketResult,
+    pub can_close_early: bool,
     #[serde(default)]
     pub early_close_condition: Option<String>,
 
@@ -296,14 +255,10 @@ pub struct Market {
     #[serde(default)]
     pub fee_waiver_expiration_time: Option<String>,
 
-    #[serde(default)]
-    pub rules_primary: Option<String>,
-    #[serde(default)]
-    pub rules_secondary: Option<String>,
-    #[serde(default)]
-    pub price_level_structure: Option<String>,
-    #[serde(default)]
-    pub price_ranges: Option<Vec<PriceRange>>,
+    pub rules_primary: String,
+    pub rules_secondary: String,
+    pub price_level_structure: String,
+    pub price_ranges: Vec<PriceRange>,
 
     #[serde(default)]
     pub strike_type: Option<StrikeType>,
@@ -326,28 +281,24 @@ pub struct Market {
     #[serde(default)]
     pub is_provisional: Option<bool>,
     /// Time of the last non-trading metadata update.
-    #[serde(default)]
-    pub updated_time: Option<String>,
+    pub updated_time: String,
     /// Maximum contracts cap for this market.
     #[serde(default)]
     pub cap_count: Option<i64>,
     /// Whether fractional trading is enabled for this market.
-    #[serde(default)]
-    pub fractional_trading_enabled: Option<bool>,
+    pub fractional_trading_enabled: bool,
     /// Settlement value in cents.
     #[serde(default)]
     pub settlement_value: Option<i64>,
     /// Expiration value.
-    #[serde(default)]
-    pub expiration_value: Option<String>,
+    pub expiration_value: String,
 }
 
 /// Response from GET /markets.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketsResponse {
     pub markets: Vec<Market>,
-    #[serde(default)]
-    pub cursor: Option<String>,
+    pub cursor: String,
 }
 
 /// Response from GET /markets/{ticker}.
@@ -622,12 +573,83 @@ pub struct Orderbook {
     pub no_dollars: Option<Vec<PriceLevelDollars>>,
 }
 
+/// A price level with dollar pricing and fixed-point count.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceLevelDollarsCountFp {
+    /// Price in dollars.
+    pub price: String,
+    /// Quantity as fixed-point string.
+    pub quantity: String,
+}
+
+mod price_level_fp_serde {
+    use super::PriceLevelDollarsCountFp;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<Vec<PriceLevelDollarsCountFp>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<Vec<Vec<String>>> = Option::deserialize(deserializer)?;
+        match opt {
+            None => Ok(None),
+            Some(levels) => {
+                let mut result = Vec::with_capacity(levels.len());
+                for level in levels {
+                    if level.len() >= 2 {
+                        result.push(PriceLevelDollarsCountFp {
+                            price: level[0].clone(),
+                            quantity: level[1].clone(),
+                        });
+                    }
+                }
+                Ok(Some(result))
+            }
+        }
+    }
+
+    pub fn serialize<S>(
+        value: &Option<Vec<PriceLevelDollarsCountFp>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            None => serializer.serialize_none(),
+            Some(levels) => {
+                let arrays: Vec<Vec<String>> = levels
+                    .iter()
+                    .map(|pl| vec![pl.price.clone(), pl.quantity.clone()])
+                    .collect();
+                arrays.serialize(serializer)
+            }
+        }
+    }
+}
+
+/// An orderbook with fixed-point dollar pricing.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct OrderbookCountFp {
+    /// YES price levels with dollar pricing and fixed-point counts.
+    #[serde(default, with = "price_level_fp_serde")]
+    pub yes_dollars: Option<Vec<PriceLevelDollarsCountFp>>,
+    /// NO price levels with dollar pricing and fixed-point counts.
+    #[serde(default, with = "price_level_fp_serde")]
+    pub no_dollars: Option<Vec<PriceLevelDollarsCountFp>>,
+}
+
 /// Response from GET /markets/{ticker}/orderbook.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderbookResponse {
     /// The orderbook. Empty if the market has no orders (API returns null).
     #[serde(deserialize_with = "orderbook_serde::deserialize")]
     pub orderbook: Orderbook,
+    /// The orderbook with fixed-point counts.
+    #[serde(default)]
+    pub orderbook_fp: Option<OrderbookCountFp>,
 }
 
 /// Query parameters for GET /markets/{ticker}/orderbook.
@@ -794,29 +816,21 @@ impl CandlestickPeriod {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OhlcData {
     /// Open price in cents.
-    #[serde(default)]
-    pub open: Option<i64>,
+    pub open: i64,
     /// Open price in dollars.
-    #[serde(default)]
-    pub open_dollars: Option<String>,
+    pub open_dollars: String,
     /// Low price in cents.
-    #[serde(default)]
-    pub low: Option<i64>,
+    pub low: i64,
     /// Low price in dollars.
-    #[serde(default)]
-    pub low_dollars: Option<String>,
+    pub low_dollars: String,
     /// High price in cents.
-    #[serde(default)]
-    pub high: Option<i64>,
+    pub high: i64,
     /// High price in dollars.
-    #[serde(default)]
-    pub high_dollars: Option<String>,
+    pub high_dollars: String,
     /// Close price in cents.
-    #[serde(default)]
-    pub close: Option<i64>,
+    pub close: i64,
     /// Close price in dollars.
-    #[serde(default)]
-    pub close_dollars: Option<String>,
+    pub close_dollars: String,
 }
 
 /// Extended OHLC data with additional price fields for trade prices.
@@ -878,26 +892,19 @@ pub struct Candlestick {
     /// End of the period (Unix timestamp in seconds).
     pub end_period_ts: i64,
     /// YES bid OHLC data.
-    #[serde(default)]
-    pub yes_bid: Option<OhlcData>,
+    pub yes_bid: OhlcData,
     /// YES ask OHLC data.
-    #[serde(default)]
-    pub yes_ask: Option<OhlcData>,
+    pub yes_ask: OhlcData,
     /// Trade price OHLC data.
-    #[serde(default)]
-    pub price: Option<PriceOhlcData>,
+    pub price: PriceOhlcData,
     /// Trading volume during the period.
-    #[serde(default)]
-    pub volume: Option<i64>,
+    pub volume: i64,
     /// Trading volume during the period (fixed-point decimal string).
-    #[serde(default)]
-    pub volume_fp: Option<String>,
+    pub volume_fp: String,
     /// Open interest at end of period.
-    #[serde(default)]
-    pub open_interest: Option<i64>,
+    pub open_interest: i64,
     /// Open interest at end of period (fixed-point decimal string).
-    #[serde(default)]
-    pub open_interest_fp: Option<String>,
+    pub open_interest_fp: String,
 }
 
 /// Response from GET /series/{series_ticker}/markets/{ticker}/candlesticks.
@@ -1174,8 +1181,15 @@ mod tests {
     }
 
     #[test]
-    fn test_market_result_deserialize_unknown() {
+    fn test_market_result_deserialize_void() {
         let json = r#""void""#;
+        let result: MarketResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result, MarketResult::Void);
+    }
+
+    #[test]
+    fn test_market_result_deserialize_unknown() {
+        let json = r#""exotic""#;
         let result: MarketResult = serde_json::from_str(json).unwrap();
         assert_eq!(result, MarketResult::Unknown);
     }
@@ -1209,21 +1223,61 @@ mod tests {
             "market_type": "binary",
             "status": "active",
             "title": "Will Bitcoin reach $50,000?",
+            "subtitle": "",
+            "yes_sub_title": "Yes",
+            "no_sub_title": "No",
+            "created_time": "2025-01-01T00:00:00Z",
+            "open_time": "2025-01-01T00:00:00Z",
+            "close_time": "2025-12-31T00:00:00Z",
+            "expiration_time": "2025-12-31T00:00:00Z",
+            "latest_expiration_time": "2025-12-31T00:00:00Z",
+            "settlement_timer_seconds": 3600,
+            "response_price_units": "usd_cent",
+            "tick_size": 1,
+            "yes_bid": 50,
+            "yes_bid_dollars": "0.50",
+            "yes_ask": 55,
+            "yes_ask_dollars": "0.55",
+            "no_bid": 45,
+            "no_bid_dollars": "0.45",
+            "no_ask": 50,
+            "no_ask_dollars": "0.50",
+            "last_price": 52,
+            "last_price_dollars": "0.52",
+            "previous_yes_bid": 48,
+            "previous_yes_bid_dollars": "0.48",
+            "previous_yes_ask": 53,
+            "previous_yes_ask_dollars": "0.53",
+            "previous_price": 50,
+            "previous_price_dollars": "0.50",
             "volume": 1000,
             "volume_fp": "1000.5",
             "volume_24h": 500,
             "volume_24h_fp": "500.25",
             "open_interest": 250,
-            "open_interest_fp": "250.125"
+            "open_interest_fp": "250.125",
+            "notional_value": 100,
+            "notional_value_dollars": "1.00",
+            "liquidity": 0,
+            "liquidity_dollars": "0.0000",
+            "result": "",
+            "can_close_early": false,
+            "fractional_trading_enabled": true,
+            "expiration_value": "",
+            "rules_primary": "rules",
+            "rules_secondary": "",
+            "price_level_structure": "standard",
+            "price_ranges": [],
+            "updated_time": "2025-01-01T00:00:00Z"
         }"#;
         let market: Market = serde_json::from_str(json).unwrap();
         assert_eq!(market.ticker, "KXBTC-25JAN10-B50000");
         assert_eq!(market.market_type, MarketType::Binary);
         assert_eq!(market.status, MarketStatus::Active);
-        assert_eq!(market.volume, Some(1000));
-        assert_eq!(market.volume_fp, Some("1000.5".to_string()));
-        assert_eq!(market.volume_24h_fp, Some("500.25".to_string()));
-        assert_eq!(market.open_interest_fp, Some("250.125".to_string()));
+        assert_eq!(market.volume, 1000);
+        assert_eq!(market.volume_fp, "1000.5");
+        assert_eq!(market.volume_24h_fp, "500.25");
+        assert_eq!(market.open_interest_fp, "250.125");
     }
 
     #[test]
@@ -1300,13 +1354,60 @@ mod tests {
                 "ticker": "TEST-001",
                 "event_ticker": "TEST",
                 "market_type": "binary",
-                "status": "active"
+                "status": "active",
+                "title": "Test Market",
+                "subtitle": "",
+                "yes_sub_title": "Yes",
+                "no_sub_title": "No",
+                "created_time": "2025-01-01T00:00:00Z",
+                "open_time": "2025-01-01T00:00:00Z",
+                "close_time": "2025-12-31T00:00:00Z",
+                "expiration_time": "2025-12-31T00:00:00Z",
+                "latest_expiration_time": "2025-12-31T00:00:00Z",
+                "settlement_timer_seconds": 3600,
+                "response_price_units": "usd_cent",
+                "tick_size": 1,
+                "yes_bid": 50,
+                "yes_bid_dollars": "0.50",
+                "yes_ask": 55,
+                "yes_ask_dollars": "0.55",
+                "no_bid": 45,
+                "no_bid_dollars": "0.45",
+                "no_ask": 50,
+                "no_ask_dollars": "0.50",
+                "last_price": 52,
+                "last_price_dollars": "0.52",
+                "previous_yes_bid": 48,
+                "previous_yes_bid_dollars": "0.48",
+                "previous_yes_ask": 53,
+                "previous_yes_ask_dollars": "0.53",
+                "previous_price": 50,
+                "previous_price_dollars": "0.50",
+                "volume": 1000,
+                "volume_fp": "1000.00",
+                "volume_24h": 100,
+                "volume_24h_fp": "100.00",
+                "open_interest": 500,
+                "open_interest_fp": "500.00",
+                "notional_value": 100,
+                "notional_value_dollars": "1.00",
+                "liquidity": 0,
+                "liquidity_dollars": "0.0000",
+                "result": "",
+                "can_close_early": false,
+                "fractional_trading_enabled": true,
+                "expiration_value": "",
+                "rules_primary": "rules",
+                "rules_secondary": "",
+                "price_level_structure": "standard",
+                "price_ranges": [],
+                "updated_time": "2025-01-01T00:00:00Z"
             }],
             "cursor": "next_page_token"
         }"#;
         let response: MarketsResponse = serde_json::from_str(json).unwrap();
         assert_eq!(response.markets.len(), 1);
-        assert_eq!(response.cursor, Some("next_page_token".to_string()));
+        assert_eq!(response.cursor, "next_page_token");
     }
 
     #[test]

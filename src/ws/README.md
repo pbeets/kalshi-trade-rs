@@ -19,9 +19,9 @@ Complete reference for WebSocket streaming supported by this library.
 | Category | Channels | Coverage |
 |----------|----------|----------|
 | Public Channels | 4 | 100% |
-| Authenticated Channels | 4 | 100% |
+| Authenticated Channels | 5 | 100% |
 | Other Channels | 1 | 100% |
-| **Total** | **9** | **100%** |
+| **Total** | **10** | **100%** |
 
 ---
 
@@ -61,6 +61,7 @@ These channels require valid API credentials to subscribe.
 | ✅ | `market_positions` | `Channel::MarketPositions` | `MarketPositionData` | Real-time position updates |
 | ✅ | `communications` | `Channel::Communications` | `CommunicationData` | RFQ and quote notifications |
 | ✅ | `order_group_updates` | `Channel::OrderGroupUpdates` | `OrderGroupUpdateData` | Order group lifecycle events |
+| ✅ | `user_orders` | `Channel::UserOrders` | `UserOrderData` | Real-time order update notifications. Supports optional `market_tickers` filtering |
 
 **Source**: `src/ws/channel.rs`
 
@@ -91,6 +92,7 @@ All message types are defined in `src/ws/message.rs`:
 | `MarketLifecycleData` | Lifecycle event | `event_type`, `market_ticker`, timestamps, `result` |
 | `CommunicationData` | RFQ/Quote events | Tagged enum: `RfqCreated`, `RfqDeleted`, `QuoteCreated`, `QuoteAccepted` |
 | `OrderGroupUpdateData` | Order group events | `order_group_id`, `event_type`, `contracts_limit_fp` |
+| `UserOrderData` | User order updates | `order_id`, `ticker`, `event_type`, `status`, `side`, `yes_price`, `fill_count`, `remaining_count` |
 
 ### System Messages
 
@@ -281,8 +283,9 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
    ticker list to receive updates for all markets.
 
 2. **Authentication-only channels**: `fill`, `market_positions`,
-   `communications`, and `order_group_updates` are user-scoped and don't
-   require market tickers.
+   `communications`, `order_group_updates`, and `user_orders` are user-scoped.
+   Most don't require market tickers, though `user_orders` supports optional
+   `market_tickers` filtering.
 
 3. **Broadcast channel lag**: If a subscriber falls behind, they will receive a `RecvError::Lagged(n)` indicating dropped messages. Increase `buffer_size` via `connect_with_options()` if needed.
 
@@ -294,4 +297,4 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
 
 - [Kalshi WebSocket Overview](https://docs.kalshi.com/reference/websocket-overview)
 - [Kalshi WebSocket Subscriptions](https://docs.kalshi.com/reference/ws-subscriptions)
-- Examples: `examples/stream_ticker.rs`, `examples/stream_reconnect.rs`, `examples/multi_channel_subscribe.rs`, `examples/stream_user_channels.rs`, `examples/rfq_verify.rs`
+- Examples: `examples/stream_ticker.rs`, `examples/stream_reconnect.rs`, `examples/multi_channel_subscribe.rs`, `examples/stream_user_channels.rs`, `examples/rfq_verify.rs`, `examples/orderbook_aggregator.rs`

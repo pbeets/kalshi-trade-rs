@@ -36,15 +36,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for market in &markets.markets {
         println!(
             "  {} | {:?} | result: {:?} | vol: {}",
-            market.ticker,
-            market.status,
-            market.result,
-            market.volume.unwrap_or(0)
+            market.ticker, market.status, market.result, market.volume
         );
     }
 
-    if let Some(cursor) = &markets.cursor {
-        println!("  Next cursor: {}...", &cursor[..cursor.len().min(20)]);
+    if !markets.cursor.is_empty() {
+        println!(
+            "  Next cursor: {}...",
+            &markets.cursor[..markets.cursor.len().min(20)]
+        );
     }
     println!();
 
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let detail = client.get_historical_market(ticker).await?;
         let m = &detail.market;
 
-        println!("  Title: {}", m.title.as_deref().unwrap_or("(none)"));
+        println!("  Title: {}", m.title);
         println!("  Event: {}", m.event_ticker);
         println!("  Type: {:?}", m.market_type);
         println!("  Status: {:?}", m.status);
@@ -79,11 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(candles) => {
                 println!("  {} candlesticks returned", candles.candlesticks.len());
                 for candle in candles.candlesticks.iter().take(3) {
-                    let close = candle
-                        .price
-                        .as_ref()
-                        .and_then(|p| p.close.as_deref())
-                        .unwrap_or("N/A");
+                    let close = candle.price.close.as_deref().unwrap_or("N/A");
                     println!(
                         "    ts={} close=${} vol={}",
                         candle.end_period_ts, close, candle.volume

@@ -40,21 +40,16 @@ pub struct Event {
     pub series_ticker: String,
     pub title: String,
 
-    #[serde(default)]
-    pub sub_title: Option<String>,
+    pub sub_title: String,
 
     /// Deprecated: use series-level category instead.
-    #[serde(default)]
-    pub category: Option<String>,
+    pub category: String,
 
-    #[serde(default)]
-    pub collateral_return_type: Option<String>,
+    pub collateral_return_type: String,
 
-    #[serde(default)]
-    pub mutually_exclusive: Option<bool>,
+    pub mutually_exclusive: bool,
 
-    #[serde(default)]
-    pub available_on_brokers: Option<bool>,
+    pub available_on_brokers: bool,
 
     #[serde(default)]
     pub product_metadata: Option<serde_json::Value>,
@@ -85,14 +80,11 @@ pub struct Milestone {
     pub category: Option<String>,
 
     #[serde(rename = "type")]
-    #[serde(default)]
-    pub milestone_type: Option<String>,
+    pub milestone_type: String,
 
-    #[serde(default)]
-    pub title: Option<String>,
+    pub title: String,
 
-    #[serde(default)]
-    pub start_date: Option<String>,
+    pub start_date: String,
 
     #[serde(default)]
     pub end_date: Option<String>,
@@ -103,6 +95,26 @@ pub struct Milestone {
     /// Milestone status (e.g., "upcoming", "active", "completed").
     #[serde(default)]
     pub status: Option<String>,
+
+    /// Notification message for this milestone.
+    #[serde(default)]
+    pub notification_message: Option<String>,
+
+    /// Source identifier for this milestone.
+    #[serde(default)]
+    pub source_id: Option<String>,
+
+    /// Additional details for this milestone.
+    #[serde(default)]
+    pub details: Option<serde_json::Value>,
+
+    /// Primary event tickers associated with this milestone.
+    #[serde(default)]
+    pub primary_event_tickers: Option<Vec<String>>,
+
+    /// Last updated timestamp.
+    #[serde(default)]
+    pub last_updated_ts: Option<String>,
 }
 
 /// Response from GET /events.
@@ -110,8 +122,7 @@ pub struct Milestone {
 pub struct EventsResponse {
     pub events: Vec<Event>,
 
-    #[serde(default)]
-    pub cursor: Option<String>,
+    pub cursor: String,
 
     /// Milestones (only present if with_milestones=true).
     #[serde(default)]
@@ -124,11 +135,7 @@ pub struct EventResponse {
     pub event: Event,
 
     /// Markets in this event.
-    ///
-    /// **Deprecated:** Use `get_event_with_params()` with `with_nested_markets(true)`
-    /// instead, which returns markets in the `event.markets` field.
-    #[serde(default)]
-    pub markets: Option<Vec<Market>>,
+    pub markets: Vec<Market>,
 }
 
 /// Query parameters for GET /events.
@@ -407,8 +414,7 @@ impl GetMultivariateEventsParams {
 pub struct MultivariateEventsResponse {
     pub events: Vec<Event>,
 
-    #[serde(default)]
-    pub cursor: Option<String>,
+    pub cursor: String,
 }
 
 // =========================================================================
@@ -489,8 +495,7 @@ pub struct EventCandlesticksResponse {
     /// Array of candlestick arrays, one per market.
     pub market_candlesticks: Vec<Vec<Candlestick>>,
     /// Adjusted end timestamp if requested range exceeded maximum.
-    #[serde(default)]
-    pub adjusted_end_ts: Option<i64>,
+    pub adjusted_end_ts: i64,
 }
 
 // =========================================================================
@@ -614,14 +619,11 @@ pub struct PercentilePoint {
     /// The percentile value (0-10000).
     pub percentile: i32,
     /// The raw numerical forecast value.
-    #[serde(default)]
-    pub raw_numerical_forecast: Option<f64>,
+    pub raw_numerical_forecast: f64,
     /// The processed numerical forecast value.
-    #[serde(default)]
-    pub numerical_forecast: Option<f64>,
+    pub numerical_forecast: f64,
     /// The human-readable formatted forecast value.
-    #[serde(default)]
-    pub formatted_forecast: Option<String>,
+    pub formatted_forecast: String,
 }
 
 /// A single forecast history data point.

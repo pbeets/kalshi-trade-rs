@@ -329,14 +329,11 @@ pub struct HistoricalCandlestick {
     /// End of the period (Unix timestamp in seconds).
     pub end_period_ts: i64,
     /// YES bid OHLC data in dollars.
-    #[serde(default)]
-    pub yes_bid: Option<HistoricalOhlc>,
+    pub yes_bid: HistoricalOhlc,
     /// YES ask OHLC data in dollars.
-    #[serde(default)]
-    pub yes_ask: Option<HistoricalOhlc>,
+    pub yes_ask: HistoricalOhlc,
     /// Trade price OHLC data in dollars.
-    #[serde(default)]
-    pub price: Option<HistoricalPriceOhlc>,
+    pub price: HistoricalPriceOhlc,
     /// Trading volume during the period (fixed-point count string).
     pub volume: String,
     /// Open interest at end of period (fixed-point count string).
@@ -462,13 +459,11 @@ mod tests {
         assert_eq!(candle.volume, "100.0000");
         assert_eq!(candle.open_interest, "50.0000");
 
-        let bid = candle.yes_bid.as_ref().unwrap();
-        assert_eq!(bid.open, "0.5600");
-        assert_eq!(bid.close, "0.5700");
+        assert_eq!(candle.yes_bid.open, "0.5600");
+        assert_eq!(candle.yes_bid.close, "0.5700");
 
-        let price = candle.price.as_ref().unwrap();
-        assert_eq!(price.mean, Some("0.5600".to_string()));
-        assert_eq!(price.previous, Some("0.5500".to_string()));
+        assert_eq!(candle.price.mean, Some("0.5600".to_string()));
+        assert_eq!(candle.price.previous, Some("0.5500".to_string()));
     }
 
     #[test]
@@ -477,6 +472,18 @@ mod tests {
             "ticker": "TEST",
             "candlesticks": [{
                 "end_period_ts": 1000,
+                "yes_bid": {
+                    "open": "0.0000",
+                    "low": "0.0000",
+                    "high": "0.0000",
+                    "close": "0.0000"
+                },
+                "yes_ask": {
+                    "open": "0.0000",
+                    "low": "0.0000",
+                    "high": "0.0000",
+                    "close": "0.0000"
+                },
                 "price": {
                     "open": null,
                     "low": null,
@@ -492,9 +499,8 @@ mod tests {
 
         let response: HistoricalCandlesticksResponse = serde_json::from_str(json).unwrap();
         let candle = &response.candlesticks[0];
-        let price = candle.price.as_ref().unwrap();
-        assert!(price.open.is_none());
-        assert!(price.mean.is_none());
-        assert!(candle.yes_bid.is_none());
+        assert!(candle.price.open.is_none());
+        assert!(candle.price.mean.is_none());
+        assert_eq!(candle.yes_bid.open, "0.0000");
     }
 }

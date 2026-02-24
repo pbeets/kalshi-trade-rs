@@ -26,19 +26,19 @@ pub async fn accept_quote(
     http: &HttpClient,
     quote_id: &str,
     request: AcceptQuoteRequest,
-) -> Result<QuoteResponse> {
+) -> Result<()> {
     let path = format!("/communications/quotes/{}/accept", quote_id);
-    http.put(&path, &request).await
+    http.put_no_response(&path, &request).await
 }
 
-pub async fn cancel_rfq(http: &HttpClient, rfq_id: &str) -> Result<RfqResponse> {
+pub async fn cancel_rfq(http: &HttpClient, rfq_id: &str) -> Result<()> {
     let path = format!("/communications/rfqs/{}", rfq_id);
-    http.delete_with_response(&path).await
+    http.delete(&path).await
 }
 
-pub async fn cancel_quote(http: &HttpClient, quote_id: &str) -> Result<QuoteResponse> {
+pub async fn cancel_quote(http: &HttpClient, quote_id: &str) -> Result<()> {
     let path = format!("/communications/quotes/{}", quote_id);
-    http.delete_with_response(&path).await
+    http.delete(&path).await
 }
 
 pub async fn get_rfq(http: &HttpClient, rfq_id: &str) -> Result<GetRfqResponse> {

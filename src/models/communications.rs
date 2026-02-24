@@ -604,13 +604,13 @@ impl ListQuotesParams {
 /// Response from create RFQ.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RfqResponse {
-    pub rfq_id: String,
+    pub id: String,
 }
 
 /// Response from create quote.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuoteResponse {
-    pub quote_id: String,
+    pub id: String,
 }
 
 /// RFQ details.
@@ -623,11 +623,9 @@ pub struct Rfq {
     /// The ticker of the market this RFQ is for.
     pub market_ticker: String,
     /// Number of contracts requested in the RFQ.
-    #[serde(default)]
-    pub contracts: Option<i64>,
+    pub contracts: i64,
     /// Number of contracts (fixed-point decimal string).
-    #[serde(default)]
-    pub contracts_fp: Option<String>,
+    pub contracts_fp: String,
     /// Total value of the RFQ in centi-cents (1/100th of a cent).
     /// Divide by 10,000 to get dollars. Deprecated: use `target_cost_dollars`.
     #[serde(default)]
@@ -636,8 +634,7 @@ pub struct Rfq {
     #[serde(default)]
     pub target_cost_dollars: Option<String>,
     /// Current status of the RFQ (open, closed).
-    #[serde(default)]
-    pub status: Option<String>,
+    pub status: String,
     /// Timestamp when the RFQ was created.
     pub created_ts: String,
     /// Timestamp when the RFQ was last updated.
@@ -697,28 +694,21 @@ pub struct Quote {
     /// The ticker of the market this quote is for.
     pub market_ticker: String,
     /// Number of contracts in the quote.
-    #[serde(default)]
-    pub contracts: Option<i64>,
+    pub contracts: i64,
     /// Bid price for YES contracts, in cents.
-    #[serde(default)]
-    pub yes_bid: Option<i64>,
+    pub yes_bid: i64,
     /// Bid price for NO contracts, in cents.
-    #[serde(default)]
-    pub no_bid: Option<i64>,
+    pub no_bid: i64,
     /// YES bid price in dollars (fixed-point string with 4 decimal places).
-    #[serde(default)]
-    pub yes_bid_dollars: Option<String>,
+    pub yes_bid_dollars: String,
     /// NO bid price in dollars (fixed-point string with 4 decimal places).
-    #[serde(default)]
-    pub no_bid_dollars: Option<String>,
+    pub no_bid_dollars: String,
     /// Timestamp when the quote was created.
     pub created_ts: String,
     /// Timestamp when the quote was last updated.
-    #[serde(default)]
-    pub updated_ts: Option<String>,
+    pub updated_ts: String,
     /// Current status of the quote.
-    #[serde(default)]
-    pub status: Option<String>,
+    pub status: String,
     /// The side that was accepted (yes or no).
     #[serde(default)]
     pub accepted_side: Option<String>,
@@ -757,8 +747,7 @@ pub struct Quote {
     #[serde(default)]
     pub rfq_creator_order_id: Option<String>,
     /// Number of contracts (fixed-point decimal string).
-    #[serde(default)]
-    pub contracts_fp: Option<String>,
+    pub contracts_fp: String,
     /// Order ID for quote creator (private field).
     #[serde(default)]
     pub creator_order_id: Option<String>,
@@ -905,11 +894,11 @@ mod tests {
             id: "rfq123".to_string(),
             creator_id: "creator123".to_string(),
             market_ticker: "TICKER".to_string(),
-            contracts: None,
-            contracts_fp: None,
+            contracts: 0,
+            contracts_fp: String::new(),
             target_cost_centi_cents: Some(500000), // $50
             target_cost_dollars: None,
-            status: Some("open".to_string()),
+            status: "open".to_string(),
             created_ts: "2024-01-01T00:00:00Z".to_string(),
             updated_ts: None,
             cancelled_ts: None,
@@ -933,14 +922,14 @@ mod tests {
             creator_id: "creator123".to_string(),
             rfq_creator_id: "rfq_creator123".to_string(),
             market_ticker: "TICKER".to_string(),
-            contracts: Some(10),
-            yes_bid: Some(56),
-            no_bid: Some(44),
-            yes_bid_dollars: Some("0.5600".to_string()),
-            no_bid_dollars: Some("0.4400".to_string()),
+            contracts: 10,
+            yes_bid: 56,
+            no_bid: 44,
+            yes_bid_dollars: "0.5600".to_string(),
+            no_bid_dollars: "0.4400".to_string(),
             created_ts: "2024-01-01T00:00:00Z".to_string(),
-            updated_ts: None,
-            status: Some("open".to_string()),
+            updated_ts: "2024-01-01T00:00:00Z".to_string(),
+            status: "open".to_string(),
             accepted_side: None,
             accepted_ts: None,
             confirmed_ts: None,
@@ -953,7 +942,7 @@ mod tests {
             rfq_target_cost_centi_cents: Some(500000), // $50
             rfq_target_cost_dollars: None,
             rfq_creator_order_id: None,
-            contracts_fp: None,
+            contracts_fp: "10".to_string(),
             creator_order_id: None,
             side: None,
             expires_ts: None,

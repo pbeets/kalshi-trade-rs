@@ -46,12 +46,10 @@ pub struct ExchangeSchedule {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StandardHoursPeriod {
     /// Start of the period when these hours are effective (RFC3339).
-    #[serde(default)]
-    pub start_time: Option<String>,
+    pub start_time: String,
 
     /// End of the period when these hours are effective (RFC3339).
-    #[serde(default)]
-    pub end_time: Option<String>,
+    pub end_time: String,
 
     /// Monday trading sessions.
     #[serde(default)]

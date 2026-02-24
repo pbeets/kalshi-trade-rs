@@ -96,20 +96,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 for rfq in &response.rfqs {
                     // RFQs specify either contracts OR target_cost. When contracts=0 or None,
                     // check target_cost. The API may return contracts=Some(0) when target_cost is used.
-                    let size = match rfq.contracts {
-                        Some(c) if c > 0 => format!("{} contracts", c),
-                        _ => rfq
-                            .target_cost_dollars
+                    let size = if rfq.contracts > 0 {
+                        format!("{} contracts", rfq.contracts)
+                    } else {
+                        rfq.target_cost_dollars
                             .as_deref()
                             .map(|d| format!("${} target", d))
-                            .unwrap_or_else(|| "unknown size".to_string()),
+                            .unwrap_or_else(|| "unknown size".to_string())
                     };
                     println!(
                         "   - {} | {} | {} | status: {}",
-                        rfq.id,
-                        rfq.market_ticker,
-                        size,
-                        rfq.status.as_deref().unwrap_or("unknown")
+                        rfq.id, rfq.market_ticker, size, rfq.status
                     );
                 }
                 println!();
@@ -151,14 +148,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         rfq.id
                     );
                     for quote in &response.quotes {
-                        let yes_bid = quote.yes_bid_dollars.as_deref().unwrap_or("?");
-                        let no_bid = quote.no_bid_dollars.as_deref().unwrap_or("?");
                         println!(
                             "   - {} | yes: {} / no: {} | status: {}",
-                            quote.id,
-                            yes_bid,
-                            no_bid,
-                            quote.status.as_deref().unwrap_or("unknown")
+                            quote.id, quote.yes_bid_dollars, quote.no_bid_dollars, quote.status
                         );
                     }
                     println!();

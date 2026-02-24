@@ -56,24 +56,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!();
                 println!("Live Data Response:");
                 println!("  Milestone ID: {}", data.milestone_id);
-                if let Some(t) = &data.milestone_type {
-                    println!("  Type: {}", t);
-                }
-                if let Some(v) = data.value {
-                    println!("  Value: {}", v);
-                }
-                if let Some(vs) = &data.value_string {
-                    println!("  Value (string): {}", vs);
-                }
-                if let Some(ts) = data.updated_ts {
-                    println!("  Updated: {} (unix timestamp)", ts);
-                }
-                if let Some(event) = &data.event_ticker {
-                    println!("  Event: {}", event);
-                }
-                if let Some(series) = &data.series_ticker {
-                    println!("  Series: {}", series);
-                }
+                println!("  Type: {}", data.data_type);
+                println!("  Details: {}", data.details);
             }
             Err(e) => {
                 println!("Failed to get live data: {}", e);
@@ -118,23 +102,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(response) => {
                 println!(
                     "Batch Response: {} live data entries",
-                    response.live_data.len()
+                    response.live_datas.len()
                 );
                 println!();
 
-                for (i, data) in response.live_data.iter().enumerate() {
+                for (i, data) in response.live_datas.iter().enumerate() {
                     println!("{}. Milestone: {}", i + 1, data.milestone_id);
-                    if let Some(t) = &data.milestone_type {
-                        println!("   Type: {}", t);
-                    }
-                    if let Some(v) = data.value {
-                        println!("   Value: {}", v);
-                    } else if let Some(vs) = &data.value_string {
-                        println!("   Value: {}", vs);
-                    }
-                    if let Some(event) = &data.event_ticker {
-                        println!("   Event: {}", event);
-                    }
+                    println!("   Type: {}", data.data_type);
+                    println!("   Details: {}", data.details);
                 }
             }
             Err(e) => {

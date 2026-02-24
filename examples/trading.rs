@@ -44,13 +44,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Selected market: {}", market.ticker);
 
-    if let Some(title) = &market.title {
-        println!("Title: {}", title);
-    }
-
-    if let (Some(yes_bid), Some(yes_ask)) = (&market.yes_bid_dollars, &market.yes_ask_dollars) {
-        println!("Current YES: ${} bid / ${} ask", yes_bid, yes_ask);
-    }
+    println!("Title: {}", market.title);
+    println!(
+        "Current YES: ${} bid / ${} ask",
+        market.yes_bid_dollars, market.yes_ask_dollars
+    );
 
     println!();
 
@@ -213,9 +211,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Order ID: {}", cancel_response.order.order_id);
     println!("  Status: {:?}", cancel_response.order.status);
 
-    if let Some(reduced_by) = cancel_response.reduced_by {
-        println!("  Reduced by: {} contracts", reduced_by);
-    }
+    println!("  Reduced by: {} contracts", cancel_response.reduced_by);
 
     println!();
 
@@ -284,15 +280,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match client.get_queue_positions_with_params(params).await {
         Ok(response) => {
-            if let Some(queue_positions) = &response.queue_positions {
-                println!("Orders with queue positions: {}", queue_positions.len());
-                for qp in queue_positions.iter().take(5) {
-                    println!(
-                        "  {} | {} contracts ahead",
-                        qp.market_ticker, qp.queue_position
-                    );
-                }
-            } else {
+            println!(
+                "Orders with queue positions: {}",
+                response.queue_positions.len()
+            );
+            for qp in response.queue_positions.iter().take(5) {
+                println!(
+                    "  {} | {} contracts ahead",
+                    qp.market_ticker, qp.queue_position
+                );
+            }
+            if response.queue_positions.is_empty() {
                 println!("No orders with queue positions for this market");
             }
         }

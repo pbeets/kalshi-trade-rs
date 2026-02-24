@@ -40,12 +40,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let market = markets
         .markets
         .iter()
-        .find(|m| m.volume.unwrap_or(0) > 0)
+        .find(|m| m.volume > 0)
         .unwrap_or(&markets.markets[0]);
 
     let ticker = &market.ticker;
     let series_ticker = &market.event_ticker;
-    let volume = market.volume.unwrap_or(0);
+    let volume = market.volume;
 
     println!("Selected market: {}", ticker);
     println!("Series: {}", series_ticker);
@@ -92,18 +92,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
                 .unwrap_or_else(|| candle.end_period_ts.to_string());
 
-            let (open, high, low, close) = if let Some(price) = &candle.price {
-                (
-                    price.open.map(|p| format!("${:.2}", cents_to_dollars(p))),
-                    price.high.map(|p| format!("${:.2}", cents_to_dollars(p))),
-                    price.low.map(|p| format!("${:.2}", cents_to_dollars(p))),
-                    price.close.map(|p| format!("${:.2}", cents_to_dollars(p))),
-                )
-            } else {
-                (None, None, None, None)
-            };
-
-            let volume = candle.volume.map(|v| v.to_string());
+            let price = &candle.price;
+            let open = price.open.map(|p| format!("${:.2}", cents_to_dollars(p)));
+            let high = price.high.map(|p| format!("${:.2}", cents_to_dollars(p)));
+            let low = price.low.map(|p| format!("${:.2}", cents_to_dollars(p)));
+            let close = price.close.map(|p| format!("${:.2}", cents_to_dollars(p)));
 
             println!(
                 "{:<20} {:>8} {:>8} {:>8} {:>8} {:>8}",
@@ -112,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 high.as_deref().unwrap_or("-"),
                 low.as_deref().unwrap_or("-"),
                 close.as_deref().unwrap_or("-"),
-                volume.as_deref().unwrap_or("-")
+                candle.volume
             );
         }
 
@@ -142,23 +135,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|dt| dt.format("%H:%M:%S").to_string())
                 .unwrap_or_else(|| candle.end_period_ts.to_string());
 
-            let yes_bid = candle
-                .yes_bid
-                .as_ref()
-                .and_then(|b| b.close)
-                .map(|p| format!("${:.2}", cents_to_dollars(p)));
-            let yes_ask = candle
-                .yes_ask
-                .as_ref()
-                .and_then(|a| a.close)
-                .map(|p| format!("${:.2}", cents_to_dollars(p)));
+            let yes_bid = format!("${:.2}", cents_to_dollars(candle.yes_bid.close));
+            let yes_ask = format!("${:.2}", cents_to_dollars(candle.yes_ask.close));
 
-            println!(
-                "{:<20} {:>12} {:>12}",
-                timestamp,
-                yes_bid.as_deref().unwrap_or("-"),
-                yes_ask.as_deref().unwrap_or("-")
-            );
+            println!("{:<20} {:>12} {:>12}", timestamp, yes_bid, yes_ask);
         }
     }
     println!();
@@ -179,8 +159,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|dt| dt.format("%Y-%m-%d").to_string())
             .unwrap_or_else(|| candle.end_period_ts.to_string());
 
-        let vol = candle.volume.unwrap_or(0);
-        let oi = candle.open_interest.unwrap_or(0);
+        let vol = candle.volume;
+        let oi = candle.open_interest;
 
         println!("  {} | Volume: {} | Open Interest: {}", date, vol, oi);
     }

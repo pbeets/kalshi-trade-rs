@@ -31,11 +31,14 @@ mod subaccount;
 // Re-export all public types
 pub use account::ApiTierLimitsResponse;
 pub use api_key::{
-    ApiKey, ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, DeleteApiKeyResponse,
-    GenerateApiKeyRequest, GenerateApiKeyResponse,
+    ApiKey, ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, GenerateApiKeyRequest,
+    GenerateApiKeyResponse,
 };
 pub use balance::{BalanceResponse, GetBalanceParams};
-pub use common::{Action, OrderStatus, OrderType, SelfTradePreventionType, Side, cents_to_dollars};
+pub use common::{
+    Action, ExchangeInstance, OrderStatus, OrderType, SelfTradePreventionType, Side,
+    cents_to_dollars,
+};
 pub use communications::{
     AcceptQuoteRequest, CommunicationsIdResponse, CreateQuoteRequest, CreateRfqRequest,
     GetQuoteResponse, GetRfqResponse, ListQuotesParams, ListQuotesResponse, ListRfqsParams,
@@ -69,8 +72,8 @@ pub use market::{
     GetBatchCandlesticksParams, GetCandlesticksParams, GetMarketsParams, GetOrderbookParams,
     GetTradesParams, Market, MarketCandlesticks, MarketFilterStatus, MarketResponse, MarketResult,
     MarketStatus, MarketType, MarketsResponse, MveFilter, MveSelectedLeg, OhlcData, Orderbook,
-    OrderbookResponse, PriceLevelDollars, PriceOhlcData, PriceRange, StrikeType, TakerSide, Trade,
-    TradesResponse,
+    OrderbookCountFp, OrderbookResponse, PriceLevelDollars, PriceLevelDollarsCountFp,
+    PriceOhlcData, PriceRange, StrikeType, TakerSide, Trade, TradesResponse,
 };
 pub use milestone::{GetMilestonesParams, MilestoneInfo, MilestoneResponse, MilestonesResponse};
 pub use multivariate::{
@@ -96,8 +99,8 @@ pub use search::{
     CompetitionFilter, FiltersBySportResponse, SportFilter, TagsByCategoriesResponse,
 };
 pub use series::{
-    FeeChangesResponse, FeeType, GetFeeChangesParams, GetSeriesParams, Series, SeriesFeeChange,
-    SeriesListResponse, SeriesResponse,
+    FeeChangesResponse, FeeType, GetFeeChangesParams, GetSeriesParams, GetSingleSeriesParams,
+    Series, SeriesFeeChange, SeriesListResponse, SeriesResponse,
 };
 pub use settlement::{GetSettlementsParams, Settlement, SettlementsResponse};
 pub use structured_target::{

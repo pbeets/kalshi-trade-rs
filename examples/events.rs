@@ -33,8 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Total events returned: {}", events.events.len());
 
-    if let Some(cursor) = &events.cursor {
-        println!("Next cursor: {}...", &cursor[..cursor.len().min(20)]);
+    if !events.cursor.is_empty() {
+        println!(
+            "Next cursor: {}...",
+            &events.cursor[..events.cursor.len().min(20)]
+        );
     }
 
     println!();
@@ -47,12 +50,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for event in &open_events.events {
         println!("  {} | {}", event.event_ticker, event.title);
-        if let Some(subtitle) = &event.sub_title {
-            println!("    Subtitle: {}", subtitle);
+        if !event.sub_title.is_empty() {
+            println!("    Subtitle: {}", event.sub_title);
         }
         println!("    Series: {}", event.series_ticker);
-        if let Some(category) = &event.category {
-            println!("    Category: {}", category);
+        if !event.category.is_empty() {
+            println!("    Category: {}", event.category);
         }
     }
     println!();
@@ -72,9 +75,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(markets) = &event.markets {
             println!("  Markets ({}):", markets.len());
             for market in markets.iter().take(5) {
-                let title = market.title.as_deref().unwrap_or("(no title)");
-                let yes_ask = market.yes_ask_dollars.as_deref().unwrap_or("N/A");
-                println!("    {} | {} | YES ask: ${}", market.ticker, title, yes_ask);
+                println!(
+                    "    {} | {} | YES ask: ${}",
+                    market.ticker, market.title, market.yes_ask_dollars
+                );
             }
             if markets.len() > 5 {
                 println!("    ... and {} more markets", markets.len() - 5);
@@ -96,15 +100,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Ticker: {}", event.event_ticker);
         println!("Title: {}", event.title);
         println!("Series: {}", event.series_ticker);
-        if let Some(subtitle) = &event.sub_title {
-            println!("Subtitle: {}", subtitle);
+        if !event.sub_title.is_empty() {
+            println!("Subtitle: {}", event.sub_title);
         }
-        if let Some(category) = &event.category {
-            println!("Category: {}", category);
+        if !event.category.is_empty() {
+            println!("Category: {}", event.category);
         }
-        if let Some(mutually_exclusive) = event.mutually_exclusive {
-            println!("Mutually Exclusive: {}", mutually_exclusive);
-        }
+        println!("Mutually Exclusive: {}", event.mutually_exclusive);
         if let Some(strike_date) = &event.strike_date {
             println!("Strike Date: {}", strike_date);
         }
@@ -112,9 +114,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Strike Period: {}", strike_period);
         }
 
-        // Check for markets in the deprecated field
-        if let Some(markets) = &event_response.markets {
-            println!("Markets (deprecated field): {}", markets.len());
+        // Check for markets in response
+        if !event_response.markets.is_empty() {
+            println!("Markets: {}", event_response.markets.len());
         }
         println!();
 
@@ -131,20 +133,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             for market in markets {
                 let status = format!("{:?}", market.status);
-                let volume = market.volume.unwrap_or(0);
-                let oi = market.open_interest.unwrap_or(0);
-
                 println!(
                     "  {} | {} | vol: {} | oi: {}",
-                    market.ticker, status, volume, oi
+                    market.ticker, status, market.volume, market.open_interest
                 );
 
-                // Show pricing if available
-                if let (Some(yes_bid), Some(yes_ask)) =
-                    (&market.yes_bid_dollars, &market.yes_ask_dollars)
-                {
-                    println!("    YES: ${} bid / ${} ask", yes_bid, yes_ask);
-                }
+                // Show pricing
+                println!(
+                    "    YES: ${} bid / ${} ask",
+                    market.yes_bid_dollars, market.yes_ask_dollars
+                );
             }
         }
         println!();
@@ -211,9 +209,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Page {}: fetched {} events", page, fetched);
 
-        if let Some(next_cursor) = response.cursor {
+        if !response.cursor.is_empty() {
             if page < MAX_PAGES {
-                cursor = Some(next_cursor);
+                cursor = Some(response.cursor);
             } else {
                 println!("Stopping after {} pages (demo limit)", MAX_PAGES);
                 break;
@@ -298,8 +296,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 market_candles.len()
             );
         }
-        if let Some(adjusted) = candles.adjusted_end_ts {
-            println!("Adjusted end timestamp: {}", adjusted);
+        if candles.adjusted_end_ts != 0 {
+            println!("Adjusted end timestamp: {}", candles.adjusted_end_ts);
         }
         println!();
 
@@ -336,13 +334,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         point.event_ticker, point.end_period_ts, point.period_interval
                     );
                     for pp in &point.percentile_points {
-                        let formatted = pp.formatted_forecast.as_deref().unwrap_or("-");
-                        let numerical = pp.numerical_forecast.map(|v| format!("{:.2}", v));
                         println!(
-                            "    {}th percentile: {} ({})",
+                            "    {}th percentile: {} ({:.2})",
                             pp.percentile / 100,
-                            formatted,
-                            numerical.as_deref().unwrap_or("-")
+                            pp.formatted_forecast,
+                            pp.numerical_forecast
                         );
                     }
                 }

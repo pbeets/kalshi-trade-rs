@@ -9,26 +9,13 @@ use crate::models::query::QueryBuilder;
 /// Live data entry for a single milestone.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LiveData {
+    /// The data type.
+    #[serde(rename = "type")]
+    pub data_type: String,
+    /// The live data details.
+    pub details: serde_json::Value,
     /// The milestone ID.
     pub milestone_id: String,
-    /// The milestone type (e.g., "price", "score").
-    #[serde(default)]
-    pub milestone_type: Option<String>,
-    /// The current value.
-    #[serde(default)]
-    pub value: Option<f64>,
-    /// The value as a string.
-    #[serde(default)]
-    pub value_string: Option<String>,
-    /// Last update timestamp.
-    #[serde(default)]
-    pub updated_ts: Option<i64>,
-    /// Associated event ticker.
-    #[serde(default)]
-    pub event_ticker: Option<String>,
-    /// Associated series ticker.
-    #[serde(default)]
-    pub series_ticker: Option<String>,
 }
 
 /// Response from GET /live_data/{type}/milestone/{milestone_id}.
@@ -91,7 +78,8 @@ impl GetBatchLiveDataParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchLiveDataResponse {
     /// List of live data entries.
-    pub live_data: Vec<LiveData>,
+    #[serde(rename = "live_data")]
+    pub live_datas: Vec<LiveData>,
 }
 
 #[cfg(test)]

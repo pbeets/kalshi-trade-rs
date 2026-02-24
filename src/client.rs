@@ -21,10 +21,10 @@ use crate::{
         CreateMarketInCollectionRequest, CreateMarketInCollectionResponse, CreateOrderGroupRequest,
         CreateOrderGroupResponse, CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest,
         CreateSubaccountRequest, CreateSubaccountResponse, DecreaseOrderRequest,
-        DeleteApiKeyResponse, EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
-        EventMetadataResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
-        ExchangeScheduleResponse, ExchangeStatusResponse, FeeChangesResponse, FillsResponse,
-        FiltersBySportResponse, GenerateApiKeyRequest, GenerateApiKeyResponse, GetBalanceParams,
+        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+        EventResponse, EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
+        GenerateApiKeyRequest, GenerateApiKeyResponse, GetBalanceParams,
         GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
         GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
         GetEventsParams, GetFcmOrdersParams, GetFcmPositionsParams, GetFeeChangesParams,
@@ -33,12 +33,12 @@ use crate::{
         GetMarketsParams, GetMilestonesParams, GetMultivariateCollectionsParams,
         GetMultivariateEventsParams, GetOrderGroupResponse, GetOrderGroupsParams,
         GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
-        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetStructuredTargetsParams,
-        GetSubaccountTransfersParams, GetTradesParams, HistoricalCandlesticksResponse,
-        HistoricalCutoffResponse, IncentiveProgramsResponse, ListQuotesParams, ListQuotesResponse,
-        ListRfqsParams, ListRfqsResponse, LiveDataResponse, LookupHistoryResponse,
-        LookupTickersRequest, LookupTickersResponse, MarketResponse, MarketsResponse,
-        MilestoneResponse, MilestonesResponse, MultivariateCollectionResponse,
+        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetSingleSeriesParams,
+        GetStructuredTargetsParams, GetSubaccountTransfersParams, GetTradesParams,
+        HistoricalCandlesticksResponse, HistoricalCutoffResponse, IncentiveProgramsResponse,
+        ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, LiveDataResponse,
+        LookupHistoryResponse, LookupTickersRequest, LookupTickersResponse, MarketResponse,
+        MarketsResponse, MilestoneResponse, MilestonesResponse, MultivariateCollectionResponse,
         MultivariateCollectionsResponse, MultivariateEventsResponse, OrderGroupsResponse,
         OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
         PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
@@ -1428,6 +1428,30 @@ impl KalshiClient {
         series::get_series(&self.http, series_ticker).await
     }
 
+    /// Get a single series with optional parameters (e.g., include volume).
+    ///
+    /// # Arguments
+    ///
+    /// * `series_ticker` - The series ticker (e.g., "KXBTC")
+    /// * `params` - Optional query parameters
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::GetSingleSeriesParams;
+    ///
+    /// let params = GetSingleSeriesParams::new().include_volume(true);
+    /// let response = client.get_series_with_params("KXBTC", params).await?;
+    /// println!("Volume: {:?}", response.series.volume);
+    /// ```
+    pub async fn get_series_with_params(
+        &self,
+        series_ticker: &str,
+        params: GetSingleSeriesParams,
+    ) -> Result<SeriesResponse> {
+        series::get_series_with_params(&self.http, series_ticker, params).await
+    }
+
     /// Get a list of series with default parameters.
     ///
     /// # Example
@@ -1524,7 +1548,7 @@ impl KalshiClient {
     ///
     /// let request = CreateRfqRequest::new("KXBTC-25JAN", 100, Side::Yes);
     /// let response = client.create_rfq(request).await?;
-    /// println!("RFQ ID: {}", response.rfq_id);
+    /// println!("RFQ ID: {}", response.id);
     /// ```
     pub async fn create_rfq(&self, request: CreateRfqRequest) -> Result<RfqResponse> {
         communications::create_rfq(&self.http, request).await
@@ -1545,7 +1569,7 @@ impl KalshiClient {
     ///
     /// let request = CreateQuoteRequest::new("rfq_123", "KXBTC-25JAN", 50, 100);
     /// let response = client.create_quote(request).await?;
-    /// println!("Quote ID: {}", response.quote_id);
+    /// println!("Quote ID: {}", response.id);
     /// ```
     pub async fn create_quote(&self, request: CreateQuoteRequest) -> Result<QuoteResponse> {
         communications::create_quote(&self.http, request).await
@@ -1568,11 +1592,7 @@ impl KalshiClient {
     /// let request = AcceptQuoteRequest::new(50, 100);
     /// let response = client.accept_quote("quote_123", request).await?;
     /// ```
-    pub async fn accept_quote(
-        &self,
-        quote_id: &str,
-        request: AcceptQuoteRequest,
-    ) -> Result<QuoteResponse> {
+    pub async fn accept_quote(&self, quote_id: &str, request: AcceptQuoteRequest) -> Result<()> {
         communications::accept_quote(&self.http, quote_id, request).await
     }
 
@@ -1587,9 +1607,9 @@ impl KalshiClient {
     /// # Example
     ///
     /// ```ignore
-    /// let response = client.cancel_rfq("rfq_123").await?;
+    /// client.cancel_rfq("rfq_123").await?;
     /// ```
-    pub async fn cancel_rfq(&self, rfq_id: &str) -> Result<RfqResponse> {
+    pub async fn cancel_rfq(&self, rfq_id: &str) -> Result<()> {
         communications::cancel_rfq(&self.http, rfq_id).await
     }
 
@@ -1604,9 +1624,9 @@ impl KalshiClient {
     /// # Example
     ///
     /// ```ignore
-    /// let response = client.cancel_quote("quote_123").await?;
+    /// client.cancel_quote("quote_123").await?;
     /// ```
-    pub async fn cancel_quote(&self, quote_id: &str) -> Result<QuoteResponse> {
+    pub async fn cancel_quote(&self, quote_id: &str) -> Result<()> {
         communications::cancel_quote(&self.http, quote_id).await
     }
 
@@ -1764,7 +1784,7 @@ impl KalshiClient {
     ///
     /// let request = CreateSubaccountRequest::with_name("Trading Bot");
     /// let response = client.create_subaccount(request).await?;
-    /// println!("Created subaccount: {}", response.subaccount.subaccount_id);
+    /// println!("Created subaccount: {}", response.subaccount_number);
     /// ```
     pub async fn create_subaccount(
         &self,
@@ -1785,8 +1805,7 @@ impl KalshiClient {
     ///
     /// // Transfer $100 from primary (0) to subaccount 1
     /// let request = TransferBetweenSubaccountsRequest::new(0, 1, 10000);
-    /// let response = client.transfer_between_subaccounts(request).await?;
-    /// println!("Transfer ID: {}", response.transfer.transfer_id);
+    /// let _response = client.transfer_between_subaccounts(request).await?;
     /// ```
     pub async fn transfer_between_subaccounts(
         &self,
@@ -2008,26 +2027,31 @@ impl KalshiClient {
         multivariate::create_market_in_collection(&self.http, collection_ticker, request).await
     }
 
-    /// Get lookup history for a multivariate event collection with default parameters.
+    /// Get lookup history for a multivariate event collection.
     ///
     /// # Arguments
     ///
     /// * `collection_ticker` - The collection ticker
+    /// * `lookback_seconds` - Only return lookups within this many seconds ago
     ///
     /// # Example
     ///
     /// ```ignore
-    /// let history = client.get_lookup_history("KXBTC-STRIKES").await?;
+    /// let history = client.get_lookup_history("KXBTC-STRIKES", 3600).await?;
     /// for entry in history.lookups {
-    ///     println!("{:?} -> {:?}", entry.variables, entry.ticker);
+    ///     println!("{:?} -> {:?}", entry.variables, entry.market_ticker);
     /// }
     /// ```
     pub async fn get_lookup_history(
         &self,
         collection_ticker: &str,
+        lookback_seconds: i64,
     ) -> Result<LookupHistoryResponse> {
-        self.get_lookup_history_with_params(collection_ticker, GetLookupHistoryParams::default())
-            .await
+        self.get_lookup_history_with_params(
+            collection_ticker,
+            GetLookupHistoryParams::new(lookback_seconds),
+        )
+        .await
     }
 
     /// Get lookup history for a multivariate event collection with custom parameters.
@@ -2145,7 +2169,7 @@ impl KalshiClient {
     ///
     /// # Arguments
     ///
-    /// * `params` - Query parameters for filtering (min_start_date, limit, cursor)
+    /// * `params` - Query parameters for filtering (minimum_start_date, limit, cursor, etc.)
     ///
     /// # Example
     ///
@@ -2153,7 +2177,7 @@ impl KalshiClient {
     /// use kalshi_trade_rs::GetMilestonesParams;
     ///
     /// let params = GetMilestonesParams::new()
-    ///     .min_start_date("2025-01-01T00:00:00Z")
+    ///     .minimum_start_date("2025-01-01T00:00:00Z")
     ///     .limit(100);
     /// let milestones = client.get_milestones_with_params(params).await?;
     /// ```
@@ -2329,12 +2353,10 @@ impl KalshiClient {
     /// # Example
     ///
     /// ```ignore
-    /// let response = client.delete_api_key("ak_123").await?;
-    /// if response.deleted.unwrap_or(false) {
-    ///     println!("API key deleted successfully");
-    /// }
+    /// client.delete_api_key("ak_123").await?;
+    /// println!("API key deleted successfully");
     /// ```
-    pub async fn delete_api_key(&self, api_key_id: &str) -> Result<DeleteApiKeyResponse> {
+    pub async fn delete_api_key(&self, api_key_id: &str) -> Result<()> {
         api_keys::delete_api_key(&self.http, api_key_id).await
     }
 

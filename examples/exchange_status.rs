@@ -63,12 +63,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Display each day's schedule from the first (current) period
     if let Some(period) = schedule.standard_hours.first() {
-        if let Some(start) = &period.start_time {
-            println!("Effective from: {}", start);
-        }
-        if let Some(end) = &period.end_time {
-            println!("Until: {}", end);
-        }
+        println!("Effective from: {}", period.start_time);
+        println!("Until: {}", period.end_time);
         println!();
 
         print_day_sessions("Monday   ", &period.monday);

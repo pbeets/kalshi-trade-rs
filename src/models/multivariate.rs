@@ -13,17 +13,14 @@ pub struct MultivariateEventCollection {
     /// The collection ticker.
     pub collection_ticker: String,
     /// Collection title.
-    #[serde(default)]
-    pub title: Option<String>,
+    pub title: String,
     /// Collection description.
-    #[serde(default)]
-    pub description: Option<String>,
+    pub description: String,
     /// Variables that can be combined to create markets.
     #[serde(default)]
     pub variables: Option<Vec<CollectionVariable>>,
     /// Associated series ticker.
-    #[serde(default)]
-    pub series_ticker: Option<String>,
+    pub series_ticker: String,
     /// Collection status.
     #[serde(default)]
     pub status: Option<String>,
@@ -31,35 +28,25 @@ pub struct MultivariateEventCollection {
     #[serde(default)]
     pub events: Option<Vec<CollectionEvent>>,
     /// Open date for the collection.
-    #[serde(default)]
-    pub open_date: Option<String>,
+    pub open_date: String,
     /// Close date for the collection.
-    #[serde(default)]
-    pub close_date: Option<String>,
+    pub close_date: String,
     /// Associated events with quoter information.
-    #[serde(default)]
-    pub associated_events: Option<Vec<AssociatedEvent>>,
+    pub associated_events: Vec<AssociatedEvent>,
     /// Associated event tickers (deprecated, use `associated_events`).
-    #[serde(default)]
-    pub associated_event_tickers: Option<Vec<String>>,
+    pub associated_event_tickers: Vec<String>,
     /// Whether the collection events are ordered.
-    #[serde(default)]
-    pub is_ordered: Option<bool>,
+    pub is_ordered: bool,
     /// Whether each event has a single market (deprecated).
-    #[serde(default)]
-    pub is_single_market_per_event: Option<bool>,
+    pub is_single_market_per_event: bool,
     /// Whether all events are YES-only (deprecated).
-    #[serde(default)]
-    pub is_all_yes: Option<bool>,
+    pub is_all_yes: bool,
     /// Minimum order size.
-    #[serde(default)]
-    pub size_min: Option<i64>,
+    pub size_min: i64,
     /// Maximum order size.
-    #[serde(default)]
-    pub size_max: Option<i64>,
+    pub size_max: i64,
     /// Functional description of the collection.
-    #[serde(default)]
-    pub functional_description: Option<String>,
+    pub functional_description: String,
 }
 
 /// An event entry within a multivariate event collection.
@@ -83,20 +70,17 @@ pub struct CollectionEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AssociatedEvent {
     /// Event ticker.
-    #[serde(default)]
-    pub ticker: Option<String>,
+    pub ticker: String,
     /// Whether this event only supports YES contracts.
-    #[serde(default)]
-    pub is_yes_only: Option<bool>,
+    pub is_yes_only: bool,
     /// Minimum order size.
     #[serde(default)]
-    pub size_min: Option<i64>,
+    pub size_min: Option<i32>,
     /// Maximum order size.
     #[serde(default)]
-    pub size_max: Option<i64>,
+    pub size_max: Option<i32>,
     /// Active quoters for this event.
-    #[serde(default)]
-    pub active_quoters: Option<Vec<String>>,
+    pub active_quoters: Vec<String>,
 }
 
 /// A variable in a multivariate event collection.
@@ -134,6 +118,9 @@ pub struct GetMultivariateCollectionsParams {
     /// Filter by status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    /// Filter by associated event ticker.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub associated_event_ticker: Option<String>,
 }
 
 impl GetMultivariateCollectionsParams {
@@ -166,6 +153,13 @@ impl GetMultivariateCollectionsParams {
         self
     }
 
+    /// Filter by associated event ticker.
+    #[must_use]
+    pub fn associated_event_ticker(mut self, ticker: impl Into<String>) -> Self {
+        self.associated_event_ticker = Some(ticker.into());
+        self
+    }
+
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
@@ -173,6 +167,10 @@ impl GetMultivariateCollectionsParams {
         qb.push_opt("limit", self.limit);
         qb.push_opt("series_ticker", self.series_ticker.as_ref());
         qb.push_opt("status", self.status.as_ref());
+        qb.push_opt(
+            "associated_event_ticker",
+            self.associated_event_ticker.as_ref(),
+        );
         qb.build()
     }
 }
@@ -181,6 +179,7 @@ impl GetMultivariateCollectionsParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MultivariateCollectionsResponse {
     /// List of collections.
+    #[serde(alias = "multivariate_contracts")]
     pub collections: Vec<MultivariateEventCollection>,
     /// Pagination cursor for next page.
     #[serde(default)]
@@ -191,6 +190,7 @@ pub struct MultivariateCollectionsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MultivariateCollectionResponse {
     /// The collection details.
+    #[serde(alias = "multivariate_contract")]
     pub collection: MultivariateEventCollection,
 }
 
@@ -205,8 +205,11 @@ pub struct CreateMarketInCollectionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variables: Option<std::collections::HashMap<String, serde_json::Value>>,
     /// Selected market legs (alternative to variables).
+    #[serde(default)]
+    pub selected_markets: Vec<super::market::MveSelectedLeg>,
+    /// Whether to include the market payload in the response.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub selected_markets: Option<Vec<super::market::MveSelectedLeg>>,
+    pub with_market_payload: Option<bool>,
 }
 
 impl CreateMarketInCollectionRequest {
@@ -215,7 +218,8 @@ impl CreateMarketInCollectionRequest {
     pub fn new(variables: std::collections::HashMap<String, serde_json::Value>) -> Self {
         Self {
             variables: Some(variables),
-            selected_markets: None,
+            selected_markets: Vec::new(),
+            with_market_payload: None,
         }
     }
 
@@ -224,7 +228,8 @@ impl CreateMarketInCollectionRequest {
     pub fn empty() -> Self {
         Self {
             variables: Some(std::collections::HashMap::new()),
-            selected_markets: None,
+            selected_markets: Vec::new(),
+            with_market_payload: None,
         }
     }
 
@@ -246,8 +251,16 @@ impl CreateMarketInCollectionRequest {
     pub fn with_selected_markets(markets: Vec<super::market::MveSelectedLeg>) -> Self {
         Self {
             variables: None,
-            selected_markets: Some(markets),
+            selected_markets: markets,
+            with_market_payload: None,
         }
+    }
+
+    /// Include the market payload in the response.
+    #[must_use]
+    pub fn with_market_payload(mut self, include: bool) -> Self {
+        self.with_market_payload = Some(include);
+        self
     }
 }
 
@@ -255,13 +268,17 @@ impl CreateMarketInCollectionRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateMarketInCollectionResponse {
     /// The created market ticker.
-    pub ticker: String,
+    #[serde(alias = "ticker")]
+    pub market_ticker: String,
     /// The created event ticker.
     #[serde(default)]
     pub event_ticker: Option<String>,
     /// Whether the market already existed.
     #[serde(default)]
     pub already_existed: Option<bool>,
+    /// The created market (only present if `with_market_payload` was true).
+    #[serde(default)]
+    pub market: Option<super::market::Market>,
 }
 
 /// Request body for PUT /multivariate_event_collections/{collection_ticker}/lookup.
@@ -325,11 +342,10 @@ impl LookupTickersRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LookupTickersResponse {
     /// The market ticker if found.
-    #[serde(default, alias = "market_ticker")]
-    pub ticker: Option<String>,
+    #[serde(alias = "ticker")]
+    pub market_ticker: String,
     /// The event ticker if found.
-    #[serde(default)]
-    pub event_ticker: Option<String>,
+    pub event_ticker: String,
     /// Whether the market exists.
     #[serde(default)]
     pub exists: Option<bool>,
@@ -342,21 +358,20 @@ pub struct LookupHistoryEntry {
     #[serde(default)]
     pub variables: std::collections::HashMap<String, serde_json::Value>,
     /// The resulting market ticker.
-    #[serde(default, alias = "market_ticker")]
-    pub ticker: Option<String>,
+    #[serde(alias = "ticker")]
+    pub market_ticker: String,
     /// The resulting event ticker.
-    #[serde(default)]
-    pub event_ticker: Option<String>,
+    pub event_ticker: String,
     /// Selected markets (alternative to variables in some API versions).
     #[serde(default)]
     pub selected_markets: Option<Vec<super::market::MveSelectedLeg>>,
     /// Lookup timestamp.
-    #[serde(default, alias = "last_queried_ts")]
-    pub created_time: Option<String>,
+    #[serde(default, alias = "created_time")]
+    pub last_queried_ts: Option<String>,
 }
 
 /// Query parameters for GET /multivariate_event_collections/{collection_ticker}/lookup.
-#[derive(Debug, Default, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct GetLookupHistoryParams {
     /// Pagination cursor.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -365,14 +380,18 @@ pub struct GetLookupHistoryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i32>,
     /// Only return lookups within this many seconds ago.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub lookback_seconds: Option<i64>,
+    pub lookback_seconds: i64,
 }
 
 impl GetLookupHistoryParams {
+    /// Create new params with the required `lookback_seconds` value.
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(lookback_seconds: i64) -> Self {
+        Self {
+            cursor: None,
+            limit: None,
+            lookback_seconds,
+        }
     }
 
     #[must_use]
@@ -390,7 +409,7 @@ impl GetLookupHistoryParams {
     /// Only return lookups within this many seconds ago.
     #[must_use]
     pub fn lookback_seconds(mut self, seconds: i64) -> Self {
-        self.lookback_seconds = Some(seconds);
+        self.lookback_seconds = seconds;
         self
     }
 
@@ -399,7 +418,7 @@ impl GetLookupHistoryParams {
         let mut qb = QueryBuilder::new();
         qb.push_opt("cursor", self.cursor.as_ref());
         qb.push_opt("limit", self.limit);
-        qb.push_opt("lookback_seconds", self.lookback_seconds);
+        qb.push("lookback_seconds", self.lookback_seconds);
         qb.build()
     }
 }

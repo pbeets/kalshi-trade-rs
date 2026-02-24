@@ -713,12 +713,10 @@ impl AggregatedCancelResponse {
     }
 
     /// Returns an iterator over failed cancellations with their order_id and error.
-    pub fn failed_orders(
-        &self,
-    ) -> impl Iterator<Item = (Option<&str>, &crate::models::BatchOrderError)> {
+    pub fn failed_orders(&self) -> impl Iterator<Item = (&str, &crate::models::BatchOrderError)> {
         self.orders
             .iter()
-            .filter_map(|r| r.error.as_ref().map(|e| (r.order_id.as_deref(), e)))
+            .filter_map(|r| r.error.as_ref().map(|e| (r.order_id.as_str(), e)))
     }
 
     /// Returns the number of successfully canceled orders.
@@ -733,7 +731,7 @@ impl AggregatedCancelResponse {
 
     /// Returns the total number of contracts canceled.
     pub fn total_reduced(&self) -> i64 {
-        self.orders.iter().filter_map(|r| r.reduced_by).sum()
+        self.orders.iter().map(|r| r.reduced_by).sum()
     }
 
     /// Returns the total number of orders processed.
@@ -820,8 +818,8 @@ mod tests {
         fn make_order(id: &str) -> Order {
             Order {
                 order_id: id.to_string(),
-                user_id: None,
-                client_order_id: None,
+                user_id: String::new(),
+                client_order_id: String::new(),
                 ticker: "TEST".to_string(),
                 side: Side::Yes,
                 action: Action::Buy,
@@ -829,23 +827,23 @@ mod tests {
                 status: OrderStatus::Canceled,
                 yes_price: 50,
                 no_price: 50,
-                yes_price_dollars: None,
-                no_price_dollars: None,
+                yes_price_dollars: "0.50".to_string(),
+                no_price_dollars: "0.50".to_string(),
                 fill_count: 0,
-                fill_count_fp: None,
+                fill_count_fp: "0".to_string(),
                 remaining_count: 0,
-                remaining_count_fp: None,
+                remaining_count_fp: "0".to_string(),
                 initial_count: 10,
-                initial_count_fp: None,
-                taker_fees: None,
-                maker_fees: None,
-                taker_fill_cost: None,
-                maker_fill_cost: None,
-                taker_fill_cost_dollars: None,
-                maker_fill_cost_dollars: None,
+                initial_count_fp: "10".to_string(),
+                taker_fees: 0,
+                maker_fees: 0,
+                taker_fill_cost: 0,
+                maker_fill_cost: 0,
+                taker_fill_cost_dollars: "0".to_string(),
+                maker_fill_cost_dollars: "0".to_string(),
                 taker_fees_dollars: None,
                 maker_fees_dollars: None,
-                queue_position: None,
+                queue_position: 0,
                 expiration_time: None,
                 created_time: None,
                 last_update_time: None,
@@ -859,20 +857,23 @@ mod tests {
         let response = AggregatedCancelResponse {
             orders: vec![
                 BatchCancelOrderResult {
-                    order_id: Some("order1".to_string()),
-                    reduced_by: Some(5),
+                    order_id: "order1".to_string(),
+                    reduced_by: 5,
+                    reduced_by_fp: "5".to_string(),
                     order: Some(make_order("order1")),
                     error: None,
                 },
                 BatchCancelOrderResult {
-                    order_id: Some("order2".to_string()),
-                    reduced_by: Some(10),
+                    order_id: "order2".to_string(),
+                    reduced_by: 10,
+                    reduced_by_fp: "10".to_string(),
                     order: Some(make_order("order2")),
                     error: None,
                 },
                 BatchCancelOrderResult {
-                    order_id: Some("order3".to_string()),
-                    reduced_by: None,
+                    order_id: "order3".to_string(),
+                    reduced_by: 0,
+                    reduced_by_fp: "0".to_string(),
                     order: None,
                     error: Some(BatchOrderError {
                         code: "NOT_FOUND".to_string(),
