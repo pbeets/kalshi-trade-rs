@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Waiting for order updates (60 seconds)...");
     println!("Tip: Place or cancel orders in another terminal to see updates\n");
 
-    let deadline = Duration::from_secs(60);
+    let deadline = Duration::from_secs(300);
     let start = std::time::Instant::now();
 
     loop {
