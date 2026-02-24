@@ -910,6 +910,7 @@ pub struct QueuePosition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuePositionsResponse {
     /// Queue positions for the requested orders.
+    #[serde(default)]
     pub queue_positions: Vec<QueuePosition>,
 }
 
