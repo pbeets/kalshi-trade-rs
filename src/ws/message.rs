@@ -732,7 +732,7 @@ impl StreamMessage {
             "order_group_updates" => serde_json::from_value::<OrderGroupUpdateData>(value)
                 .map(StreamMessage::OrderGroupUpdate),
             // User order update notifications
-            "user_orders" => serde_json::from_value::<UserOrderData>(value)
+            "user_order" | "user_orders" => serde_json::from_value::<UserOrderData>(value)
                 .map(|d| StreamMessage::UserOrder(Box::new(d))),
             // Multivariate lookup notifications
             "multivariate_lookup" => serde_json::from_value::<MultivariateLookupData>(value)
