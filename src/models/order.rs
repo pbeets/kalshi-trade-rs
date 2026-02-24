@@ -910,7 +910,7 @@ pub struct QueuePosition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuePositionsResponse {
     /// Queue positions for the requested orders.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
     pub queue_positions: Vec<QueuePosition>,
 }
 
@@ -972,6 +972,18 @@ impl GetQueuePositionsParams {
         qb.push_opt("event_ticker", self.event_ticker.as_ref());
         qb.push_opt("subaccount", self.subaccount);
         qb.build()
+    }
+}
+
+mod null_as_empty_vec {
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: Deserialize<'de>,
+    {
+        Ok(Option::<Vec<T>>::deserialize(deserializer)?.unwrap_or_default())
     }
 }
 
