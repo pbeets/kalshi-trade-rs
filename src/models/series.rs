@@ -101,35 +101,27 @@ pub struct Series {
     /// Title of the series.
     pub title: String,
     /// Category of the series.
-    #[serde(default)]
-    pub category: Option<String>,
+    pub category: String,
     /// Status of the series (e.g., "active", "archived").
     #[serde(default)]
     pub status: Option<String>,
     /// Tags associated with this series.
-    #[serde(default)]
-    pub tags: Option<Vec<String>>,
+    pub tags: Vec<String>,
     /// Settlement sources for this series.
-    #[serde(default)]
-    pub settlement_sources: Option<Vec<super::event::SettlementSource>>,
+    pub settlement_sources: Vec<super::event::SettlementSource>,
     /// URL to the contract for this series.
-    #[serde(default)]
-    pub contract_url: Option<String>,
+    pub contract_url: String,
     /// URL to the contract terms for this series.
-    #[serde(default)]
-    pub contract_terms_url: Option<String>,
+    pub contract_terms_url: String,
     /// Product metadata for this series.
     #[serde(default)]
     pub product_metadata: Option<serde_json::Value>,
     /// Fee type for this series.
-    #[serde(default)]
-    pub fee_type: Option<String>,
+    pub fee_type: String,
     /// Fee multiplier for this series.
-    #[serde(default)]
-    pub fee_multiplier: Option<f64>,
+    pub fee_multiplier: f64,
     /// Additional trading prohibitions.
-    #[serde(default)]
-    pub additional_prohibitions: Option<Vec<String>>,
+    pub additional_prohibitions: Vec<String>,
     /// Total contracts traded across all events in this series.
     /// Only present when `include_volume=true` in the request.
     #[serde(default)]
@@ -211,6 +203,35 @@ impl GetSeriesParams {
         qb.push_opt("category", self.category.as_ref());
         qb.push_opt("tags", self.tags.as_ref());
         qb.push_opt("include_product_metadata", self.include_product_metadata);
+        qb.push_opt("include_volume", self.include_volume);
+        qb.build()
+    }
+}
+
+/// Query parameters for GET /series/{series_ticker}.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct GetSingleSeriesParams {
+    /// If true, includes total volume traded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_volume: Option<bool>,
+}
+
+impl GetSingleSeriesParams {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Include total volume traded.
+    #[must_use]
+    pub fn include_volume(mut self, include: bool) -> Self {
+        self.include_volume = Some(include);
+        self
+    }
+
+    #[must_use]
+    pub fn to_query_string(&self) -> String {
+        let mut qb = QueryBuilder::new();
         qb.push_opt("include_volume", self.include_volume);
         qb.build()
     }

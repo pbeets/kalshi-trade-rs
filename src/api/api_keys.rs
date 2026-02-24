@@ -9,8 +9,8 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, DeleteApiKeyResponse,
-        GenerateApiKeyRequest, GenerateApiKeyResponse,
+        ApiKeysResponse, CreateApiKeyRequest, CreateApiKeyResponse, GenerateApiKeyRequest,
+        GenerateApiKeyResponse,
     },
 };
 
@@ -42,7 +42,7 @@ pub async fn generate_api_key(
 }
 
 /// Permanently deletes the specified API key. This action cannot be undone.
-pub async fn delete_api_key(http: &HttpClient, api_key_id: &str) -> Result<DeleteApiKeyResponse> {
+pub async fn delete_api_key(http: &HttpClient, api_key_id: &str) -> Result<()> {
     let path = format!("/api_keys/{}", encode_path_segment(api_key_id));
-    http.delete_with_response(&path).await
+    http.delete(&path).await
 }

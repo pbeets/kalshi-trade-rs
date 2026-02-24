@@ -21,10 +21,8 @@ pub enum TimeInForce {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Order {
     pub order_id: String,
-    #[serde(default)]
-    pub user_id: Option<String>,
-    #[serde(default)]
-    pub client_order_id: Option<String>,
+    pub user_id: String,
+    pub client_order_id: String,
     pub ticker: String,
     pub side: Side,
     pub action: Action,
@@ -36,46 +34,34 @@ pub struct Order {
     /// Price in cents.
     pub no_price: i64,
     /// Price in fixed-point dollars.
-    #[serde(default)]
-    pub yes_price_dollars: Option<String>,
+    pub yes_price_dollars: String,
     /// Price in fixed-point dollars.
-    #[serde(default)]
-    pub no_price_dollars: Option<String>,
+    pub no_price_dollars: String,
     pub fill_count: i64,
     /// Fill count (fixed-point decimal string).
-    #[serde(default)]
-    pub fill_count_fp: Option<String>,
+    pub fill_count_fp: String,
     pub remaining_count: i64,
     /// Remaining count (fixed-point decimal string).
-    #[serde(default)]
-    pub remaining_count_fp: Option<String>,
+    pub remaining_count_fp: String,
     pub initial_count: i64,
     /// Initial count (fixed-point decimal string).
-    #[serde(default)]
-    pub initial_count_fp: Option<String>,
+    pub initial_count_fp: String,
     /// Fees in cents.
-    #[serde(default)]
-    pub taker_fees: Option<i64>,
+    pub taker_fees: i64,
     /// Fees in cents.
-    #[serde(default)]
-    pub maker_fees: Option<i64>,
+    pub maker_fees: i64,
     /// Cost in cents.
-    #[serde(default)]
-    pub taker_fill_cost: Option<i64>,
+    pub taker_fill_cost: i64,
     /// Cost in cents.
-    #[serde(default)]
-    pub maker_fill_cost: Option<i64>,
-    #[serde(default)]
-    pub taker_fill_cost_dollars: Option<String>,
-    #[serde(default)]
-    pub maker_fill_cost_dollars: Option<String>,
+    pub maker_fill_cost: i64,
+    pub taker_fill_cost_dollars: String,
+    pub maker_fill_cost_dollars: String,
     #[serde(default)]
     pub taker_fees_dollars: Option<String>,
     #[serde(default)]
     pub maker_fees_dollars: Option<String>,
     /// Deprecated: always returns 0. Use the `get_order_queue_position` endpoint instead.
-    #[serde(default)]
-    pub queue_position: Option<i64>,
+    pub queue_position: i64,
     #[serde(default)]
     pub expiration_time: Option<String>,
     #[serde(default)]
@@ -97,8 +83,7 @@ pub struct Order {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrdersResponse {
     pub orders: Vec<Order>,
-    #[serde(default)]
-    pub cursor: Option<String>,
+    pub cursor: String,
 }
 
 /// Query parameters for the get_orders endpoint.
@@ -471,8 +456,9 @@ impl CreateOrderRequest {
 pub struct CancelOrderResponse {
     pub order: Order,
     /// Number of contracts that were canceled.
-    #[serde(default)]
-    pub reduced_by: Option<i64>,
+    pub reduced_by: i64,
+    /// Number of contracts that were canceled (fixed-point decimal string).
+    pub reduced_by_fp: String,
 }
 
 /// Request body for POST /portfolio/orders/{order_id}/amend.
@@ -883,12 +869,13 @@ impl TryFrom<Vec<String>> for BatchCancelOrdersRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchCancelOrderResult {
     /// Order ID.
-    #[serde(default)]
-    pub order_id: Option<String>,
+    pub order_id: String,
 
     /// Number of contracts canceled.
-    #[serde(default)]
-    pub reduced_by: Option<i64>,
+    pub reduced_by: i64,
+
+    /// Number of contracts canceled (fixed-point decimal string).
+    pub reduced_by_fp: String,
 
     /// Order details after cancellation.
     #[serde(default)]
@@ -922,9 +909,8 @@ pub struct QueuePosition {
 /// Response from GET /portfolio/orders/queue_positions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuePositionsResponse {
-    /// Queue positions (may be null if no orders have queue positions).
-    #[serde(default)]
-    pub queue_positions: Option<Vec<QueuePosition>>,
+    /// Queue positions for the requested orders.
+    pub queue_positions: Vec<QueuePosition>,
 }
 
 /// Response from GET /portfolio/orders/{order_id}/queue_position.
@@ -946,6 +932,9 @@ pub struct GetQueuePositionsParams {
     /// Event ticker to filter by.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub event_ticker: Option<String>,
+    /// Filter by subaccount number.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 impl GetQueuePositionsParams {
@@ -968,11 +957,19 @@ impl GetQueuePositionsParams {
         self
     }
 
+    /// Filter by subaccount number.
+    #[must_use]
+    pub fn subaccount(mut self, subaccount: i32) -> Self {
+        self.subaccount = Some(subaccount);
+        self
+    }
+
     #[must_use]
     pub fn to_query_string(&self) -> String {
         let mut qb = QueryBuilder::new();
         qb.push_opt("market_tickers", self.market_tickers.as_ref());
         qb.push_opt("event_ticker", self.event_ticker.as_ref());
+        qb.push_opt("subaccount", self.subaccount);
         qb.build()
     }
 }

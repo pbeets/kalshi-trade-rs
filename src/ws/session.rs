@@ -535,6 +535,8 @@ impl KalshiStreamSession {
                         "market_positions" => Some(Channel::MarketPositions),
                         "communications" => Some(Channel::Communications),
                         "market_lifecycle_v2" => Some(Channel::MarketLifecycle),
+                        "order_group_updates" => Some(Channel::OrderGroupUpdates),
+                        "user_orders" => Some(Channel::UserOrders),
                         "multivariate" => Some(Channel::Multivariate),
                         _ => {
                             warn!("Unknown channel: {}", s);

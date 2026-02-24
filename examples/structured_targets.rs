@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1. List Structured Targets (with pagination)
     println!("=== Structured Targets (first 20) ===");
-    let params = GetStructuredTargetsParams::new().limit(20);
+    let params = GetStructuredTargetsParams::new().page_size(20);
     let response = client.get_structured_targets_with_params(params).await?;
 
     if response.structured_targets.is_empty() {

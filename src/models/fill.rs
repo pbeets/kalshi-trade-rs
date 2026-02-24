@@ -10,13 +10,11 @@ use super::query::QueryBuilder;
 pub struct Fill {
     pub fill_id: String,
     /// Deprecated: legacy field, same as `fill_id`.
-    #[serde(default)]
-    pub trade_id: Option<String>,
+    pub trade_id: String,
     pub order_id: String,
     pub ticker: String,
     /// Deprecated: legacy field, same as `ticker`.
-    #[serde(default)]
-    pub market_ticker: Option<String>,
+    pub market_ticker: String,
     pub side: Side,
     pub action: Action,
     pub count: i64,
@@ -40,8 +38,7 @@ pub struct Fill {
     #[serde(default)]
     pub ts: Option<i64>,
     /// Deprecated: use `yes_price` or `no_price` instead.
-    #[serde(default)]
-    pub price: Option<f64>,
+    pub price: f64,
     /// Exchange fee cost as a fixed-point dollar string.
     pub fee_cost: String,
     /// Subaccount number this fill belongs to (0 for primary, 1-32 for subaccounts).
@@ -53,8 +50,7 @@ pub struct Fill {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FillsResponse {
     pub fills: Vec<Fill>,
-    #[serde(default)]
-    pub cursor: Option<String>,
+    pub cursor: String,
 }
 
 /// Query parameters for the get_fills endpoint.

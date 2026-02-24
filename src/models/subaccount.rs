@@ -44,8 +44,8 @@ impl Default for CreateSubaccountRequest {
 /// Response from POST /portfolio/subaccounts.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSubaccountResponse {
-    /// The created subaccount.
-    pub subaccount: Subaccount,
+    /// The created subaccount number (1-32).
+    pub subaccount_number: i32,
 }
 
 /// A subaccount.
@@ -66,10 +66,9 @@ pub struct TransferBetweenSubaccountsRequest {
     /// Destination subaccount (0 for primary, 1-32 for subaccounts).
     pub to_subaccount: i32,
     /// Amount to transfer in cents.
-    pub amount: i64,
+    pub amount_cents: i64,
     /// Client-specified transfer ID for idempotency.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub client_transfer_id: Option<String>,
+    pub client_transfer_id: String,
 }
 
 impl TransferBetweenSubaccountsRequest {
@@ -79,19 +78,19 @@ impl TransferBetweenSubaccountsRequest {
     ///
     /// * `from` - Source subaccount (0 for primary, 1-32 for numbered subaccounts)
     /// * `to` - Destination subaccount (0 for primary, 1-32 for numbered subaccounts)
-    /// * `amount` - Amount to transfer in cents (must be positive)
+    /// * `amount_cents` - Amount to transfer in cents (must be positive)
     ///
     /// # Panics
     ///
     /// Panics if:
     /// - `from` or `to` is not in range 0-32
     /// - `from` equals `to`
-    /// - `amount` is not positive
+    /// - `amount_cents` is not positive
     ///
     /// Use [`try_new`](Self::try_new) for fallible construction.
     #[must_use]
-    pub fn new(from: i32, to: i32, amount: i64) -> Self {
-        Self::try_new(from, to, amount).expect("invalid transfer request parameters")
+    pub fn new(from: i32, to: i32, amount_cents: i64) -> Self {
+        Self::try_new(from, to, amount_cents).expect("invalid transfer request parameters")
     }
 
     /// Create a new transfer request with validation.
@@ -101,8 +100,8 @@ impl TransferBetweenSubaccountsRequest {
     /// Returns an error if:
     /// - `from` or `to` is not in range 0-32
     /// - `from` equals `to`
-    /// - `amount` is not positive
-    pub fn try_new(from: i32, to: i32, amount: i64) -> crate::error::Result<Self> {
+    /// - `amount_cents` is not positive
+    pub fn try_new(from: i32, to: i32, amount_cents: i64) -> crate::error::Result<Self> {
         if !(0..=32).contains(&from) {
             return Err(crate::error::Error::InvalidSubaccountId(from));
         }
@@ -112,31 +111,38 @@ impl TransferBetweenSubaccountsRequest {
         if from == to {
             return Err(crate::error::Error::SameSubaccountTransfer);
         }
-        if amount <= 0 {
-            return Err(crate::error::Error::InvalidTransferAmount(amount));
+        if amount_cents <= 0 {
+            return Err(crate::error::Error::InvalidTransferAmount(amount_cents));
         }
         Ok(Self {
             from_subaccount: from,
             to_subaccount: to,
-            amount,
-            client_transfer_id: None,
+            amount_cents,
+            client_transfer_id: String::new(),
         })
+    }
+
+    /// Set the client transfer ID for idempotency.
+    ///
+    /// When provided, the API uses this to deduplicate transfer requests.
+    /// Typically a UUID string.
+    #[must_use]
+    pub fn client_transfer_id(mut self, id: impl Into<String>) -> Self {
+        self.client_transfer_id = id.into();
+        self
     }
 
     /// Returns the transfer amount in dollars.
     #[inline]
     #[must_use]
     pub fn amount_dollars(&self) -> f64 {
-        self.amount as f64 / 100.0
+        self.amount_cents as f64 / 100.0
     }
 }
 
 /// Response from POST /portfolio/subaccounts/transfer.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransferResponse {
-    /// The transfer details.
-    pub transfer: SubaccountTransfer,
-}
+pub struct TransferResponse {}
 
 /// A transfer between subaccounts.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,10 +154,9 @@ pub struct SubaccountTransfer {
     /// Destination subaccount (0 for primary, 1-32 for subaccounts).
     pub to_subaccount: i32,
     /// Amount transferred in cents.
-    pub amount: i64,
-    /// Transfer timestamp (ISO 8601 or Unix epoch).
-    #[serde(default)]
-    pub created_time: Option<String>,
+    pub amount_cents: i64,
+    /// Transfer timestamp (Unix seconds).
+    pub created_ts: i64,
 }
 
 impl SubaccountTransfer {
@@ -159,7 +164,7 @@ impl SubaccountTransfer {
     #[inline]
     #[must_use]
     pub fn amount_dollars(&self) -> f64 {
-        self.amount as f64 / 100.0
+        self.amount_cents as f64 / 100.0
     }
 }
 

@@ -119,6 +119,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `TransferBetweenSubaccountsRequest` now exposes a `client_transfer_id()`
+  builder method. Previously the `client_transfer_id` field was hardcoded to an
+  empty string in the constructor with no way for users to set it.
 - `OrderbookAggregator` now drops delta messages that arrive before a snapshot
   instead of creating ghost orderbook entries. Previously, early deltas would
   insert empty uninitialized books into the state map, causing `full_book()` and

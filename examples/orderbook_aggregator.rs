@@ -97,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    markets.sort_by(|a, b| b.volume.unwrap_or(0).cmp(&a.volume.unwrap_or(0)));
+    markets.sort_by(|a, b| b.volume.cmp(&a.volume));
 
     let selected_markets: Vec<_> = markets.into_iter().take(3).collect();
 
@@ -110,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "  - {} (vol: {})",
             market.ticker,
-            market.volume.unwrap_or(0)
+            market.volume
         );
     }
 

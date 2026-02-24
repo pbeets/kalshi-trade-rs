@@ -9,8 +9,8 @@ use crate::{
     client::HttpClient,
     error::Result,
     models::{
-        FeeChangesResponse, GetFeeChangesParams, GetSeriesParams, SeriesListResponse,
-        SeriesResponse,
+        FeeChangesResponse, GetFeeChangesParams, GetSeriesParams, GetSingleSeriesParams,
+        SeriesListResponse, SeriesResponse,
     },
 };
 
@@ -20,6 +20,20 @@ fn encode_ticker(ticker: &str) -> String {
 
 pub async fn get_series(http: &HttpClient, ticker: &str) -> Result<SeriesResponse> {
     let path = format!("/series/{}", encode_ticker(ticker));
+    http.get(&path).await
+}
+
+/// Returns the details of a single series with optional parameters.
+pub async fn get_series_with_params(
+    http: &HttpClient,
+    ticker: &str,
+    params: GetSingleSeriesParams,
+) -> Result<SeriesResponse> {
+    let path = format!(
+        "/series/{}{}",
+        encode_ticker(ticker),
+        params.to_query_string()
+    );
     http.get(&path).await
 }
 

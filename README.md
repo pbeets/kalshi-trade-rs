@@ -9,10 +9,12 @@ An unofficial Rust client library for the [Kalshi](https://kalshi.com) predictio
 
 ## Key Features
 
-This crate provides both REST API and WebSocket streaming capabilities:
-
-- **REST Client**: Full coverage of the Kalshi API including portfolio management, order operations, market data, exchange status, and RFQ (Request for Quote) communications
-- **WebSocket Streaming**: Real-time ticker, trade, orderbook, fill, and RFQ/quote updates with channel-based message delivery
+- **REST Client**: Full coverage of 84 Kalshi API endpoints including portfolio management, order operations, market data, exchange status, historical data, and RFQ (Request for Quote) communications
+- **WebSocket Streaming**: 10 real-time channels — ticker, trade, orderbook, fill, order updates, position, RFQ/quote, order groups, market lifecycle, and multivariate
+- **Batch Operations**: Rate-limited `BatchManager` with automatic chunking, retry, and per-order subaccount support
+- **Orderbook Aggregation**: Live orderbook state from WebSocket delta streams with gap detection
+- **Subaccount Support**: Full subaccount filtering on orders, fills, positions, settlements, and balance queries
+- **Fixed-Point Fields**: `_fp` and `_dollars` fields throughout for precise decimal arithmetic without floating-point issues
 
 ## Getting Started
 
@@ -142,21 +144,46 @@ let client = KalshiStreamClient::connect_with_strategy(&config, ConnectStrategy:
 
 ## Examples
 
-See the [`examples/`](examples/) directory for working examples:
+See the [`examples/`](examples/) directory for 24 working examples:
+
+### REST API
 
 | Example | Description |
 |---------|-------------|
-| `portfolio` | REST API: account balance, positions |
-| `trading` | REST API: order creation, amendment, cancellation |
-| `markets` | REST API: market data queries |
-| `stream_ticker` | WebSocket: real-time price updates |
-| `stream_user_channels` | WebSocket: fills, positions, RFQ communications |
+| `portfolio` | Account balance, positions, fills, settlements |
+| `trading` | Order lifecycle: create, amend, decrease, cancel |
+| `markets` | Market queries, orderbook, trades, pagination |
+| `events` | Events, series, metadata, multivariate, candlesticks, forecasts |
+| `candlesticks` | OHLCV data with multiple periods and batch queries |
+| `historical` | Archived data: cutoff, markets, candlesticks, fills, orders |
+| `batch_orders` | Batch create/cancel with partial success handling |
+| `batch_manager` | Rate-limited batch operations with `BatchManager` |
+| `order_groups` | Order group creation, management, triggering |
+| `exchange_status` | Exchange status, schedule, announcements, fee changes |
+| `live_data` | Live milestone data (single and batch) |
+| `milestones` | Milestone metadata queries |
+| `structured_targets` | Structured target lookups with type breakdown |
 | `rfq_verify` | RFQ system verification (read-only) |
-| `stream_reconnect` | WebSocket reconnection patterns |
+| `search` | Search filters by category and sport |
+| `series_and_search` | Series metadata and search combined |
+
+### WebSocket Streaming
+
+| Example | Description |
+|---------|-------------|
+| `stream_ticker` | Real-time ticker and trade updates |
+| `stream_user_channels` | Fills, positions, RFQ communications |
+| `stream_reconnect` | Reconnection with resubscription |
+| `stream_firehose` | High-volume streaming pattern |
+| `stream_lifecycle` | Market lifecycle events |
+| `multi_channel_subscribe` | Multi-channel subscription management |
+| `orderbook_aggregator` | Live orderbook state from delta streams |
+| `test_auth` | Basic authentication verification |
 
 ```bash
 cargo run --example portfolio
-cargo run --example rfq_verify
+cargo run --example trading
+cargo run --example historical
 ```
 
 ## Error Handling

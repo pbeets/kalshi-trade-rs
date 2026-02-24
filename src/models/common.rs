@@ -76,6 +76,20 @@ pub enum SelfTradePreventionType {
     Maker,
 }
 
+/// Exchange instance type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ExchangeInstance {
+    /// Event contract exchange.
+    EventContract,
+    /// Margined exchange.
+    Margined,
+    /// Unknown exchange instance.
+    #[serde(other)]
+    Unknown,
+}
+
 /// Convert cents to dollars.
 ///
 /// All Kalshi API monetary values are in cents. This helper converts to dollars

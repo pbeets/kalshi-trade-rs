@@ -24,8 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Get Markets (default) ===");
     let markets = client.get_markets().await?;
     println!("Total markets returned: {}", markets.markets.len());
-    if let Some(cursor) = &markets.cursor {
-        println!("Next cursor: {}...", &cursor[..cursor.len().min(20)]);
+    if !markets.cursor.is_empty() {
+        println!("Next cursor: {}...", &markets.cursor[..markets.cursor.len().min(20)]);
     }
     println!();
 
@@ -40,12 +40,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "  {} | {} | Vol: {}",
             market.ticker,
-            market.title.as_deref().unwrap_or("(no title)"),
-            market.volume.unwrap_or(0)
+            market.title,
+            market.volume
         );
-        if let (Some(yes_bid), Some(yes_ask)) = (&market.yes_bid_dollars, &market.yes_ask_dollars) {
-            println!("    YES bid/ask: ${} / ${}", yes_bid, yes_ask);
-        }
+        println!("    YES bid/ask: ${} / ${}", market.yes_bid_dollars, market.yes_ask_dollars);
     }
     println!();
 
@@ -74,9 +72,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Page {}: fetched {} markets", page, fetched);
 
         // Check if there's more data
-        if let Some(next_cursor) = response.cursor {
+        if !response.cursor.is_empty() {
             if page < MAX_PAGES {
-                cursor = Some(next_cursor);
+                cursor = Some(response.cursor);
             } else {
                 println!("Stopping after {} pages (demo limit)", MAX_PAGES);
                 break;
@@ -98,15 +96,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Event: {}", market.event_ticker);
         println!("Type: {:?}", market.market_type);
         println!("Status: {:?}", market.status);
-        if let Some(title) = &market.title {
-            println!("Title: {}", title);
-        }
-        if let Some(volume) = market.volume {
-            println!("Total Volume: {} contracts", volume);
-        }
-        if let Some(oi) = market.open_interest {
-            println!("Open Interest: {} contracts", oi);
-        }
+        println!("Title: {}", market.title);
+        println!("Total Volume: {} contracts", market.volume);
+        println!("Open Interest: {} contracts", market.open_interest);
         println!();
 
         // 5. Get Orderbook
