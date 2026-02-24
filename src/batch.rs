@@ -713,9 +713,7 @@ impl AggregatedCancelResponse {
     }
 
     /// Returns an iterator over failed cancellations with their order_id and error.
-    pub fn failed_orders(
-        &self,
-    ) -> impl Iterator<Item = (&str, &crate::models::BatchOrderError)> {
+    pub fn failed_orders(&self) -> impl Iterator<Item = (&str, &crate::models::BatchOrderError)> {
         self.orders
             .iter()
             .filter_map(|r| r.error.as_ref().map(|e| (r.order_id.as_str(), e)))

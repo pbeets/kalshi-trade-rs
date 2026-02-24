@@ -106,10 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                     println!(
                         "   - {} | {} | {} | status: {}",
-                        rfq.id,
-                        rfq.market_ticker,
-                        size,
-                        rfq.status
+                        rfq.id, rfq.market_ticker, size, rfq.status
                     );
                 }
                 println!();
@@ -153,10 +150,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for quote in &response.quotes {
                         println!(
                             "   - {} | yes: {} / no: {} | status: {}",
-                            quote.id,
-                            quote.yes_bid_dollars,
-                            quote.no_bid_dollars,
-                            quote.status
+                            quote.id, quote.yes_bid_dollars, quote.no_bid_dollars, quote.status
                         );
                     }
                     println!();

@@ -184,16 +184,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(order) = &result.order {
                 println!(
                     "  {} | CANCELED | reduced by: {} contracts",
-                    order.order_id,
-                    result.reduced_by
+                    order.order_id, result.reduced_by
                 );
                 canceled_count += 1;
             } else if let Some(error) = &result.error {
                 println!(
                     "  {} | FAILED | {}: {}",
-                    result.order_id,
-                    error.code,
-                    error.message
+                    result.order_id, error.code, error.message
                 );
                 failed_count += 1;
             }

@@ -21,10 +21,10 @@ use crate::{
         CreateMarketInCollectionRequest, CreateMarketInCollectionResponse, CreateOrderGroupRequest,
         CreateOrderGroupResponse, CreateOrderRequest, CreateQuoteRequest, CreateRfqRequest,
         CreateSubaccountRequest, CreateSubaccountResponse, DecreaseOrderRequest,
-        EventCandlesticksResponse, EventForecastPercentileHistoryResponse,
-        EventMetadataResponse, EventResponse, EventsResponse, ExchangeAnnouncementsResponse,
-        ExchangeScheduleResponse, ExchangeStatusResponse, FeeChangesResponse, FillsResponse,
-        FiltersBySportResponse, GenerateApiKeyRequest, GenerateApiKeyResponse, GetBalanceParams,
+        EventCandlesticksResponse, EventForecastPercentileHistoryResponse, EventMetadataResponse,
+        EventResponse, EventsResponse, ExchangeAnnouncementsResponse, ExchangeScheduleResponse,
+        ExchangeStatusResponse, FeeChangesResponse, FillsResponse, FiltersBySportResponse,
+        GenerateApiKeyRequest, GenerateApiKeyResponse, GetBalanceParams,
         GetBatchCandlesticksParams, GetBatchLiveDataParams, GetCandlesticksParams,
         GetEventCandlesticksParams, GetEventForecastPercentileHistoryParams, GetEventParams,
         GetEventsParams, GetFcmOrdersParams, GetFcmPositionsParams, GetFeeChangesParams,
@@ -33,13 +33,12 @@ use crate::{
         GetMarketsParams, GetMilestonesParams, GetMultivariateCollectionsParams,
         GetMultivariateEventsParams, GetOrderGroupResponse, GetOrderGroupsParams,
         GetOrderbookParams, GetOrdersParams, GetPositionsParams, GetQueuePositionsParams,
-        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetStructuredTargetsParams,
-        GetSingleSeriesParams, GetSubaccountTransfersParams, GetTradesParams,
-        HistoricalCandlesticksResponse,
-        HistoricalCutoffResponse, IncentiveProgramsResponse, ListQuotesParams, ListQuotesResponse,
-        ListRfqsParams, ListRfqsResponse, LiveDataResponse, LookupHistoryResponse,
-        LookupTickersRequest, LookupTickersResponse, MarketResponse, MarketsResponse,
-        MilestoneResponse, MilestonesResponse, MultivariateCollectionResponse,
+        GetQuoteResponse, GetRfqResponse, GetSettlementsParams, GetSingleSeriesParams,
+        GetStructuredTargetsParams, GetSubaccountTransfersParams, GetTradesParams,
+        HistoricalCandlesticksResponse, HistoricalCutoffResponse, IncentiveProgramsResponse,
+        ListQuotesParams, ListQuotesResponse, ListRfqsParams, ListRfqsResponse, LiveDataResponse,
+        LookupHistoryResponse, LookupTickersRequest, LookupTickersResponse, MarketResponse,
+        MarketsResponse, MilestoneResponse, MilestonesResponse, MultivariateCollectionResponse,
         MultivariateCollectionsResponse, MultivariateEventsResponse, OrderGroupsResponse,
         OrderQueuePositionResponse, OrderResponse, OrderbookResponse, OrdersResponse,
         PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
@@ -1593,11 +1592,7 @@ impl KalshiClient {
     /// let request = AcceptQuoteRequest::new(50, 100);
     /// let response = client.accept_quote("quote_123", request).await?;
     /// ```
-    pub async fn accept_quote(
-        &self,
-        quote_id: &str,
-        request: AcceptQuoteRequest,
-    ) -> Result<()> {
+    pub async fn accept_quote(&self, quote_id: &str, request: AcceptQuoteRequest) -> Result<()> {
         communications::accept_quote(&self.http, quote_id, request).await
     }
 

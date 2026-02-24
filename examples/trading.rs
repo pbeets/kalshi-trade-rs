@@ -45,7 +45,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Selected market: {}", market.ticker);
 
     println!("Title: {}", market.title);
-    println!("Current YES: ${} bid / ${} ask", market.yes_bid_dollars, market.yes_ask_dollars);
+    println!(
+        "Current YES: ${} bid / ${} ask",
+        market.yes_bid_dollars, market.yes_ask_dollars
+    );
 
     println!();
 
@@ -277,7 +280,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match client.get_queue_positions_with_params(params).await {
         Ok(response) => {
-            println!("Orders with queue positions: {}", response.queue_positions.len());
+            println!(
+                "Orders with queue positions: {}",
+                response.queue_positions.len()
+            );
             for qp in response.queue_positions.iter().take(5) {
                 println!(
                     "  {} | {} contracts ahead",

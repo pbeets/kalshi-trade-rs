@@ -25,7 +25,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let markets = client.get_markets().await?;
     println!("Total markets returned: {}", markets.markets.len());
     if !markets.cursor.is_empty() {
-        println!("Next cursor: {}...", &markets.cursor[..markets.cursor.len().min(20)]);
+        println!(
+            "Next cursor: {}...",
+            &markets.cursor[..markets.cursor.len().min(20)]
+        );
     }
     println!();
 
@@ -39,11 +42,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for market in &open_markets.markets {
         println!(
             "  {} | {} | Vol: {}",
-            market.ticker,
-            market.title,
-            market.volume
+            market.ticker, market.title, market.volume
         );
-        println!("    YES bid/ask: ${} / ${}", market.yes_bid_dollars, market.yes_ask_dollars);
+        println!(
+            "    YES bid/ask: ${} / ${}",
+            market.yes_bid_dollars, market.yes_ask_dollars
+        );
     }
     println!();
 

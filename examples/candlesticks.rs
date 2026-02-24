@@ -138,10 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let yes_bid = format!("${:.2}", cents_to_dollars(candle.yes_bid.close));
             let yes_ask = format!("${:.2}", cents_to_dollars(candle.yes_ask.close));
 
-            println!(
-                "{:<20} {:>12} {:>12}",
-                timestamp, yes_bid, yes_ask
-            );
+            println!("{:<20} {:>12} {:>12}", timestamp, yes_bid, yes_ask);
         }
     }
     println!();

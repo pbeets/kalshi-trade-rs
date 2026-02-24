@@ -107,11 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     for market in &selected_markets {
-        println!(
-            "  - {} (vol: {})",
-            market.ticker,
-            market.volume
-        );
+        println!("  - {} (vol: {})", market.ticker, market.volume);
     }
 
     let market_tickers: Vec<String> = selected_markets.iter().map(|m| m.ticker.clone()).collect();

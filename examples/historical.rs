@@ -36,15 +36,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for market in &markets.markets {
         println!(
             "  {} | {:?} | result: {:?} | vol: {}",
-            market.ticker,
-            market.status,
-            market.result,
-            market.volume
+            market.ticker, market.status, market.result, market.volume
         );
     }
 
     if !markets.cursor.is_empty() {
-        println!("  Next cursor: {}...", &markets.cursor[..markets.cursor.len().min(20)]);
+        println!(
+            "  Next cursor: {}...",
+            &markets.cursor[..markets.cursor.len().min(20)]
+        );
     }
     println!();
 
@@ -79,11 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(candles) => {
                 println!("  {} candlesticks returned", candles.candlesticks.len());
                 for candle in candles.candlesticks.iter().take(3) {
-                    let close = candle
-                        .price
-                        .close
-                        .as_deref()
-                        .unwrap_or("N/A");
+                    let close = candle.price.close.as_deref().unwrap_or("N/A");
                     println!(
                         "    ts={} close=${} vol={}",
                         candle.end_period_ts, close, candle.volume

@@ -586,7 +586,9 @@ mod price_level_fp_serde {
     use super::PriceLevelDollarsCountFp;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Vec<PriceLevelDollarsCountFp>>, D::Error>
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<Vec<PriceLevelDollarsCountFp>>, D::Error>
     where
         D: Deserializer<'de>,
     {

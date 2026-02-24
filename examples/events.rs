@@ -34,7 +34,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Total events returned: {}", events.events.len());
 
     if !events.cursor.is_empty() {
-        println!("Next cursor: {}...", &events.cursor[..events.cursor.len().min(20)]);
+        println!(
+            "Next cursor: {}...",
+            &events.cursor[..events.cursor.len().min(20)]
+        );
     }
 
     println!();
@@ -72,7 +75,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(markets) = &event.markets {
             println!("  Markets ({}):", markets.len());
             for market in markets.iter().take(5) {
-                println!("    {} | {} | YES ask: ${}", market.ticker, market.title, market.yes_ask_dollars);
+                println!(
+                    "    {} | {} | YES ask: ${}",
+                    market.ticker, market.title, market.yes_ask_dollars
+                );
             }
             if markets.len() > 5 {
                 println!("    ... and {} more markets", markets.len() - 5);
@@ -133,7 +139,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
 
                 // Show pricing
-                println!("    YES: ${} bid / ${} ask", market.yes_bid_dollars, market.yes_ask_dollars);
+                println!(
+                    "    YES: ${} bid / ${} ask",
+                    market.yes_bid_dollars, market.yes_ask_dollars
+                );
             }
         }
         println!();
