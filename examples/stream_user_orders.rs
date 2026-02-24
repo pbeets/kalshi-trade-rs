@@ -99,8 +99,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         "[ORDER] {} | id={} | status={} | side={} | price={} | initial={} remaining={} filled={}",
                         order.ticker.as_deref().unwrap_or("?"),
                         order.order_id,
-                        order.status.as_ref().map(|s| format!("{:?}", s)).unwrap_or_else(|| "?".into()),
-                        order.side.as_ref().map(|s| format!("{:?}", s)).unwrap_or_else(|| "?".into()),
+                        order
+                            .status
+                            .as_ref()
+                            .map(|s| format!("{:?}", s))
+                            .unwrap_or_else(|| "?".into()),
+                        order
+                            .side
+                            .as_ref()
+                            .map(|s| format!("{:?}", s))
+                            .unwrap_or_else(|| "?".into()),
                         order.yes_price_dollars.as_deref().unwrap_or("?"),
                         order.initial_count_fp.as_deref().unwrap_or("?"),
                         order.remaining_count_fp.as_deref().unwrap_or("?"),
