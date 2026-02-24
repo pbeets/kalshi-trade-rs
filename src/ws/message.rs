@@ -199,8 +199,6 @@ pub enum StreamMessage {
     UserOrder(Box<UserOrderData>),
     /// Multivariate collection lookup notification.
     MultivariateLookup(MultivariateLookupData),
-    /// User order created/updated notification.
-    UserOrder(UserOrderData),
     /// Connection was closed cleanly.
     ///
     /// This is a local event, not received from the server.
@@ -693,71 +691,6 @@ pub struct QuoteAcceptedData {
     pub accepted_side: Option<Side>,
 }
 
-/// User order update data for the `user_orders` channel.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserOrderData {
-    /// Unique order identifier.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order_id: Option<String>,
-    /// User identifier.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    /// Market ticker identifier.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ticker: Option<String>,
-    /// Current order status.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// Market side.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub side: Option<String>,
-    /// Yes price in fixed-point dollars (4 decimals).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub yes_price_dollars: Option<String>,
-    /// Number of contracts filled in fixed-point (2 decimals).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fill_count_fp: Option<String>,
-    /// Number of contracts remaining in fixed-point (2 decimals).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub remaining_count_fp: Option<String>,
-    /// Initial number of contracts in fixed-point (2 decimals).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub initial_count_fp: Option<String>,
-    /// Taker fill cost in fixed-point dollars (4 decimals).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub taker_fill_cost_dollars: Option<String>,
-    /// Maker fill cost in fixed-point dollars (4 decimals).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub maker_fill_cost_dollars: Option<String>,
-    /// Taker fees in fixed-point dollars (4 decimals). Omitted when zero.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub taker_fees_dollars: Option<String>,
-    /// Maker fees in fixed-point dollars (4 decimals). Omitted when zero.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub maker_fees_dollars: Option<String>,
-    /// Client-provided order identifier.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub client_order_id: Option<String>,
-    /// Order group identifier, if applicable.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order_group_id: Option<String>,
-    /// Self-trade prevention type.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub self_trade_prevention_type: Option<String>,
-    /// Order creation time in RFC 3339 format.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_time: Option<String>,
-    /// Last update time in RFC 3339 format.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_update_time: Option<String>,
-    /// Order expiration time in RFC 3339 format.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiration_time: Option<String>,
-    /// Subaccount number (0 for primary, 1-32 for subaccounts).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subaccount_number: Option<i64>,
-}
-
 impl StreamMessage {
     /// Parse a message payload based on the channel type.
     ///
@@ -804,10 +737,6 @@ impl StreamMessage {
             // Multivariate lookup notifications
             "multivariate_lookup" => serde_json::from_value::<MultivariateLookupData>(value)
                 .map(StreamMessage::MultivariateLookup),
-            // User order notifications
-            "user_order" | "user_orders" => {
-                serde_json::from_value::<UserOrderData>(value).map(StreamMessage::UserOrder)
-            }
             _ => {
                 // Fallback to untagged deserialization for unknown types
                 serde_json::from_value::<StreamMessage>(value)
