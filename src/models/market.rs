@@ -542,19 +542,7 @@ mod orderbook_serde {
     }
 }
 
-/// Custom deserializer for Vec that treats null as empty.
-mod null_as_empty_vec {
-    use serde::{Deserialize, Deserializer};
-
-    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-    where
-        D: Deserializer<'de>,
-        T: Deserialize<'de>,
-    {
-        let opt: Option<Vec<T>> = Option::deserialize(deserializer)?;
-        Ok(opt.unwrap_or_default())
-    }
-}
+use super::common::null_as_empty_vec;
 
 /// An orderbook for a market.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

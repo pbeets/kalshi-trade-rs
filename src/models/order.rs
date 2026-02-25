@@ -975,17 +975,7 @@ impl GetQueuePositionsParams {
     }
 }
 
-mod null_as_empty_vec {
-    use serde::{Deserialize, Deserializer};
-
-    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-    where
-        D: Deserializer<'de>,
-        T: Deserialize<'de>,
-    {
-        Ok(Option::<Vec<T>>::deserialize(deserializer)?.unwrap_or_default())
-    }
-}
+use super::common::null_as_empty_vec;
 
 #[cfg(test)]
 mod tests {
