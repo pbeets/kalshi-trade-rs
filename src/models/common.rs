@@ -110,6 +110,22 @@ pub fn cents_to_dollars(cents: i64) -> f64 {
     cents as f64 / 100.0
 }
 
+/// Custom deserializer that treats `null` as an empty `Vec`.
+///
+/// The Kalshi API sometimes returns `null` instead of `[]` for empty arrays.
+/// Use with `#[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]`.
+pub(crate) mod null_as_empty_vec {
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: Deserialize<'de>,
+    {
+        Ok(Option::<Vec<T>>::deserialize(deserializer)?.unwrap_or_default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

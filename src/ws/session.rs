@@ -838,6 +838,13 @@ impl KalshiStreamSession {
             }
 
             Ok(IncomingMessage::Update { msg_type, sid, msg }) => {
+                // Normalize API aliases to canonical channel names.
+                // The Kalshi API sends "user_order" (singular) for order updates,
+                // but the channel is subscribed as "user_orders" (plural).
+                let msg_type = match msg_type.as_str() {
+                    "user_order" => "user_orders".to_string(),
+                    _ => msg_type,
+                };
                 debug!("Update on sid {}: type={}", sid, msg_type);
 
                 // Handle "unsubscribed" updates specially
