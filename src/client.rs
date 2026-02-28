@@ -44,9 +44,9 @@ use crate::{
         PositionsResponse, QueuePositionsResponse, QuoteResponse, RestingOrderValueResponse,
         RfqResponse, SeriesListResponse, SeriesResponse, SettlementsResponse,
         StructuredTargetResponse, StructuredTargetsResponse, SubaccountBalancesResponse,
-        SubaccountTransfersResponse, TagsByCategoriesResponse, TradesResponse,
-        TransferBetweenSubaccountsRequest, TransferResponse, UpdateOrderGroupLimitRequest,
-        UserDataTimestampResponse,
+        SubaccountNettingResponse, SubaccountTransfersResponse, TagsByCategoriesResponse,
+        TradesResponse, TransferBetweenSubaccountsRequest, TransferResponse,
+        UpdateOrderGroupLimitRequest, UpdateSubaccountNettingRequest, UserDataTimestampResponse,
     },
 };
 
@@ -1886,6 +1886,47 @@ impl KalshiClient {
     /// ```
     pub async fn get_resting_order_value(&self) -> Result<RestingOrderValueResponse> {
         subaccounts::get_resting_order_value(&self.http).await
+    }
+
+    /// Get netting configuration for all subaccounts.
+    ///
+    /// Returns the netting enabled/disabled setting for each subaccount.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let netting = client.get_subaccount_netting().await?;
+    /// for config in &netting.netting_configs {
+    ///     println!("Subaccount {}: netting {}",
+    ///         config.subaccount_number,
+    ///         if config.enabled { "enabled" } else { "disabled" }
+    ///     );
+    /// }
+    /// ```
+    pub async fn get_subaccount_netting(&self) -> Result<SubaccountNettingResponse> {
+        subaccounts::get_subaccount_netting(&self.http).await
+    }
+
+    /// Update the netting configuration for a specific subaccount.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The netting update request specifying subaccount and enabled state
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use kalshi_trade_rs::models::UpdateSubaccountNettingRequest;
+    ///
+    /// // Enable netting for the primary account
+    /// let request = UpdateSubaccountNettingRequest::new(0, true);
+    /// client.update_subaccount_netting(request).await?;
+    /// ```
+    pub async fn update_subaccount_netting(
+        &self,
+        request: UpdateSubaccountNettingRequest,
+    ) -> Result<()> {
+        subaccounts::update_subaccount_netting(&self.http, request).await
     }
 
     // =========================================================================

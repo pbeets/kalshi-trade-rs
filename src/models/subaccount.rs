@@ -257,6 +257,42 @@ pub struct SubaccountTransfersResponse {
     pub cursor: Option<String>,
 }
 
+/// Netting configuration for a single subaccount.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubaccountNettingConfig {
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    pub subaccount_number: i32,
+    /// Whether netting is enabled for this subaccount.
+    pub enabled: bool,
+}
+
+/// Response from GET /portfolio/subaccounts/netting.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubaccountNettingResponse {
+    /// Netting configurations for all subaccounts.
+    pub netting_configs: Vec<SubaccountNettingConfig>,
+}
+
+/// Request body for PUT /portfolio/subaccounts/netting.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSubaccountNettingRequest {
+    /// Subaccount number (0 for primary, 1-32 for subaccounts).
+    pub subaccount_number: i32,
+    /// Whether to enable netting for the subaccount.
+    pub enabled: bool,
+}
+
+impl UpdateSubaccountNettingRequest {
+    /// Create a new netting update request.
+    #[must_use]
+    pub fn new(subaccount_number: i32, enabled: bool) -> Self {
+        Self {
+            subaccount_number,
+            enabled,
+        }
+    }
+}
+
 /// Response from GET /portfolio/summary/total_resting_order_value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RestingOrderValueResponse {

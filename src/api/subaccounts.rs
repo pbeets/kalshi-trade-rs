@@ -8,8 +8,9 @@ use crate::{
     error::Result,
     models::{
         CreateSubaccountRequest, CreateSubaccountResponse, GetSubaccountTransfersParams,
-        RestingOrderValueResponse, SubaccountBalancesResponse, SubaccountTransfersResponse,
-        TransferBetweenSubaccountsRequest, TransferResponse,
+        RestingOrderValueResponse, SubaccountBalancesResponse, SubaccountNettingResponse,
+        SubaccountTransfersResponse, TransferBetweenSubaccountsRequest, TransferResponse,
+        UpdateSubaccountNettingRequest,
     },
 };
 
@@ -44,6 +45,20 @@ pub async fn get_subaccount_transfers(
         params.to_query_string()
     );
     http.get(&path).await
+}
+
+/// Returns netting configuration for all subaccounts.
+pub async fn get_subaccount_netting(http: &HttpClient) -> Result<SubaccountNettingResponse> {
+    http.get("/portfolio/subaccounts/netting").await
+}
+
+/// Updates the netting configuration for a specific subaccount.
+pub async fn update_subaccount_netting(
+    http: &HttpClient,
+    request: UpdateSubaccountNettingRequest,
+) -> Result<()> {
+    http.put_no_response("/portfolio/subaccounts/netting", &request)
+        .await
 }
 
 /// Returns the total value in cents of all resting orders (primarily for FCM members).

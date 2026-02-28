@@ -24,7 +24,7 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | Order Groups | 7 | 100% |
 | Account | 1 | 100% |
 | Portfolio | 5 | 100% |
-| Subaccounts | 5 | 100% |
+| Subaccounts | 7 | 100% |
 | Markets | 6 | 100% |
 | Events | 6 | 100% |
 | Series | 2 | 100% |
@@ -38,7 +38,7 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | Incentive Programs | 1 | 100% |
 | FCM | 2 | 100% |
 | Historical | 6 | 100% |
-| **Total** | **84** | **100%** |
+| **Total** | **86** | **100%** |
 
 ---
 
@@ -123,6 +123,8 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 | 🔲 | POST | `/portfolio/subaccounts/transfer` | `transfer_between_subaccounts()` | |
 | 🔲 | GET | `/portfolio/subaccounts/balances` | `get_subaccount_balances()` | |
 | 🔲 | GET | `/portfolio/subaccounts/transfers` | `get_subaccount_transfers()` | |
+| 🔲 | GET | `/portfolio/subaccounts/netting` | `get_subaccount_netting()` | Netting config for all subaccounts |
+| 🔲 | PUT | `/portfolio/subaccounts/netting` | `update_subaccount_netting()` | Enable/disable netting per subaccount |
 | 🔲 | GET | `/portfolio/summary/total_resting_order_value` | `get_resting_order_value()` | FCM members only |
 
 **Source**: `src/api/subaccounts.rs`

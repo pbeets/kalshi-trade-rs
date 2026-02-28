@@ -189,10 +189,16 @@ pub struct Market {
     pub yes_bid: i64,
     /// Best YES bid price in dollars.
     pub yes_bid_dollars: String,
+    /// Size at best YES bid (fixed-point decimal string).
+    #[serde(default)]
+    pub yes_bid_size_fp: Option<String>,
     /// Best YES ask price in cents.
     pub yes_ask: i64,
     /// Best YES ask price in dollars.
     pub yes_ask_dollars: String,
+    /// Size at best YES ask (fixed-point decimal string).
+    #[serde(default)]
+    pub yes_ask_size_fp: Option<String>,
     /// Best NO bid price in cents.
     pub no_bid: i64,
     /// Best NO bid price in dollars.

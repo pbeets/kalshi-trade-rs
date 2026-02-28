@@ -110,6 +110,7 @@ pub use structured_target::{
 pub use subaccount::{
     CreateSubaccountRequest, CreateSubaccountResponse, GetSubaccountTransfersParams,
     RestingOrderValueResponse, Subaccount, SubaccountBalance, SubaccountBalancesResponse,
-    SubaccountTransfer, SubaccountTransfersResponse, TransferBetweenSubaccountsRequest,
-    TransferResponse,
+    SubaccountNettingConfig, SubaccountNettingResponse, SubaccountTransfer,
+    SubaccountTransfersResponse, TransferBetweenSubaccountsRequest, TransferResponse,
+    UpdateSubaccountNettingRequest,
 };
