@@ -84,8 +84,9 @@ pub use models::{
     Quote, QuoteResponse, Rfq, RfqResponse, SelfTradePreventionType, Series, SeriesFeeChange,
     SeriesListResponse, SeriesResponse, Settlement, SettlementStatus, SettlementsResponse, Side,
     SportFilter, StandardHoursPeriod, StrikeType, StructuredTarget, StructuredTargetResponse,
-    StructuredTargetsResponse, TagsByCategoriesResponse, TakerSide, TimeInForce, Trade,
-    TradesResponse, TradingSession, UpdateOrderGroupLimitRequest, UserDataTimestampResponse,
+    StructuredTargetsResponse, SubaccountNettingConfig, SubaccountNettingResponse,
+    TagsByCategoriesResponse, TakerSide, TimeInForce, Trade, TradesResponse, TradingSession,
+    UpdateOrderGroupLimitRequest, UpdateSubaccountNettingRequest, UserDataTimestampResponse,
     cents_to_dollars,
 };
 

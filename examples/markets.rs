@@ -44,10 +44,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "  {} | {} | Vol: {}",
             market.ticker, market.title, market.volume
         );
-        println!(
+        print!(
             "    YES bid/ask: ${} / ${}",
             market.yes_bid_dollars, market.yes_ask_dollars
         );
+        // Show top-of-book sizes when available
+        match (&market.yes_bid_size_fp, &market.yes_ask_size_fp) {
+            (Some(bid_size), Some(ask_size)) => println!("  (size: {} / {})", bid_size, ask_size),
+            _ => println!(),
+        }
     }
     println!();
 

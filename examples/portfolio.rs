@@ -7,7 +7,7 @@
 
 use kalshi_trade_rs::{
     GetBalanceParams, GetFillsParams, GetOrdersParams, GetPositionsParams, GetSettlementsParams,
-    KalshiClient, KalshiConfig, OrderStatus, cents_to_dollars,
+    KalshiClient, KalshiConfig, OrderStatus, UpdateSubaccountNettingRequest, cents_to_dollars,
 };
 
 #[tokio::main]
@@ -49,6 +49,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Primary Portfolio Value: ${:.2}",
         cents_to_dollars(primary_balance.portfolio_value)
     );
+
+    println!();
+
+    // 1c. Get subaccount netting configuration
+    println!("=== Subaccount Netting ===");
+
+    match client.get_subaccount_netting().await {
+        Ok(netting) => {
+            for config in &netting.netting_configs {
+                println!(
+                    "  Subaccount {}: netting {}",
+                    config.subaccount_number,
+                    if config.enabled {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    }
+                );
+            }
+
+            // Example: enable netting on primary account (commented out to avoid side effects)
+            // let request = UpdateSubaccountNettingRequest::new(0, true);
+            // client.update_subaccount_netting(request).await?;
+        }
+        Err(e) => println!("  Netting not available: {}", e),
+    }
+    let _ = UpdateSubaccountNettingRequest::new(0, true); // suppress unused import warning
 
     println!();
 
