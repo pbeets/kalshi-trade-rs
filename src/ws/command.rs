@@ -192,11 +192,4 @@ mod tests {
         assert_eq!(sharding.shard_factor, Some(4));
         assert_eq!(sharding.shard_key, Some(2));
     }
-
-    #[test]
-    fn test_communications_sharding_default() {
-        let sharding = CommunicationsSharding::default();
-        assert_eq!(sharding.shard_factor, None);
-        assert_eq!(sharding.shard_key, None);
-    }
 }

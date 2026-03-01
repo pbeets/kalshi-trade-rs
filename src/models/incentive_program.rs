@@ -97,7 +97,6 @@ impl GetIncentiveProgramsParams {
         self
     }
 
-    /// Set the pagination cursor.
     #[must_use]
     pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
         self.cursor = Some(cursor.into());
