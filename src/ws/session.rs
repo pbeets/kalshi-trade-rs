@@ -689,7 +689,6 @@ impl KalshiStreamSession {
             }
 
             Ok(Message::Ping(data)) => {
-                info!("Received server ping: {:?}", String::from_utf8_lossy(&data));
                 // Respond with pong containing the same data
                 if let Err(e) = self.ws_writer.send(Message::Pong(data)).await {
                     error!("Failed to send pong: {}", e);

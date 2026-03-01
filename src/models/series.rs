@@ -106,21 +106,28 @@ pub struct Series {
     #[serde(default)]
     pub status: Option<String>,
     /// Tags associated with this series.
+    #[serde(default)]
     pub tags: Vec<String>,
     /// Settlement sources for this series.
+    #[serde(default)]
     pub settlement_sources: Vec<super::event::SettlementSource>,
     /// URL to the contract for this series.
+    #[serde(default)]
     pub contract_url: String,
     /// URL to the contract terms for this series.
+    #[serde(default)]
     pub contract_terms_url: String,
     /// Product metadata for this series.
     #[serde(default)]
     pub product_metadata: Option<serde_json::Value>,
     /// Fee type for this series.
+    #[serde(default)]
     pub fee_type: String,
     /// Fee multiplier for this series.
+    #[serde(default)]
     pub fee_multiplier: f64,
     /// Additional trading prohibitions.
+    #[serde(default)]
     pub additional_prohibitions: Vec<String>,
     /// Total contracts traded across all events in this series.
     /// Only present when `include_volume=true` in the request.

@@ -9,7 +9,7 @@ An unofficial Rust client library for the [Kalshi](https://kalshi.com) predictio
 
 ## Key Features
 
-- **REST Client**: Full coverage of 84 Kalshi API endpoints including portfolio management, order operations, market data, exchange status, historical data, and RFQ (Request for Quote) communications
+- **REST Client**: Full coverage of 86 Kalshi API endpoints including portfolio management, order operations, market data, exchange status, historical data, and RFQ (Request for Quote) communications
 - **WebSocket Streaming**: 10 real-time channels — ticker, trade, orderbook, fill, order updates, position, RFQ/quote, order groups, market lifecycle, and multivariate
 - **Batch Operations**: Rate-limited `BatchManager` with automatic chunking, retry, and per-order subaccount support
 - **Orderbook Aggregation**: Live orderbook state from WebSocket delta streams with gap detection
@@ -22,7 +22,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kalshi-trade-rs = "0.2.0"
+kalshi-trade-rs = "0.3.0"
 ```
 
 Configure environment variables:
@@ -122,7 +122,7 @@ Stream RFQ events via WebSocket:
 
 ```rust
 handle.subscribe(Channel::Communications, &[]).await?;
-// Receive: RfqCreated, RfqDeleted, QuoteCreated, QuoteAccepted
+// Receive: RfqCreated, RfqDeleted, QuoteCreated, QuoteAccepted, QuoteExecuted
 ```
 
 See [`examples/rfq_verify.rs`](examples/rfq_verify.rs) for a complete verification example.
@@ -144,7 +144,7 @@ let client = KalshiStreamClient::connect_with_strategy(&config, ConnectStrategy:
 
 ## Examples
 
-See the [`examples/`](examples/) directory for 24 working examples:
+See the [`examples/`](examples/) directory for 25 working examples:
 
 ### REST API
 
@@ -176,6 +176,7 @@ See the [`examples/`](examples/) directory for 24 working examples:
 | `stream_reconnect` | Reconnection with resubscription |
 | `stream_firehose` | High-volume streaming pattern |
 | `stream_lifecycle` | Market lifecycle events |
+| `stream_user_orders` | Real-time order update notifications |
 | `multi_channel_subscribe` | Multi-channel subscription management |
 | `orderbook_aggregator` | Live orderbook state from delta streams |
 | `test_auth` | Basic authentication verification |

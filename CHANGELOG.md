@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-02-28
 
 ### Added
 
@@ -86,6 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `UserOrders` WebSocket channel for real-time order update notifications
   (`UserOrderData`, `UserOrderEventType`). Requires authentication, supports
   optional `market_tickers` filtering.
+- `QuoteExecuted` variant on `CommunicationData` enum for WebSocket quote
+  execution notifications (`QuoteExecutedData` with `quote_id`, `rfq_id`,
+  `order_id`, `client_order_id`, `executed_ts`). Previously, quote execution
+  events on the `communications` channel were silently dropped.
 - `subaccount` filter on `ListRfqsParams` for per-subaccount RFQ queries.
 - `subaccount` filter on `GetOrderGroupsParams` for per-subaccount order group
   queries. New `get_order_group_for_subaccount()` method on `KalshiClient`.

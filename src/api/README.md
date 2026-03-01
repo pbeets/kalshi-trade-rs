@@ -79,7 +79,7 @@ Complete reference for all Kalshi REST API endpoints supported by this library.
 
 | Status | Method | Endpoint | Rust Function | Notes |
 |--------|--------|----------|---------------|-------|
-| ✅ | POST | `/portfolio/order_groups` | `create_order_group()` | |
+| ✅ | POST | `/portfolio/order_groups/create` | `create_order_group()` | |
 | ✅ | GET | `/portfolio/order_groups/{id}` | `get_order_group()` | |
 | ✅ | GET | `/portfolio/order_groups` | `list_order_groups()` | |
 | ✅ | DELETE | `/portfolio/order_groups/{id}` | `delete_order_group()` | Cancels all orders in group |

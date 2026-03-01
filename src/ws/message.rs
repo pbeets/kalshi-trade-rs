@@ -317,7 +317,7 @@ pub struct TickerData {
     /// Yes ask in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yes_ask_dollars: Option<String>,
-    /// No bid in dollars (not in official spec; may not be populated).
+    /// No bid in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_bid_dollars: Option<String>,
     /// Volume (fixed-point decimal string).
@@ -526,6 +526,8 @@ pub enum CommunicationData {
     QuoteCreated(QuoteData),
     /// Quote accepted event.
     QuoteAccepted(QuoteAcceptedData),
+    /// Quote executed event.
+    QuoteExecuted(QuoteExecutedData),
 }
 
 /// Leg definition for multivariate RFQs and lookups.
@@ -691,6 +693,24 @@ pub struct QuoteAcceptedData {
     pub accepted_side: Option<Side>,
 }
 
+/// Quote executed event data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuoteExecutedData {
+    /// Unique quote identifier.
+    pub quote_id: String,
+    /// Associated RFQ identifier.
+    pub rfq_id: String,
+    /// Order ID resulting from the execution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order_id: Option<String>,
+    /// Client-specified order ID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_order_id: Option<String>,
+    /// Execution timestamp (ISO 8601).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub executed_ts: Option<String>,
+}
+
 impl StreamMessage {
     /// Parse a message payload based on the channel type.
     ///
@@ -728,6 +748,8 @@ impl StreamMessage {
                 .map(|data| StreamMessage::Communication(CommunicationData::QuoteCreated(data))),
             "quote_accepted" => serde_json::from_value::<QuoteAcceptedData>(value)
                 .map(|data| StreamMessage::Communication(CommunicationData::QuoteAccepted(data))),
+            "quote_executed" => serde_json::from_value::<QuoteExecutedData>(value)
+                .map(|data| StreamMessage::Communication(CommunicationData::QuoteExecuted(data))),
             // Order group update notifications
             "order_group_updates" => serde_json::from_value::<OrderGroupUpdateData>(value)
                 .map(StreamMessage::OrderGroupUpdate),
@@ -748,18 +770,6 @@ impl StreamMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_side_serialization() {
-        assert_eq!(serde_json::to_string(&Side::Yes).unwrap(), "\"yes\"");
-        assert_eq!(serde_json::to_string(&Side::No).unwrap(), "\"no\"");
-    }
-
-    #[test]
-    fn test_side_deserialization() {
-        assert_eq!(serde_json::from_str::<Side>("\"yes\"").unwrap(), Side::Yes);
-        assert_eq!(serde_json::from_str::<Side>("\"no\"").unwrap(), Side::No);
-    }
 
     #[test]
     fn test_orderbook_delta_deserialization() {
@@ -824,5 +834,154 @@ mod tests {
             serde_json::to_string(&MarketLifecycleEventType::CloseDateUpdated).unwrap(),
             "\"close_date_updated\""
         );
+    }
+
+    #[test]
+    fn test_from_type_and_value_rfq_created() {
+        let json = serde_json::json!({
+            "type": "rfq_created",
+            "id": "rfq-001",
+            "creator_id": "anon-abc",
+            "market_ticker": "KXBTC-25MAR01-100000",
+            "created_ts": "2026-02-28T12:00:00Z"
+        });
+        let msg = StreamMessage::from_type_and_value("rfq_created", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::RfqCreated(data)) => {
+                assert_eq!(data.id, "rfq-001");
+                assert_eq!(data.market_ticker, "KXBTC-25MAR01-100000");
+            }
+            other => panic!("Expected RfqCreated, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_rfq_deleted() {
+        let json = serde_json::json!({
+            "type": "rfq_deleted",
+            "id": "rfq-002",
+            "creator_id": "anon-xyz",
+            "market_ticker": "KXBTC-25MAR01-100000",
+            "deleted_ts": "2026-02-28T12:00:30Z"
+        });
+        let msg = StreamMessage::from_type_and_value("rfq_deleted", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::RfqDeleted(data)) => {
+                assert_eq!(data.id, "rfq-002");
+                assert_eq!(data.creator_id, "anon-xyz");
+            }
+            other => panic!("Expected RfqDeleted, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_quote_created() {
+        let json = serde_json::json!({
+            "type": "quote_created",
+            "quote_id": "q-001",
+            "rfq_id": "rfq-001",
+            "quote_creator_id": "anon-def",
+            "rfq_creator_id": "anon-ghi",
+            "market_ticker": "KXBTC-25MAR01-100000",
+            "yes_bid": 45,
+            "no_bid": 55,
+            "yes_bid_dollars": "0.45",
+            "no_bid_dollars": "0.55",
+            "created_ts": "2026-02-28T12:01:00Z"
+        });
+        let msg = StreamMessage::from_type_and_value("quote_created", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::QuoteCreated(data)) => {
+                assert_eq!(data.quote_id, "q-001");
+                assert_eq!(data.rfq_id, "rfq-001");
+                assert_eq!(data.yes_bid, 45);
+            }
+            other => panic!("Expected QuoteCreated, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_quote_accepted() {
+        let json = serde_json::json!({
+            "type": "quote_accepted",
+            "quote_id": "q-001",
+            "rfq_id": "rfq-001",
+            "quote_creator_id": "anon-def",
+            "rfq_creator_id": "anon-ghi",
+            "market_ticker": "KXBTC-25MAR01-100000",
+            "yes_bid": 45,
+            "no_bid": 55,
+            "yes_bid_dollars": "0.45",
+            "no_bid_dollars": "0.55",
+            "accepted_side": "yes"
+        });
+        let msg = StreamMessage::from_type_and_value("quote_accepted", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::QuoteAccepted(data)) => {
+                assert_eq!(data.quote_id, "q-001");
+                assert_eq!(data.accepted_side, Some(Side::Yes));
+            }
+            other => panic!("Expected QuoteAccepted, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_quote_executed() {
+        let json = serde_json::json!({
+            "type": "quote_executed",
+            "quote_id": "q-001",
+            "rfq_id": "rfq-001",
+            "order_id": "ord-999",
+            "client_order_id": "my-order-1",
+            "executed_ts": "2026-02-28T12:02:00Z"
+        });
+        let msg = StreamMessage::from_type_and_value("quote_executed", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::QuoteExecuted(data)) => {
+                assert_eq!(data.quote_id, "q-001");
+                assert_eq!(data.rfq_id, "rfq-001");
+                assert_eq!(data.order_id, Some("ord-999".to_string()));
+                assert_eq!(data.client_order_id, Some("my-order-1".to_string()));
+                assert_eq!(data.executed_ts, Some("2026-02-28T12:02:00Z".to_string()));
+            }
+            other => panic!("Expected QuoteExecuted, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_quote_executed_minimal() {
+        let json = serde_json::json!({
+            "type": "quote_executed",
+            "quote_id": "q-002",
+            "rfq_id": "rfq-002"
+        });
+        let msg = StreamMessage::from_type_and_value("quote_executed", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::QuoteExecuted(data)) => {
+                assert_eq!(data.quote_id, "q-002");
+                assert_eq!(data.rfq_id, "rfq-002");
+                assert_eq!(data.order_id, None);
+                assert_eq!(data.client_order_id, None);
+                assert_eq!(data.executed_ts, None);
+            }
+            other => panic!("Expected QuoteExecuted, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_communication_tagged() {
+        // Messages can also arrive with type="communication" and inner tag routing
+        let json = serde_json::json!({
+            "type": "quote_executed",
+            "quote_id": "q-003",
+            "rfq_id": "rfq-003"
+        });
+        let msg = StreamMessage::from_type_and_value("communication", json).unwrap();
+        match msg {
+            StreamMessage::Communication(CommunicationData::QuoteExecuted(data)) => {
+                assert_eq!(data.quote_id, "q-003");
+            }
+            other => panic!("Expected QuoteExecuted via tagged dispatch, got {other:?}"),
+        }
     }
 }

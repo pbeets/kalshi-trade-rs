@@ -39,6 +39,7 @@
 //! - `CommunicationData::RfqDeleted` - RFQ cancelled
 //! - `CommunicationData::QuoteCreated` - Quote submitted
 //! - `CommunicationData::QuoteAccepted` - Quote accepted (trade executing)
+//! - `CommunicationData::QuoteExecuted` - Quote fully executed
 
 use std::time::Duration;
 
@@ -225,6 +226,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!(
                                 "   [QUOTE ACCEPTED] {} | side: {:?}",
                                 quote.quote_id, quote.accepted_side
+                            );
+                        }
+                        CommunicationData::QuoteExecuted(quote) => {
+                            println!(
+                                "   [QUOTE EXECUTED] {} for RFQ {}",
+                                quote.quote_id, quote.rfq_id
                             );
                         }
                     }
