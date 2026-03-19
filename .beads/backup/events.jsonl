@@ -27,3 +27,37 @@
 {"actor":"Pbeets","comment":null,"created_at":"2026-02-23T19:30:17Z","event_type":"created","id":27,"issue_id":"kalshi-trade-rs-c4i","new_value":"","old_value":""}
 {"actor":"Pbeets","comment":null,"created_at":"2026-02-23T20:08:08Z","event_type":"status_changed","id":28,"issue_id":"kalshi-trade-rs-w8n","new_value":"{\"status\":\"in_progress\"}","old_value":"{\"id\":\"kalshi-trade-rs-w8n\",\"title\":\"API Spec Audit: Systematic endpoint/model alignment\",\"description\":\"Epic to track all discrepancies between kalshi-trade-rs and the Kalshi API v3.8.0 OpenAPI spec (https://docs.kalshi.com/openapi.yaml). Each child issue covers a specific section or category of changes needed.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"feature\",\"owner\":\"440337+pbeets@users.noreply.github.com\",\"created_at\":\"2026-02-24T03:28:20Z\",\"created_by\":\"Pbeets\",\"updated_at\":\"2026-02-24T03:28:20Z\"}"}
 {"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:27Z","event_type":"created","id":29,"issue_id":"kalshi-trade-rs-eb3","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":30,"issue_id":"kalshi-trade-rs-450","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":31,"issue_id":"kalshi-trade-rs-25o","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":32,"issue_id":"kalshi-trade-rs-aoe","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":33,"issue_id":"kalshi-trade-rs-8k6","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":34,"issue_id":"kalshi-trade-rs-tn5","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":35,"issue_id":"kalshi-trade-rs-3m9","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":36,"issue_id":"kalshi-trade-rs-zjw","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:51Z","event_type":"created","id":37,"issue_id":"kalshi-trade-rs-6mp","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:52Z","event_type":"created","id":38,"issue_id":"kalshi-trade-rs-110","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:13:52Z","event_type":"created","id":39,"issue_id":"kalshi-trade-rs-436","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:05Z","event_type":"created","id":40,"issue_id":"kalshi-trade-rs-bzo","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:05Z","event_type":"created","id":41,"issue_id":"kalshi-trade-rs-r48","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:05Z","event_type":"created","id":42,"issue_id":"kalshi-trade-rs-818","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:05Z","event_type":"created","id":43,"issue_id":"kalshi-trade-rs-mw5","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:06Z","event_type":"created","id":44,"issue_id":"kalshi-trade-rs-4bw","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:06Z","event_type":"created","id":45,"issue_id":"kalshi-trade-rs-o3h","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:14:06Z","event_type":"created","id":46,"issue_id":"kalshi-trade-rs-0jl","new_value":"","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":47,"issue_id":"kalshi-trade-rs-bzo","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":48,"issue_id":"kalshi-trade-rs-450","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":49,"issue_id":"kalshi-trade-rs-436","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":50,"issue_id":"kalshi-trade-rs-aoe","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":51,"issue_id":"kalshi-trade-rs-8k6","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":52,"issue_id":"kalshi-trade-rs-tn5","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":53,"issue_id":"kalshi-trade-rs-3m9","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":54,"issue_id":"kalshi-trade-rs-6mp","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":55,"issue_id":"kalshi-trade-rs-110","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":56,"issue_id":"kalshi-trade-rs-mw5","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":57,"issue_id":"kalshi-trade-rs-4bw","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":58,"issue_id":"kalshi-trade-rs-o3h","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":59,"issue_id":"kalshi-trade-rs-zjw","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":60,"issue_id":"kalshi-trade-rs-0jl","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:38Z","event_type":"closed","id":61,"issue_id":"kalshi-trade-rs-25o","new_value":"Closed","old_value":""}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T21:22:53Z","event_type":"updated","id":62,"issue_id":"kalshi-trade-rs-eb3","new_value":"{\"notes\":\"All P1 and P2 AsyncAPI spec compliance issues have been addressed. Remaining P3 items (market_id support, send_initial_snapshot in update_subscription) are nice-to-haves.\"}","old_value":"{\"id\":\"kalshi-trade-rs-eb3\",\"title\":\"AsyncAPI spec compliance epic\",\"description\":\"Bring WebSocket implementation into full compliance with the official Kalshi AsyncAPI v2.0.0 spec. Covers missing message types, field mismatches, protocol gaps, and channel configuration.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"feature\",\"owner\":\"440337+pbeets@users.noreply.github.com\",\"created_at\":\"2026-03-19T04:13:28Z\",\"created_by\":\"Pbeets\",\"updated_at\":\"2026-03-19T04:13:28Z\"}"}
+{"actor":"Pbeets","comment":null,"created_at":"2026-03-18T22:19:25Z","event_type":"created","id":63,"issue_id":"kalshi-trade-rs-xlt","new_value":"","old_value":""}
