@@ -952,7 +952,7 @@ mod tests {
         let json = r#"{"type":"ticker","sid":10,"msg":{"price":50}}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Update { msg_type, sid, msg } => {
+            IncomingMessage::Update { msg_type, sid, msg, .. } => {
                 assert_eq!(msg_type, "ticker");
                 assert_eq!(sid, 10);
                 assert_eq!(msg["price"], 50);
