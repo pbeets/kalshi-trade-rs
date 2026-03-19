@@ -27,6 +27,8 @@ pub enum Channel {
     UserOrders,
     /// Multivariate collection lookup notifications
     Multivariate,
+    /// Event creation and lifecycle notifications (requires authentication)
+    EventLifecycle,
 }
 
 impl Channel {
@@ -39,6 +41,7 @@ impl Channel {
                 | Self::Communications
                 | Self::OrderGroupUpdates
                 | Self::UserOrders
+                | Self::EventLifecycle
         )
     }
 
@@ -66,6 +69,7 @@ impl Channel {
             Self::OrderGroupUpdates => "order_group_updates",
             Self::UserOrders => "user_orders",
             Self::Multivariate => "multivariate",
+            Self::EventLifecycle => "event_lifecycle",
         }
     }
 }

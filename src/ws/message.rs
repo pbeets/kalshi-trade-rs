@@ -308,10 +308,13 @@ pub struct TickerData {
     /// Open interest (fixed-point decimal string, spec-required).
     pub open_interest_fp: String,
     /// Dollar volume traded.
+    #[serde(default)]
     pub dollar_volume: i64,
     /// Dollar value of open interest.
+    #[serde(default)]
     pub dollar_open_interest: i64,
     /// Unix timestamp in seconds.
+    #[serde(default)]
     pub ts: i64,
     /// High-precision timestamp (ISO 8601, spec-required).
     pub time: String,
@@ -766,11 +769,11 @@ pub struct QuoteAcceptedData {
     /// No contracts offered.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_contracts_offered: Option<i64>,
-    /// RFQ target cost in centi-cents.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// RFQ target cost in centi-cents (legacy, not in v2 spec).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rfq_target_cost: Option<i64>,
-    /// RFQ target cost in dollars.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// RFQ target cost in dollars (spec-optional for quote_accepted).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rfq_target_cost_dollars: Option<String>,
     /// Side that was accepted.
     #[serde(skip_serializing_if = "Option::is_none")]

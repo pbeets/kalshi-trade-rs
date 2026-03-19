@@ -544,6 +544,7 @@ impl KalshiStreamSession {
                         "order_group_updates" => Some(Channel::OrderGroupUpdates),
                         "user_orders" => Some(Channel::UserOrders),
                         "multivariate" => Some(Channel::Multivariate),
+                        "event_lifecycle" => Some(Channel::EventLifecycle),
                         _ => {
                             warn!("Unknown channel: {}", s);
                             None

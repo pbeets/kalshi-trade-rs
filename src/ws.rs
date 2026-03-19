@@ -136,6 +136,7 @@
 //! - [`Channel::OrderGroupUpdates`] - Order group lifecycle events
 //! - [`Channel::UserOrders`] - Real-time order updates (created, updated, canceled, executed)
 //! - [`Channel::Multivariate`] - Multivariate event updates
+//! - [`Channel::EventLifecycle`] - Event creation notifications
 //!
 //! # Subscription Management
 //!
