@@ -70,7 +70,7 @@ async fn run_stream(config: &KalshiConfig) -> Result<String, Box<dyn std::error:
                     return Err(format!("Connection lost: {reason}").into());
                 }
                 StreamMessage::Fill(f) => {
-                    println!("[FILL] {} @ {}¢ x{}", f.market_ticker, f.yes_price, f.count);
+                    println!("[FILL] {} @ {} x{}", f.market_ticker, f.yes_price_dollars, f.count_fp);
                 }
                 _ => {}
             },

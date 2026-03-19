@@ -52,20 +52,24 @@ impl OrderbookState {
     /// Apply a delta update.
     ///
     /// Returns the new quantity at the price level after applying the delta.
+    /// Uses `price_cents()` and `delta_quantity()` helpers to support both
+    /// legacy cents fields and v2 dollar-string fields.
     pub fn apply_delta(&mut self, delta: &OrderbookDeltaData) -> i64 {
         let levels = match delta.side {
             Side::Yes => &mut self.yes_levels,
             Side::No => &mut self.no_levels,
         };
 
-        let current = levels.get(&delta.price).copied().unwrap_or(0);
-        let new_qty = current + delta.delta;
+        let price = delta.price_cents();
+        let delta_qty = delta.delta_quantity();
+        let current = levels.get(&price).copied().unwrap_or(0);
+        let new_qty = current + delta_qty;
 
         if new_qty <= 0 {
-            levels.remove(&delta.price);
+            levels.remove(&price);
             0
         } else {
-            levels.insert(delta.price, new_qty);
+            levels.insert(price, new_qty);
             new_qty
         }
     }
@@ -235,12 +239,12 @@ mod tests {
 
         let delta = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: 100,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(100),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -258,12 +262,12 @@ mod tests {
         // Add initial
         let delta1 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: 100,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(100),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -273,12 +277,12 @@ mod tests {
         // Increase
         let delta2 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: 50,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(50),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -294,12 +298,12 @@ mod tests {
         // Add initial
         let delta1 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: 100,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(100),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -309,12 +313,12 @@ mod tests {
         // Decrease
         let delta2 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: -30,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(-30),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -330,12 +334,12 @@ mod tests {
         // Add initial
         let delta1 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: 100,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(100),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -345,12 +349,12 @@ mod tests {
         // Remove (delta brings to zero)
         let delta2 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: -100,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(-100),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -367,12 +371,12 @@ mod tests {
         // Add initial
         let delta1 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: 50,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(50),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -382,12 +386,12 @@ mod tests {
         // Remove more than exists (should remove level)
         let delta2 = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
-            price: 45,
-            delta: -100,
+            market_id: String::new(),
+            price: Some(45),
+            delta: Some(-100),
             side: Side::Yes,
-            price_dollars: None,
-            delta_fp: None,
+            price_dollars: String::new(),
+            delta_fp: String::new(),
             client_order_id: None,
             subaccount: None,
             ts: None,

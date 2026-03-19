@@ -27,7 +27,7 @@
 //! while let Ok(update) = handle.update_receiver.recv().await {
 //!     match &update.msg {
 //!         StreamMessage::Ticker(data) => {
-//!             println!("{}: {}¢", data.market_ticker, data.price);
+//!             println!("{}: ${}", data.market_ticker, data.price_dollars);
 //!         }
 //!         StreamMessage::ConnectionLost { reason, .. } => {
 //!             eprintln!("Connection lost: {}", reason);
@@ -97,7 +97,7 @@
 //!         while let Ok(update) = handle.update_receiver.recv().await {
 //!             match &update.msg {
 //!                 StreamMessage::Ticker(data) => {
-//!                     println!("{}: {}¢", data.market_ticker, data.price);
+//!                     println!("{}: ${}", data.market_ticker, data.price_dollars);
 //!                 }
 //!                 StreamMessage::ConnectionLost { reason, .. } => {
 //!                     eprintln!("Connection lost: {}", reason);

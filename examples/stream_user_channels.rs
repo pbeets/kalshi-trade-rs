@@ -97,20 +97,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 StreamMessage::Fill(fill) => {
                     println!(
-                        "[FILL] {} | order={} | {} {} @ {}c | {} contracts | taker={}",
+                        "[FILL] {} | order={} | {} {} @ {} | {} contracts | taker={}",
                         fill.market_ticker,
                         fill.order_id,
                         format!("{:?}", fill.action).to_uppercase(),
                         format!("{:?}", fill.side).to_uppercase(),
-                        fill.yes_price,
-                        fill.count,
+                        fill.yes_price_dollars,
+                        fill.count_fp,
                         fill.is_taker
                     );
                 }
                 StreamMessage::MarketPosition(pos) => {
                     println!(
-                        "[POSITION] {} | position={:?} | cost={:?} | pnl={:?}",
-                        pos.market_ticker.as_deref().unwrap_or("?"),
+                        "[POSITION] {} | position={:?} | cost={} | pnl={}",
+                        pos.market_ticker,
                         pos.position,
                         pos.position_cost,
                         pos.realized_pnl
@@ -130,7 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         "[USER ORDER] {} | event={:?} | ticker={} | status={:?}",
                         order.order_id,
                         order.event_type,
-                        order.ticker.as_deref().unwrap_or("?"),
+                        order.ticker,
                         order.status
                     );
                 }

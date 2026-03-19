@@ -96,26 +96,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 StreamMessage::UserOrder(order) => {
                     println!(
-                        "[ORDER] {} | id={} | status={} | side={} | price={} | initial={} remaining={} filled={}",
-                        order.ticker.as_deref().unwrap_or("?"),
+                        "[ORDER] {} | id={} | status={:?} | side={:?} | price={} | initial={} remaining={} filled={}",
+                        order.ticker,
                         order.order_id,
-                        order
-                            .status
-                            .as_ref()
-                            .map(|s| format!("{:?}", s))
-                            .unwrap_or_else(|| "?".into()),
-                        order
-                            .side
-                            .as_ref()
-                            .map(|s| format!("{:?}", s))
-                            .unwrap_or_else(|| "?".into()),
-                        order.yes_price_dollars.as_deref().unwrap_or("?"),
-                        order.initial_count_fp.as_deref().unwrap_or("?"),
-                        order.remaining_count_fp.as_deref().unwrap_or("?"),
-                        order.fill_count_fp.as_deref().unwrap_or("?"),
+                        order.status,
+                        order.side,
+                        order.yes_price_dollars,
+                        order.initial_count_fp,
+                        order.remaining_count_fp,
+                        order.fill_count_fp,
                     );
-                    if let Some(client_id) = &order.client_order_id {
-                        println!("         client_order_id={}", client_id);
+                    if !order.client_order_id.is_empty() {
+                        println!("         client_order_id={}", order.client_order_id);
                     }
                 }
                 StreamMessage::Unsubscribed => {
