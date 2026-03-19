@@ -240,44 +240,42 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
     let raw: RawMessage = serde_json::from_str(text)?;
 
     // Check for spec-format error: {"type": "error", "msg": {"code": int, "msg": string, ...}}
-    if raw.msg_type.as_deref() == Some("error") {
-        if let Some(ref msg_val) = raw.msg {
-            if let Some(msg_obj) = msg_val.as_object() {
-                if msg_obj.contains_key("code") {
-                    let code = msg_obj
-                        .get("code")
-                        .and_then(|v| v.as_u64())
-                        .map(|n| n.to_string())
-                        .or_else(|| {
-                            msg_obj
-                                .get("code")
-                                .and_then(|v| v.as_str())
-                                .map(String::from)
-                        })
-                        .unwrap_or_default();
-                    let message = msg_obj
-                        .get("msg")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default()
-                        .to_string();
-                    let market_ticker = msg_obj
-                        .get("market_ticker")
-                        .and_then(|v| v.as_str())
-                        .map(String::from);
-                    let market_id = msg_obj
-                        .get("market_id")
-                        .and_then(|v| v.as_str())
-                        .map(String::from);
-                    return Ok(IncomingMessage::Error {
-                        id: raw.id,
-                        code,
-                        message,
-                        market_ticker,
-                        market_id,
-                    });
-                }
-            }
-        }
+    if raw.msg_type.as_deref() == Some("error")
+        && let Some(ref msg_val) = raw.msg
+        && let Some(msg_obj) = msg_val.as_object()
+        && msg_obj.contains_key("code")
+    {
+        let code = msg_obj
+            .get("code")
+            .and_then(|v| v.as_u64())
+            .map(|n| n.to_string())
+            .or_else(|| {
+                msg_obj
+                    .get("code")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+            })
+            .unwrap_or_default();
+        let message = msg_obj
+            .get("msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let market_ticker = msg_obj
+            .get("market_ticker")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        let market_id = msg_obj
+            .get("market_id")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        return Ok(IncomingMessage::Error {
+            id: raw.id,
+            code,
+            message,
+            market_ticker,
+            market_id,
+        });
     }
 
     // Check for error response with nested error object
