@@ -604,7 +604,9 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Update { msg_type, sid, msg, .. } => {
+            IncomingMessage::Update {
+                msg_type, sid, msg, ..
+            } => {
                 assert_eq!(msg_type, "orderbook_delta");
                 assert_eq!(sid, 42);
                 assert_eq!(msg["yes"], serde_json::json!([[50, 100]]));
@@ -767,7 +769,9 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Update { msg_type, sid, msg, .. } => {
+            IncomingMessage::Update {
+                msg_type, sid, msg, ..
+            } => {
                 assert_eq!(msg_type, "ticker");
                 assert_eq!(sid, 99);
                 assert_eq!(msg["price"], 65);
@@ -783,7 +787,9 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Update { msg_type, sid, msg, .. } => {
+            IncomingMessage::Update {
+                msg_type, sid, msg, ..
+            } => {
                 assert_eq!(msg_type, "trade");
                 assert_eq!(sid, 55);
                 assert_eq!(msg["count"], 5);
@@ -952,7 +958,9 @@ mod tests {
         let json = r#"{"type":"ticker","sid":10,"msg":{"price":50}}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Update { msg_type, sid, msg, .. } => {
+            IncomingMessage::Update {
+                msg_type, sid, msg, ..
+            } => {
                 assert_eq!(msg_type, "ticker");
                 assert_eq!(sid, 10);
                 assert_eq!(msg["price"], 50);

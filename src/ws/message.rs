@@ -751,6 +751,9 @@ pub struct QuoteAcceptedData {
     pub yes_bid_dollars: String,
     /// No bid in dollars (spec-required).
     pub no_bid_dollars: String,
+    /// Acceptance timestamp (ISO 8601), if provided by the API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accepted_ts: Option<String>,
     /// Anonymized RFQ creator ID (not in spec for quote_accepted).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rfq_creator_id: Option<String>,

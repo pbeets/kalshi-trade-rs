@@ -731,7 +731,7 @@ impl KalshiStreamHandle {
     ///
     /// # Returns
     ///
-    /// A list of [`ServerSubscription`] entries, each containing the channel name
+    /// A list of [`super::command::ServerSubscription`] entries, each containing the channel name
     /// and server-assigned subscription ID.
     pub async fn list_subscriptions_remote(
         &self,

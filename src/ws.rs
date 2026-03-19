@@ -123,11 +123,12 @@
 //!
 //! # Available Channels
 //!
-//! Market data channels (require market tickers):
+//! Market data channels (no authentication required):
+//! - [`Channel::OrderbookDelta`] - Orderbook changes (requires at least one market ticker)
 //! - [`Channel::Ticker`] - Price and volume updates
 //! - [`Channel::Trade`] - Executed trades
-//! - [`Channel::OrderbookDelta`] - Orderbook changes
 //! - [`Channel::MarketLifecycle`] - Market status changes
+//! - [`Channel::Multivariate`] - Multivariate collection lookup notifications
 //!
 //! User channels (require authentication, no market tickers needed):
 //! - [`Channel::Fill`] - Your executed fills
@@ -135,8 +136,7 @@
 //! - [`Channel::Communications`] - RFQ/quote updates
 //! - [`Channel::OrderGroupUpdates`] - Order group lifecycle events
 //! - [`Channel::UserOrders`] - Real-time order updates (created, updated, canceled, executed)
-//! - [`Channel::Multivariate`] - Multivariate event updates
-//! - [`Channel::EventLifecycle`] - Event creation notifications
+//! - [`Channel::EventLifecycle`] - Event creation and lifecycle notifications
 //!
 //! # Subscription Management
 //!

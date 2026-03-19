@@ -10,7 +10,7 @@ An unofficial Rust client library for the [Kalshi](https://kalshi.com) predictio
 ## Key Features
 
 - **REST Client**: Full coverage of 86 Kalshi API endpoints including portfolio management, order operations, market data, exchange status, historical data, and RFQ (Request for Quote) communications
-- **WebSocket Streaming**: 10 real-time channels — ticker, trade, orderbook, fill, order updates, position, RFQ/quote, order groups, market lifecycle, and multivariate
+- **WebSocket Streaming**: 11 real-time channels — ticker, trade, orderbook, fill, order updates, position, RFQ/quote, order groups, market lifecycle, multivariate, and event lifecycle
 - **Batch Operations**: Rate-limited `BatchManager` with automatic chunking, retry, and per-order subaccount support
 - **Orderbook Aggregation**: Live orderbook state from WebSocket delta streams with gap detection
 - **Subaccount Support**: Full subaccount filtering on orders, fills, positions, settlements, and balance queries
@@ -77,10 +77,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match handle.update_receiver.recv().await {
             Ok(update) => match &update.msg {
                 StreamMessage::Ticker(t) => {
-                    println!("[TICKER] {} @ {}¢", t.market_ticker, t.price);
+                    println!("[TICKER] {} @ ${}", t.market_ticker, t.price_dollars);
                 }
                 StreamMessage::Trade(t) => {
-                    println!("[TRADE] {} {} @ {}¢", t.market_ticker, t.count, t.yes_price);
+                    println!("[TRADE] {} {} @ ${}", t.market_ticker, t.count_fp, t.yes_price_dollars);
                 }
                 StreamMessage::ConnectionLost { reason, .. } => {
                     println!("Connection lost: {}", reason);
