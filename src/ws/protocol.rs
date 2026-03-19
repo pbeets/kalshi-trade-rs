@@ -195,6 +195,7 @@ pub enum IncomingMessage {
     Update {
         msg_type: String,
         sid: i64,
+        seq: Option<i64>,
         msg: JsonValue,
     },
     /// Error response
@@ -214,8 +215,7 @@ struct RawMessage {
     #[serde(rename = "type")]
     msg_type: Option<String>,
     sid: Option<i64>,
-    #[serde(rename = "seq")]
-    _seq: Option<i64>,
+    seq: Option<i64>,
     msg: Option<JsonValue>,
     // Error fields
     code: Option<String>,
@@ -302,8 +302,15 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
         });
     }
 
-    // Check if it's a response (has id)
-    if let Some(id) = raw.id {
+    // Check if type indicates a known response type (id is optional per spec)
+    let is_response_type = matches!(
+        raw.msg_type.as_deref(),
+        Some("subscribed") | Some("unsubscribed") | Some("ok") | Some("list_subscriptions")
+    );
+
+    // Route as Response if id is present OR type is a known response type
+    if is_response_type || raw.id.is_some() {
+        let id = raw.id.unwrap_or(0);
         // If it's a response but has sid at top level (like unsubscribed),
         // ensure sid is preserved in msg if msg is otherwise null
         let msg = raw.msg.unwrap_or_else(|| {
@@ -326,6 +333,7 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
         return Ok(IncomingMessage::Update {
             msg_type: raw.msg_type.unwrap_or_default(),
             sid,
+            seq: raw.seq,
             msg: raw.msg.unwrap_or(JsonValue::Null),
         });
     }
@@ -596,7 +604,7 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Update { msg_type, sid, msg } => {
+            IncomingMessage::Update { msg_type, sid, msg, .. } => {
                 assert_eq!(msg_type, "orderbook_delta");
                 assert_eq!(sid, 42);
                 assert_eq!(msg["yes"], serde_json::json!([[50, 100]]));
@@ -759,7 +767,7 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Update { msg_type, sid, msg } => {
+            IncomingMessage::Update { msg_type, sid, msg, .. } => {
                 assert_eq!(msg_type, "ticker");
                 assert_eq!(sid, 99);
                 assert_eq!(msg["price"], 65);
@@ -775,7 +783,7 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Update { msg_type, sid, msg } => {
+            IncomingMessage::Update { msg_type, sid, msg, .. } => {
                 assert_eq!(msg_type, "trade");
                 assert_eq!(sid, 55);
                 assert_eq!(msg["count"], 5);
@@ -882,5 +890,74 @@ mod tests {
         assert_eq!(parsed["id"], 10);
         assert_eq!(parsed["params"]["send_initial_snapshot"], true);
         assert_eq!(parsed["params"]["action"], "add_markets");
+    }
+
+    #[test]
+    fn test_parse_subscribed_without_id() {
+        let json = r#"{"type":"subscribed","sid":5}"#;
+        let result = parse_incoming(json).unwrap();
+        match result {
+            IncomingMessage::Response { id, msg_type, msg } => {
+                assert_eq!(id, 0);
+                assert_eq!(msg_type, "subscribed");
+                assert_eq!(msg["sid"], 5);
+            }
+            _ => panic!("Expected Response variant, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_parse_unsubscribed_without_id() {
+        let json = r#"{"type":"unsubscribed","sid":3,"seq":100}"#;
+        let result = parse_incoming(json).unwrap();
+        match result {
+            IncomingMessage::Response { id, msg_type, msg } => {
+                assert_eq!(id, 0);
+                assert_eq!(msg_type, "unsubscribed");
+                assert_eq!(msg["sid"], 3);
+            }
+            _ => panic!("Expected Response variant, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_parse_ok_response_without_id() {
+        let json = r#"{"type":"ok"}"#;
+        let result = parse_incoming(json).unwrap();
+        match result {
+            IncomingMessage::Response { id, msg_type, .. } => {
+                assert_eq!(id, 0);
+                assert_eq!(msg_type, "ok");
+            }
+            _ => panic!("Expected Response variant, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_parse_list_subscriptions_without_id() {
+        let json = r#"{"type":"list_subscriptions","msg":{"subs":[]}}"#;
+        let result = parse_incoming(json).unwrap();
+        match result {
+            IncomingMessage::Response { id, msg_type, msg } => {
+                assert_eq!(id, 0);
+                assert_eq!(msg_type, "list_subscriptions");
+                assert!(msg["subs"].is_array());
+            }
+            _ => panic!("Expected Response variant, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_parse_update_with_sid_not_confused_as_response() {
+        let json = r#"{"type":"ticker","sid":10,"msg":{"price":50}}"#;
+        let result = parse_incoming(json).unwrap();
+        match result {
+            IncomingMessage::Update { msg_type, sid, msg } => {
+                assert_eq!(msg_type, "ticker");
+                assert_eq!(sid, 10);
+                assert_eq!(msg["price"], 50);
+            }
+            _ => panic!("Expected Update variant, got {:?}", result),
+        }
     }
 }

@@ -894,7 +894,7 @@ impl KalshiStreamSession {
                 warn!("Unexpected response id {} type {}", id, msg_type);
             }
 
-            Ok(IncomingMessage::Update { msg_type, sid, msg }) => {
+            Ok(IncomingMessage::Update { msg_type, sid, msg, .. }) => {
                 // Normalize API aliases to canonical channel names.
                 // The Kalshi API sends "user_order" (singular) for order updates,
                 // but the channel is subscribed as "user_orders" (plural).
