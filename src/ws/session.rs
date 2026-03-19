@@ -865,8 +865,7 @@ impl KalshiStreamSession {
                         .map(|arr| {
                             arr.iter()
                                 .filter_map(|entry| {
-                                    let channel =
-                                        entry.get("channel")?.as_str()?.to_string();
+                                    let channel = entry.get("channel")?.as_str()?.to_string();
                                     let sid = entry.get("sid")?.as_i64()?;
                                     Some(ServerSubscription { channel, sid })
                                 })
@@ -934,7 +933,9 @@ impl KalshiStreamSession {
                 }
             }
 
-            Ok(IncomingMessage::Error { id, code, message, .. }) => {
+            Ok(IncomingMessage::Error {
+                id, code, message, ..
+            }) => {
                 error!("Error response: code={}, message={}", code, message);
 
                 // Check if this is an error for a pending multi-channel subscription

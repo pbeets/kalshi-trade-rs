@@ -130,7 +130,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 StreamMessage::Trade(trade) => {
                     println!(
                         "[TRADE]  {} | {} contracts @ {} | taker: {:?}",
-                        trade.market_ticker, trade.count_fp, trade.yes_price_dollars, trade.taker_side
+                        trade.market_ticker,
+                        trade.count_fp,
+                        trade.yes_price_dollars,
+                        trade.taker_side
                     );
                 }
                 _ => {

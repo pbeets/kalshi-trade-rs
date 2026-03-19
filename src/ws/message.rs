@@ -483,7 +483,10 @@ pub struct MarketAdditionalMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub can_close_early: Option<bool>,
     /// Expiration timestamp.
-    #[serde(rename = "expected_expiration_ts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "expected_expiration_ts",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub expiration_ts: Option<i64>,
     /// Strike type.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -817,9 +820,8 @@ impl OrderbookDeltaData {
     /// Get delta as integer quantity, preferring the legacy `delta` field and
     /// falling back to parsing `delta_fp` (e.g. "10.00" → 10).
     pub fn delta_quantity(&self) -> i64 {
-        self.delta.unwrap_or_else(|| {
-            self.delta_fp.parse::<f64>().unwrap_or(0.0).round() as i64
-        })
+        self.delta
+            .unwrap_or_else(|| self.delta_fp.parse::<f64>().unwrap_or(0.0).round() as i64)
     }
 }
 

@@ -110,10 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 StreamMessage::MarketPosition(pos) => {
                     println!(
                         "[POSITION] {} | position={:?} | cost={} | pnl={}",
-                        pos.market_ticker,
-                        pos.position,
-                        pos.position_cost,
-                        pos.realized_pnl
+                        pos.market_ticker, pos.position, pos.position_cost, pos.realized_pnl
                     );
                 }
                 StreamMessage::Communication(comm) => {
@@ -128,10 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 StreamMessage::UserOrder(order) => {
                     println!(
                         "[USER ORDER] {} | event={:?} | ticker={} | status={:?}",
-                        order.order_id,
-                        order.event_type,
-                        order.ticker,
-                        order.status
+                        order.order_id, order.event_type, order.ticker, order.status
                     );
                 }
                 StreamMessage::Unsubscribed => {
