@@ -442,6 +442,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         agg.handle_snapshot(&snapshot);
@@ -463,6 +465,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot);
 
@@ -476,6 +480,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         agg.handle_delta(&delta, Some(1));
 
@@ -494,6 +500,8 @@ mod tests {
             yes_dollars: None,
             no: None,
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot);
 
@@ -515,6 +523,8 @@ mod tests {
             yes_dollars: None,
             no: None,
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot1);
 
@@ -525,6 +535,8 @@ mod tests {
             yes_dollars: None,
             no: None,
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot2);
 
@@ -548,6 +560,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // YES ask at 47
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot);
 
@@ -585,6 +599,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot);
 
@@ -609,6 +625,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot);
 
@@ -623,6 +641,8 @@ mod tests {
                 price_dollars: None,
                 delta_fp: None,
                 client_order_id: None,
+                subaccount: None,
+                ts: None,
             },
             Some(1),
         );
@@ -636,6 +656,8 @@ mod tests {
                 price_dollars: None,
                 delta_fp: None,
                 client_order_id: None,
+                subaccount: None,
+                ts: None,
             },
             Some(2),
         );
@@ -665,6 +687,8 @@ mod tests {
                 price_dollars: None,
                 delta_fp: None,
                 client_order_id: None,
+                subaccount: None,
+                ts: None,
             },
             Some(1),
         );
@@ -686,6 +710,8 @@ mod tests {
             yes_dollars: None,
             no: None,
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
         agg1.handle_snapshot(&snapshot);
 

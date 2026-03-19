@@ -687,6 +687,35 @@ impl KalshiStreamHandle {
         let _ = self.cmd_sender.send(StreamCommand::Close).await;
     }
 
+    /// List all active subscriptions on the server.
+    ///
+    /// Sends a `list_subscriptions` command to the Kalshi server and returns
+    /// the server's view of active subscriptions (channel name and SID pairs).
+    ///
+    /// This is useful for debugging or verifying that the server's subscription
+    /// state matches the client's local tracking.
+    ///
+    /// # Returns
+    ///
+    /// A list of [`ServerSubscription`] entries, each containing the channel name
+    /// and server-assigned subscription ID.
+    pub async fn list_subscriptions_remote(
+        &self,
+    ) -> Result<Vec<super::command::ServerSubscription>> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.cmd_sender
+            .send(StreamCommand::ListSubscriptions { response: tx })
+            .await
+            .map_err(|_| {
+                crate::error::Error::Disconnected(crate::error::DisconnectReason::SessionDied)
+            })?;
+        rx.await
+            .map_err(|_| {
+                crate::error::Error::Disconnected(crate::error::DisconnectReason::SessionDied)
+            })?
+            .map_err(crate::error::Error::Api)
+    }
+
     // --- Internal methods ---
 
     /// Subscribe to the communications channel with sharding for high-throughput RFQ/quote traffic.

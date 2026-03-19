@@ -142,6 +142,15 @@ pub struct UserOrderData {
     /// Subaccount number (0 for primary, 1-32 for subaccounts).
     #[serde(default)]
     pub subaccount_number: Option<i32>,
+    /// User identifier.
+    #[serde(default)]
+    pub user_id: Option<String>,
+    /// Whether the order is on the yes side.
+    #[serde(default)]
+    pub is_yes: Option<bool>,
+    /// Self-trade prevention type.
+    #[serde(default)]
+    pub self_trade_prevention_type: Option<String>,
 }
 
 /// Market lifecycle event types.
@@ -191,6 +200,8 @@ pub enum StreamMessage {
     MarketPosition(MarketPositionData),
     /// Market lifecycle event.
     MarketLifecycle(MarketLifecycleData),
+    /// Event lifecycle event.
+    EventLifecycle(EventLifecycleData),
     /// RFQ or quote communication.
     Communication(CommunicationData),
     /// Order group update notification.
@@ -257,6 +268,12 @@ pub struct OrderbookSnapshotData {
     /// No side price levels in dollars: [price_dollars, contracts].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_dollars: Option<Vec<PriceLevelDollars>>,
+    /// Yes side price levels in dollars (spec format): [[price_dollars, count_fp], ...]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yes_dollars_fp: Option<Vec<(String, String)>>,
+    /// No side price levels in dollars (spec format): [[price_dollars, count_fp], ...]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_dollars_fp: Option<Vec<(String, String)>>,
 }
 
 /// Orderbook delta data representing an incremental update.
@@ -282,6 +299,12 @@ pub struct OrderbookDeltaData {
     /// Client order ID if the subscriber triggered this change.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_order_id: Option<String>,
+    /// Subaccount number if the subscriber triggered this change.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
+    /// Timestamp for when the orderbook change was recorded (RFC3339).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ts: Option<String>,
 }
 
 /// Ticker data containing market price and volume information.
@@ -349,6 +372,9 @@ pub struct TickerData {
 /// Trade data for public trade notifications.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeData {
+    /// Unique identifier for the trade.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trade_id: Option<String>,
     /// Market ticker identifier.
     pub market_ticker: String,
     /// Yes side price in cents (1-99).
@@ -413,6 +439,9 @@ pub struct FillData {
     /// Exchange fee cost as a fixed-point dollar string.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_cost: Option<String>,
+    /// Subaccount number for the fill.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 /// Market position data for user position updates.
@@ -445,6 +474,24 @@ pub struct MarketPositionData {
     /// Volume (fixed-point decimal string).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub volume_fp: Option<String>,
+    /// Position cost in fixed-point dollars.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position_cost_dollars: Option<String>,
+    /// Realized PnL in fixed-point dollars.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub realized_pnl_dollars: Option<String>,
+    /// Fees paid in fixed-point dollars.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fees_paid_dollars: Option<String>,
+    /// Position fee cost in centi-cents.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position_fee_cost: Option<i64>,
+    /// Position fee cost in fixed-point dollars.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position_fee_cost_dollars: Option<String>,
+    /// Subaccount number for the position.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<i32>,
 }
 
 /// Additional metadata included with market creation events.
@@ -457,19 +504,19 @@ pub struct MarketAdditionalMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// Subtitle for the yes side.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "yes_sub_title", skip_serializing_if = "Option::is_none")]
     pub yes_subtitle: Option<String>,
     /// Subtitle for the no side.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "no_sub_title", skip_serializing_if = "Option::is_none")]
     pub no_subtitle: Option<String>,
     /// Market rules.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "rules_primary", skip_serializing_if = "Option::is_none")]
     pub rules: Option<String>,
     /// Whether early close is allowed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub can_close_early: Option<bool>,
     /// Expiration timestamp.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "expected_expiration_ts", skip_serializing_if = "Option::is_none")]
     pub expiration_ts: Option<i64>,
     /// Strike type.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -477,6 +524,56 @@ pub struct MarketAdditionalMetadata {
     /// Strike value.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub strike_value: Option<String>,
+    /// Secondary rules text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rules_secondary: Option<String>,
+    /// Event ticker.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_ticker: Option<String>,
+    /// Floor strike value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub floor_strike: Option<f64>,
+    /// Cap strike value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cap_strike: Option<f64>,
+    /// Custom strike object.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_strike: Option<serde_json::Value>,
+}
+
+/// Collateral return type for event lifecycle events.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CollateralReturnType {
+    /// Mechanical net collateral return.
+    #[serde(rename = "MECNET")]
+    Mecnet,
+    /// Direct net collateral return.
+    #[serde(rename = "DIRECNET")]
+    Direcnet,
+    /// No collateral return type specified.
+    #[serde(rename = "")]
+    None,
+}
+
+/// Event lifecycle data for event state change notifications.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventLifecycleData {
+    /// Event ticker identifier.
+    pub event_ticker: String,
+    /// Event title.
+    pub title: String,
+    /// Event subtitle.
+    pub subtitle: String,
+    /// Collateral return type.
+    pub collateral_return_type: CollateralReturnType,
+    /// Series ticker this event belongs to.
+    pub series_ticker: String,
+    /// Strike date as a Unix timestamp.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strike_date: Option<i64>,
+    /// Strike period descriptor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strike_period: Option<String>,
 }
 
 /// Market lifecycle data for market state change events.
@@ -542,6 +639,9 @@ pub struct MveLeg {
     /// Side of the leg.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub side: Option<Side>,
+    /// Yes settlement value in dollars for the selected leg.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yes_settlement_value_dollars: Option<String>,
 }
 
 /// Multivariate lookup notification data.
@@ -588,6 +688,9 @@ pub struct RfqData {
     /// Multivariate selected legs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mve_selected_legs: Option<Vec<MveLeg>>,
+    /// Number of contracts (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contracts_fp: Option<String>,
 }
 
 /// RFQ deleted event data.
@@ -610,6 +713,9 @@ pub struct RfqDeletedData {
     /// Target cost in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_cost_dollars: Option<String>,
+    /// Number of contracts (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contracts_fp: Option<String>,
 }
 
 /// Quote data for quote created events.
@@ -650,6 +756,12 @@ pub struct QuoteData {
     /// RFQ target cost in dollars.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rfq_target_cost_dollars: Option<String>,
+    /// Yes contracts offered (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yes_contracts_offered_fp: Option<String>,
+    /// No contracts offered (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_contracts_offered_fp: Option<String>,
 }
 
 /// Quote accepted event data.
@@ -691,6 +803,15 @@ pub struct QuoteAcceptedData {
     /// Side that was accepted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accepted_side: Option<Side>,
+    /// Contracts accepted (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contracts_accepted_fp: Option<String>,
+    /// Yes contracts offered (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yes_contracts_offered_fp: Option<String>,
+    /// No contracts offered (fixed-point decimal string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_contracts_offered_fp: Option<String>,
 }
 
 /// Quote executed event data.
@@ -709,6 +830,15 @@ pub struct QuoteExecutedData {
     /// Execution timestamp (ISO 8601).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub executed_ts: Option<String>,
+    /// Anonymized quote creator ID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote_creator_id: Option<String>,
+    /// Anonymized RFQ creator ID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rfq_creator_id: Option<String>,
+    /// Market ticker.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market_ticker: Option<String>,
 }
 
 impl StreamMessage {
@@ -736,6 +866,8 @@ impl StreamMessage {
                 serde_json::from_value::<MarketLifecycleData>(value)
                     .map(StreamMessage::MarketLifecycle)
             }
+            "event_lifecycle" => serde_json::from_value::<EventLifecycleData>(value)
+                .map(StreamMessage::EventLifecycle),
             "communication" | "communications" => {
                 serde_json::from_value::<CommunicationData>(value).map(StreamMessage::Communication)
             }
@@ -965,6 +1097,53 @@ mod tests {
                 assert_eq!(data.executed_ts, None);
             }
             other => panic!("Expected QuoteExecuted, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_event_lifecycle() {
+        let json = serde_json::json!({
+            "event_ticker": "KXBTC-25MAR01",
+            "title": "Bitcoin above 100k?",
+            "subtitle": "March 2025",
+            "collateral_return_type": "MECNET",
+            "series_ticker": "KXBTC",
+            "strike_date": 1740787200,
+            "strike_period": "2025-03-01"
+        });
+        let msg = StreamMessage::from_type_and_value("event_lifecycle", json).unwrap();
+        match msg {
+            StreamMessage::EventLifecycle(data) => {
+                assert_eq!(data.event_ticker, "KXBTC-25MAR01");
+                assert_eq!(data.title, "Bitcoin above 100k?");
+                assert_eq!(data.subtitle, "March 2025");
+                assert_eq!(data.collateral_return_type, CollateralReturnType::Mecnet);
+                assert_eq!(data.series_ticker, "KXBTC");
+                assert_eq!(data.strike_date, Some(1740787200));
+                assert_eq!(data.strike_period, Some("2025-03-01".to_string()));
+            }
+            other => panic!("Expected EventLifecycle, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_from_type_and_value_event_lifecycle_minimal() {
+        let json = serde_json::json!({
+            "event_ticker": "KXETH-25MAR01",
+            "title": "Ethereum above 5k?",
+            "subtitle": "March 2025",
+            "collateral_return_type": "",
+            "series_ticker": "KXETH"
+        });
+        let msg = StreamMessage::from_type_and_value("event_lifecycle", json).unwrap();
+        match msg {
+            StreamMessage::EventLifecycle(data) => {
+                assert_eq!(data.event_ticker, "KXETH-25MAR01");
+                assert_eq!(data.collateral_return_type, CollateralReturnType::None);
+                assert_eq!(data.strike_date, None);
+                assert_eq!(data.strike_period, None);
+            }
+            other => panic!("Expected EventLifecycle, got {other:?}"),
         }
     }
 

@@ -80,6 +80,21 @@ pub fn build_subscribe(
     .to_string()
 }
 
+/// Build a list_subscriptions command message.
+///
+/// # Arguments
+/// * `id` - Message ID for correlation
+///
+/// # Returns
+/// JSON string ready to send over WebSocket
+pub fn build_list_subscriptions(id: u64) -> String {
+    serde_json::json!({
+        "id": id,
+        "cmd": "list_subscriptions"
+    })
+    .to_string()
+}
+
 /// Build an unsubscribe command message.
 ///
 /// # Arguments
@@ -152,6 +167,8 @@ pub enum IncomingMessage {
         id: Option<u64>,
         code: String,
         message: String,
+        market_ticker: Option<String>,
+        market_id: Option<String>,
     },
 }
 
@@ -187,12 +204,55 @@ struct ErrorPayload {
 pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> {
     let raw: RawMessage = serde_json::from_str(text)?;
 
-    // Check for error response
+    // Check for spec-format error: {"type": "error", "msg": {"code": int, "msg": string, ...}}
+    if raw.msg_type.as_deref() == Some("error") {
+        if let Some(ref msg_val) = raw.msg {
+            if let Some(msg_obj) = msg_val.as_object() {
+                if msg_obj.contains_key("code") {
+                    let code = msg_obj
+                        .get("code")
+                        .and_then(|v| v.as_u64())
+                        .map(|n| n.to_string())
+                        .or_else(|| {
+                            msg_obj
+                                .get("code")
+                                .and_then(|v| v.as_str())
+                                .map(String::from)
+                        })
+                        .unwrap_or_default();
+                    let message = msg_obj
+                        .get("msg")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+                    let market_ticker = msg_obj
+                        .get("market_ticker")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    let market_id = msg_obj
+                        .get("market_id")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    return Ok(IncomingMessage::Error {
+                        id: raw.id,
+                        code,
+                        message,
+                        market_ticker,
+                        market_id,
+                    });
+                }
+            }
+        }
+    }
+
+    // Check for error response with nested error object
     if let Some(error) = raw.error {
         return Ok(IncomingMessage::Error {
             id: raw.id,
             code: error.code.unwrap_or_default(),
             message: error.message.unwrap_or_default(),
+            market_ticker: None,
+            market_id: None,
         });
     }
 
@@ -204,6 +264,8 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
             id: raw.id,
             code: raw.code.unwrap_or_default(),
             message: raw.message.unwrap_or_default(),
+            market_ticker: None,
+            market_id: None,
         });
     }
 
@@ -456,10 +518,18 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Error { id, code, message } => {
+            IncomingMessage::Error {
+                id,
+                code,
+                message,
+                market_ticker,
+                market_id,
+            } => {
                 assert_eq!(id, Some(1));
                 assert_eq!(code, "invalid_params");
                 assert_eq!(message, "Invalid market ticker");
+                assert_eq!(market_ticker, None);
+                assert_eq!(market_id, None);
             }
             _ => panic!("Expected Error variant"),
         }
@@ -471,10 +541,18 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Error { id, code, message } => {
+            IncomingMessage::Error {
+                id,
+                code,
+                message,
+                market_ticker,
+                market_id,
+            } => {
                 assert_eq!(id, Some(2));
                 assert_eq!(code, "auth_failed");
                 assert_eq!(message, "Authentication required");
+                assert_eq!(market_ticker, None);
+                assert_eq!(market_id, None);
             }
             _ => panic!("Expected Error variant"),
         }
@@ -486,13 +564,77 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Error { id, code, message } => {
+            IncomingMessage::Error {
+                id,
+                code,
+                message,
+                market_ticker,
+                market_id,
+            } => {
                 assert_eq!(id, None);
                 assert_eq!(code, "connection_error");
                 assert_eq!(message, "Connection lost");
+                assert_eq!(market_ticker, None);
+                assert_eq!(market_id, None);
             }
             _ => panic!("Expected Error variant"),
         }
+    }
+
+    #[test]
+    fn test_parse_error_spec_format() {
+        let json = r#"{"id": 127, "type": "error", "msg": {"code": 16, "msg": "Market not found", "market_ticker": "INVALID-MARKET"}}"#;
+        let result = parse_incoming(json).unwrap();
+
+        match result {
+            IncomingMessage::Error {
+                id,
+                code,
+                message,
+                market_ticker,
+                market_id,
+            } => {
+                assert_eq!(id, Some(127));
+                assert_eq!(code, "16");
+                assert_eq!(message, "Market not found");
+                assert_eq!(market_ticker, Some("INVALID-MARKET".to_string()));
+                assert_eq!(market_id, None);
+            }
+            _ => panic!("Expected Error variant"),
+        }
+    }
+
+    #[test]
+    fn test_parse_error_spec_format_with_market_id() {
+        let json = r#"{"type": "error", "msg": {"code": 5, "msg": "Access denied", "market_id": "abc-123"}}"#;
+        let result = parse_incoming(json).unwrap();
+
+        match result {
+            IncomingMessage::Error {
+                id,
+                code,
+                message,
+                market_ticker,
+                market_id,
+            } => {
+                assert_eq!(id, None);
+                assert_eq!(code, "5");
+                assert_eq!(message, "Access denied");
+                assert_eq!(market_ticker, None);
+                assert_eq!(market_id, Some("abc-123".to_string()));
+            }
+            _ => panic!("Expected Error variant"),
+        }
+    }
+
+    #[test]
+    fn test_build_list_subscriptions() {
+        let result = build_list_subscriptions(3);
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 3);
+        assert_eq!(parsed["cmd"], "list_subscriptions");
+        assert!(parsed.get("params").is_none());
     }
 
     #[test]

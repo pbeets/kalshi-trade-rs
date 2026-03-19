@@ -216,6 +216,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150], [56, 250]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -240,6 +242,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
 
         let new_qty = state.apply_delta(&delta);
@@ -261,6 +265,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         state.apply_delta(&delta1);
 
@@ -274,6 +280,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         let new_qty = state.apply_delta(&delta2);
         assert_eq!(new_qty, 150);
@@ -293,6 +301,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         state.apply_delta(&delta1);
 
@@ -306,6 +316,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         let new_qty = state.apply_delta(&delta2);
         assert_eq!(new_qty, 70);
@@ -325,6 +337,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         state.apply_delta(&delta1);
 
@@ -338,6 +352,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         let new_qty = state.apply_delta(&delta2);
         assert_eq!(new_qty, 0);
@@ -358,6 +374,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         state.apply_delta(&delta1);
 
@@ -371,6 +389,8 @@ mod tests {
             price_dollars: None,
             delta_fp: None,
             client_order_id: None,
+            subaccount: None,
+            ts: None,
         };
         let new_qty = state.apply_delta(&delta2);
         assert_eq!(new_qty, 0);
@@ -386,6 +406,8 @@ mod tests {
             yes_dollars: None,
             no: None,
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -403,6 +425,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150], [56, 250]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -420,6 +444,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // Best NO bid at 53 -> YES ask at 47
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -437,6 +463,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // Best NO bid at 53 -> YES ask at 47
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -454,6 +482,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150], [56, 250]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -471,6 +501,8 @@ mod tests {
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
             no_dollars: None,
+            yes_dollars_fp: None,
+            no_dollars_fp: None,
         };
 
         let mut state = OrderbookState::from_snapshot(&snapshot);

@@ -32,7 +32,8 @@ use super::{
     BACKOFF_BASE, CONNECT_TIMEOUT, ConnectStrategy, HealthConfig, MAX_BACKOFF,
     channel::Channel,
     command::{
-        ChannelError, ChannelSubscription, StreamCommand, SubscribeResult, UnsubscribeResult,
+        ChannelError, ChannelSubscription, ServerSubscription, StreamCommand, SubscribeResult,
+        UnsubscribeResult,
     },
     message::{StreamMessage, StreamUpdate},
     protocol::{self, IncomingMessage},
@@ -195,6 +196,9 @@ pub struct KalshiStreamSession {
     /// Pending update_subscription requests awaiting single response.
     /// Returns the updated list of markets for the subscription.
     pending_updates: HashMap<u64, oneshot::Sender<std::result::Result<Vec<String>, String>>>,
+    /// Pending list_subscriptions requests awaiting response.
+    pending_list_subscriptions:
+        HashMap<u64, oneshot::Sender<std::result::Result<Vec<ServerSubscription>, String>>>,
     /// Whether we're waiting for a pong response.
     ping_pending: bool,
     /// One-shot sender to signal that the session is ready.
@@ -270,6 +274,7 @@ impl KalshiStreamSession {
             pending_subscriptions: HashMap::new(),
             pending_unsubscriptions: HashMap::new(),
             pending_updates: HashMap::new(),
+            pending_list_subscriptions: HashMap::new(),
             ping_pending: false,
             ready_sender,
             subscriptions,
@@ -507,6 +512,7 @@ impl KalshiStreamSession {
         self.pending_subscriptions.clear();
         self.pending_unsubscriptions.clear();
         self.pending_updates.clear();
+        self.pending_list_subscriptions.clear();
         let _ = self.ws_writer.close().await;
         info!("KalshiStreamSession shutdown complete");
     }
@@ -656,6 +662,23 @@ impl KalshiStreamSession {
 
                 // Register pending request (single response expected)
                 self.pending_updates.insert(request_id, response);
+            }
+
+            StreamCommand::ListSubscriptions { response } => {
+                let request_id = self.next_request_id;
+                self.next_request_id += 1;
+
+                let msg = protocol::build_list_subscriptions(request_id);
+                debug!("Sending list_subscriptions request {}: {}", request_id, msg);
+
+                if let Err(e) = self.ws_writer.send(Message::Text(msg.into())).await {
+                    error!("Failed to send list_subscriptions message: {}", e);
+                    let _ = response.send(Err(format!("WebSocket send error: {}", e)));
+                    return false;
+                }
+                self.last_activity = Instant::now();
+
+                self.pending_list_subscriptions.insert(request_id, response);
             }
 
             StreamCommand::Close => {
@@ -832,6 +855,35 @@ impl KalshiStreamSession {
                     return;
                 }
 
+                // Check if this is a response to a pending list_subscriptions
+                if msg_type == "ok"
+                    && let Some(response) = self.pending_list_subscriptions.remove(&id)
+                {
+                    // list_subscriptions response: msg is an array of {channel, sid}
+                    let subscriptions: Vec<ServerSubscription> = msg
+                        .as_array()
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|entry| {
+                                    let channel =
+                                        entry.get("channel")?.as_str()?.to_string();
+                                    let sid = entry.get("sid")?.as_i64()?;
+                                    Some(ServerSubscription { channel, sid })
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    debug!(
+                        "List subscriptions response for request {}: {} subscriptions",
+                        id,
+                        subscriptions.len()
+                    );
+
+                    let _ = response.send(Ok(subscriptions));
+                    return;
+                }
+
                 // Unexpected response type with no handler
                 warn!("Unexpected response id {} type {}", id, msg_type);
             }
@@ -882,7 +934,7 @@ impl KalshiStreamSession {
                 }
             }
 
-            Ok(IncomingMessage::Error { id, code, message }) => {
+            Ok(IncomingMessage::Error { id, code, message, .. }) => {
                 error!("Error response: code={}, message={}", code, message);
 
                 // Check if this is an error for a pending multi-channel subscription

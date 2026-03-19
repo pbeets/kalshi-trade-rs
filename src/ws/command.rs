@@ -178,8 +178,23 @@ pub enum StreamCommand {
         response: oneshot::Sender<Result<Vec<String>, String>>,
     },
 
+    /// List all active subscriptions on the server.
+    ListSubscriptions {
+        /// Oneshot channel to receive the list of active subscriptions.
+        response: oneshot::Sender<Result<Vec<ServerSubscription>, String>>,
+    },
+
     /// Close the WebSocket connection gracefully.
     Close,
+}
+
+/// A subscription as reported by the server via list_subscriptions.
+#[derive(Debug, Clone)]
+pub struct ServerSubscription {
+    /// The channel name.
+    pub channel: String,
+    /// The server-assigned subscription ID.
+    pub sid: i64,
 }
 
 #[cfg(test)]
