@@ -174,6 +174,8 @@ pub enum StreamCommand {
         markets: Vec<String>,
         /// Action to perform.
         action: UpdateAction,
+        /// When `true`, send initial ticker snapshot for newly added markets.
+        send_initial_snapshot: Option<bool>,
         /// Oneshot channel to receive the updated markets list.
         response: oneshot::Sender<Result<Vec<String>, String>>,
     },

@@ -639,6 +639,7 @@ impl KalshiStreamSession {
                 sid,
                 markets,
                 action,
+                send_initial_snapshot,
                 response,
             } => {
                 let request_id = self.next_request_id;
@@ -651,7 +652,7 @@ impl KalshiStreamSession {
                     &market_strs,
                     &[], // market_ids - not used in this code path
                     action,
-                    None, // send_initial_snapshot
+                    send_initial_snapshot,
                 );
 
                 debug!(

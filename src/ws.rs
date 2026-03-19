@@ -174,7 +174,7 @@ pub use channel::Channel;
 pub use client::{KalshiStreamClient, KalshiStreamHandle};
 pub use command::{
     CommunicationsSharding, ServerSubscription, SubscribeOptions, SubscribeResult,
-    UnsubscribeResult,
+    UnsubscribeResult, UpdateAction,
 };
 pub use message::{
     Action, CollateralReturnType, CommunicationData, EventLifecycleData, FillData,

@@ -363,7 +363,7 @@ impl KalshiStreamHandle {
 
             // Add the new markets via update_subscription
             let updated_markets = self
-                .update_subscription_internal(sid, &new_markets, UpdateAction::AddMarkets)
+                .update_subscription_internal(sid, &new_markets, UpdateAction::AddMarkets, None)
                 .await?;
 
             // Update local state, but verify SID still matches (handle concurrent modifications)
@@ -564,7 +564,7 @@ impl KalshiStreamHandle {
         } else {
             // Partial unsubscribe - remove specific markets
             let updated_markets = self
-                .update_subscription_internal(state.sid, markets, UpdateAction::DeleteMarkets)
+                .update_subscription_internal(state.sid, markets, UpdateAction::DeleteMarkets, None)
                 .await?;
 
             // Update local state, verifying SID still matches
@@ -676,6 +676,40 @@ impl KalshiStreamHandle {
             .read()
             .expect("subscription lock poisoned");
         subs.get(&channel).map(|s| s.sid)
+    }
+
+    /// Update an existing subscription by adding or removing markets.
+    ///
+    /// This is a lower-level method that operates directly on a subscription ID.
+    /// For most use cases, prefer [`subscribe`](Self::subscribe) (which automatically
+    /// uses `add_markets` for existing subscriptions) or [`unsubscribe`](Self::unsubscribe).
+    ///
+    /// # Arguments
+    ///
+    /// * `sid` - The subscription ID to update.
+    /// * `markets` - Markets to add or remove.
+    /// * `action` - Whether to add or remove the specified markets.
+    /// * `send_initial_snapshot` - When `Some(true)`, the server sends an initial
+    ///   ticker snapshot for newly added markets.
+    ///
+    /// # Returns
+    ///
+    /// The updated list of markets for the subscription as reported by the server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The command channel is closed (session has shut down)
+    /// - The server rejects the update request
+    pub async fn update_subscription(
+        &self,
+        sid: i64,
+        markets: &[&str],
+        action: UpdateAction,
+        send_initial_snapshot: Option<bool>,
+    ) -> Result<Vec<String>> {
+        self.update_subscription_internal(sid, markets, action, send_initial_snapshot)
+            .await
     }
 
     /// Request graceful close of the connection.
@@ -845,6 +879,7 @@ impl KalshiStreamHandle {
         sid: i64,
         markets: &[&str],
         action: UpdateAction,
+        send_initial_snapshot: Option<bool>,
     ) -> Result<Vec<String>> {
         let (tx, rx) = oneshot::channel();
 
@@ -852,6 +887,7 @@ impl KalshiStreamHandle {
             sid,
             markets: markets.iter().map(|s| s.to_string()).collect(),
             action,
+            send_initial_snapshot,
             response: tx,
         };
 
@@ -992,6 +1028,7 @@ mod tests {
                     markets,
                     action,
                     response,
+                    ..
                 }) => {
                     // Must use UpdateSubscription, not Subscribe
                     assert_eq!(sid, 100);
@@ -1088,6 +1125,7 @@ mod tests {
                     markets,
                     action,
                     response,
+                    ..
                 }) => {
                     assert_eq!(sid, 100);
                     assert_eq!(markets, vec!["REMOVE"]);
