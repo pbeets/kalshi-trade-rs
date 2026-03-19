@@ -14,43 +14,50 @@ use serde_json::Value as JsonValue;
 /// # Arguments
 /// * `id` - Message ID for correlation
 /// * `channels` - List of channels to subscribe to
-/// * `market_tickers` - Market ticker(s) to subscribe to. At least one ticker is required.
-/// * `sharding` - Optional sharding config for communications channel.
+/// * `market_tickers` - Market ticker(s) to subscribe to
+/// * `market_ids` - Market ID(s) (UUIDs) to subscribe to
+/// * `sharding` - Optional sharding config for communications channel
+/// * `skip_ticker_ack` - When true, skip market tickers in OK acknowledgements
+/// * `send_initial_snapshot` - When true, send initial snapshot on subscribe
 ///
 /// # Returns
 /// JSON string ready to send over WebSocket
 ///
 /// # Note
-/// The Kalshi API requires at least one market ticker for most channels.
-/// Omitting market tickers will likely result in an error response.
+/// The Kalshi API requires at least one market ticker or market ID for most channels.
+/// Omitting both will likely result in an error response.
 pub fn build_subscribe(
     id: u64,
     channels: &[Channel],
     market_tickers: &[&str],
+    market_ids: &[&str],
     sharding: Option<&CommunicationsSharding>,
     skip_ticker_ack: Option<bool>,
     send_initial_snapshot: Option<bool>,
 ) -> String {
     let channel_strings: Vec<&str> = channels.iter().map(|c| c.as_str()).collect();
 
-    let mut params = if market_tickers.is_empty() {
-        // No tickers provided - some channels may reject this
-        serde_json::json!({
-            "channels": channel_strings
-        })
-    } else if market_tickers.len() == 1 {
-        // Single market - use singular field
-        serde_json::json!({
-            "channels": channel_strings,
-            "market_ticker": market_tickers[0]
-        })
-    } else {
-        // Multiple markets - use plural field
-        serde_json::json!({
-            "channels": channel_strings,
-            "market_tickers": market_tickers
-        })
-    };
+    let mut params = serde_json::json!({
+        "channels": channel_strings
+    });
+
+    // Add market tickers if provided
+    if !market_tickers.is_empty() {
+        if market_tickers.len() == 1 {
+            params["market_ticker"] = serde_json::json!(market_tickers[0]);
+        } else {
+            params["market_tickers"] = serde_json::json!(market_tickers);
+        }
+    }
+
+    // Add market IDs if provided
+    if !market_ids.is_empty() {
+        if market_ids.len() == 1 {
+            params["market_id"] = serde_json::json!(market_ids[0]);
+        } else {
+            params["market_ids"] = serde_json::json!(market_ids);
+        }
+    }
 
     // Add sharding parameters if provided (for communications channel)
     if let Some(sharding) = sharding {
@@ -119,30 +126,58 @@ pub fn build_unsubscribe(id: u64, sids: &[i64]) -> String {
 /// # Arguments
 /// * `id` - Message ID for correlation
 /// * `sid` - Subscription ID to update
-/// * `markets` - Markets to add or remove
+/// * `market_tickers` - Market tickers to add or remove
+/// * `market_ids` - Market IDs (UUIDs) to add or remove
 /// * `action` - Whether to add or delete markets
+/// * `send_initial_snapshot` - When true, send initial snapshot for added markets
 ///
 /// # Returns
 /// JSON string ready to send over WebSocket
 pub fn build_update_subscription(
     id: u64,
     sid: i64,
-    markets: &[&str],
+    market_tickers: &[&str],
+    market_ids: &[&str],
     action: UpdateAction,
+    send_initial_snapshot: Option<bool>,
 ) -> String {
     let action_str = match action {
         UpdateAction::AddMarkets => "add_markets",
         UpdateAction::DeleteMarkets => "delete_markets",
     };
 
+    let mut params = serde_json::json!({
+        "sids": [sid],
+        "action": action_str
+    });
+
+    // Add market tickers if provided
+    if !market_tickers.is_empty() {
+        if market_tickers.len() == 1 {
+            params["market_ticker"] = serde_json::json!(market_tickers[0]);
+        } else {
+            params["market_tickers"] = serde_json::json!(market_tickers);
+        }
+    }
+
+    // Add market IDs if provided
+    if !market_ids.is_empty() {
+        if market_ids.len() == 1 {
+            params["market_id"] = serde_json::json!(market_ids[0]);
+        } else {
+            params["market_ids"] = serde_json::json!(market_ids);
+        }
+    }
+
+    // Add send_initial_snapshot flag if set
+    if send_initial_snapshot == Some(true) {
+        params["send_initial_snapshot"] = serde_json::json!(true);
+    }
+
     serde_json::json!({
         "id": id,
         "cmd": "update_subscription",
-        "params": {
-            "sids": [sid],
-            "market_tickers": markets,
-            "action": action_str
-        }
+        "params": params
     })
     .to_string()
 }
@@ -316,6 +351,7 @@ mod tests {
             1,
             &[Channel::OrderbookDelta],
             &["AAPL-YES"],
+            &[],
             None,
             None,
             None,
@@ -338,6 +374,7 @@ mod tests {
             2,
             &[Channel::OrderbookDelta, Channel::Ticker],
             &["AAPL-YES", "GOOG-NO"],
+            &[],
             None,
             None,
             None,
@@ -360,7 +397,7 @@ mod tests {
     #[test]
     fn test_build_subscribe_no_tickers() {
         // Subscribe to all markets by omitting market_ticker(s)
-        let result = build_subscribe(3, &[Channel::Ticker], &[], None, None, None);
+        let result = build_subscribe(3, &[Channel::Ticker], &[], &[], None, None, None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 3);
@@ -382,6 +419,7 @@ mod tests {
                 Channel::Fill,
             ],
             &["TEST"],
+            &[],
             None,
             None,
             None,
@@ -401,6 +439,7 @@ mod tests {
             5,
             &[Channel::Communications],
             &[],
+            &[],
             Some(&sharding),
             None,
             None,
@@ -419,7 +458,15 @@ mod tests {
 
     #[test]
     fn test_build_subscribe_with_skip_ticker_ack() {
-        let result = build_subscribe(6, &[Channel::Ticker], &["MARKET-A"], None, Some(true), None);
+        let result = build_subscribe(
+            6,
+            &[Channel::Ticker],
+            &["MARKET-A"],
+            &[],
+            None,
+            Some(true),
+            None,
+        );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 6);
@@ -430,7 +477,7 @@ mod tests {
 
     #[test]
     fn test_build_subscribe_without_skip_ticker_ack() {
-        let result = build_subscribe(7, &[Channel::Ticker], &["MARKET-A"], None, None, None);
+        let result = build_subscribe(7, &[Channel::Ticker], &["MARKET-A"], &[], None, None, None);
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert!(parsed["params"].get("skip_ticker_ack").is_none());
@@ -442,6 +489,7 @@ mod tests {
             8,
             &[Channel::Ticker],
             &["MARKET-A"],
+            &[],
             None,
             Some(false),
             None,
@@ -454,11 +502,59 @@ mod tests {
 
     #[test]
     fn test_build_subscribe_with_send_initial_snapshot() {
-        let result = build_subscribe(9, &[Channel::Ticker], &["MARKET-A"], None, None, Some(true));
+        let result = build_subscribe(
+            9,
+            &[Channel::Ticker],
+            &["MARKET-A"],
+            &[],
+            None,
+            None,
+            Some(true),
+        );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 9);
         assert_eq!(parsed["params"]["send_initial_snapshot"], true);
+    }
+
+    #[test]
+    fn test_build_subscribe_with_market_id() {
+        let result = build_subscribe(
+            10,
+            &[Channel::OrderbookDelta],
+            &[],
+            &["abc-123-uuid"],
+            None,
+            None,
+            None,
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 10);
+        assert_eq!(parsed["params"]["market_id"], "abc-123-uuid");
+        assert!(parsed["params"].get("market_ids").is_none());
+        assert!(parsed["params"].get("market_ticker").is_none());
+    }
+
+    #[test]
+    fn test_build_subscribe_with_market_ids() {
+        let result = build_subscribe(
+            11,
+            &[Channel::OrderbookDelta],
+            &[],
+            &["uuid-1", "uuid-2"],
+            None,
+            None,
+            None,
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 11);
+        assert_eq!(
+            parsed["params"]["market_ids"],
+            serde_json::json!(["uuid-1", "uuid-2"])
+        );
+        assert!(parsed["params"].get("market_id").is_none());
     }
 
     #[test]
@@ -711,8 +807,14 @@ mod tests {
 
     #[test]
     fn test_build_update_subscription_add_markets() {
-        let result =
-            build_update_subscription(7, 123, &["MARKET-A", "MARKET-B"], UpdateAction::AddMarkets);
+        let result = build_update_subscription(
+            7,
+            123,
+            &["MARKET-A", "MARKET-B"],
+            &[],
+            UpdateAction::AddMarkets,
+            None,
+        );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 7);
@@ -727,16 +829,60 @@ mod tests {
 
     #[test]
     fn test_build_update_subscription_delete_markets() {
-        let result = build_update_subscription(8, 456, &["MARKET-X"], UpdateAction::DeleteMarkets);
+        let result = build_update_subscription(
+            8,
+            456,
+            &["MARKET-X"],
+            &[],
+            UpdateAction::DeleteMarkets,
+            None,
+        );
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(parsed["id"], 8);
         assert_eq!(parsed["cmd"], "update_subscription");
         assert_eq!(parsed["params"]["sids"], serde_json::json!([456]));
-        assert_eq!(
-            parsed["params"]["market_tickers"],
-            serde_json::json!(["MARKET-X"])
-        );
+        assert_eq!(parsed["params"]["market_ticker"], "MARKET-X");
         assert_eq!(parsed["params"]["action"], "delete_markets");
+    }
+
+    #[test]
+    fn test_build_update_subscription_with_market_ids() {
+        let result = build_update_subscription(
+            9,
+            789,
+            &[],
+            &["uuid-abc", "uuid-def"],
+            UpdateAction::AddMarkets,
+            None,
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 9);
+        assert_eq!(parsed["cmd"], "update_subscription");
+        assert_eq!(parsed["params"]["sids"], serde_json::json!([789]));
+        assert_eq!(
+            parsed["params"]["market_ids"],
+            serde_json::json!(["uuid-abc", "uuid-def"])
+        );
+        assert!(parsed["params"].get("market_tickers").is_none());
+        assert_eq!(parsed["params"]["action"], "add_markets");
+    }
+
+    #[test]
+    fn test_build_update_subscription_with_send_initial_snapshot() {
+        let result = build_update_subscription(
+            10,
+            100,
+            &["MARKET-A"],
+            &[],
+            UpdateAction::AddMarkets,
+            Some(true),
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+        assert_eq!(parsed["id"], 10);
+        assert_eq!(parsed["params"]["send_initial_snapshot"], true);
+        assert_eq!(parsed["params"]["action"], "add_markets");
     }
 }

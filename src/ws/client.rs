@@ -904,19 +904,12 @@ mod tests {
     // ========== Channel Validation Tests ==========
 
     #[tokio::test]
-    async fn test_subscribe_validates_missing_markets_for_market_channels() {
+    async fn test_subscribe_validates_missing_markets_for_orderbook_delta() {
         let (mut handle, _) = create_test_handle();
 
-        // All market-scoped channels should require markets
-        for channel in [
-            Channel::Ticker,
-            Channel::Trade,
-            Channel::OrderbookDelta,
-            Channel::MarketLifecycle,
-        ] {
-            let result = handle.subscribe(channel, &[]).await;
-            assert!(result.is_err(), "{:?} should require markets", channel);
-        }
+        // Only orderbook_delta requires a market ticker per the AsyncAPI spec
+        let result = handle.subscribe(Channel::OrderbookDelta, &[]).await;
+        assert!(result.is_err(), "OrderbookDelta should require markets");
     }
 
     #[tokio::test]

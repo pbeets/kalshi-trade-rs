@@ -587,6 +587,7 @@ impl KalshiStreamSession {
                     request_id,
                     &channels,
                     &tickers,
+                    &[], // market_ids - not used in this code path
                     sharding.as_ref(),
                     skip_ticker_ack,
                     send_initial_snapshot,
@@ -644,8 +645,14 @@ impl KalshiStreamSession {
                 self.next_request_id += 1;
 
                 let market_strs: Vec<&str> = markets.iter().map(|s| s.as_str()).collect();
-                let msg =
-                    protocol::build_update_subscription(request_id, sid, &market_strs, action);
+                let msg = protocol::build_update_subscription(
+                    request_id,
+                    sid,
+                    &market_strs,
+                    &[], // market_ids - not used in this code path
+                    action,
+                    None, // send_initial_snapshot
+                );
 
                 debug!(
                     "Sending update_subscription request {} for SID {}: {}",

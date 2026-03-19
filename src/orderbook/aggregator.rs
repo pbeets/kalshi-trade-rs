@@ -437,7 +437,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -460,7 +460,7 @@ mod tests {
         // First add a snapshot
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -495,7 +495,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: None,
@@ -518,7 +518,7 @@ mod tests {
 
         let snapshot1 = OrderbookSnapshotData {
             market_ticker: "TEST1".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: None,
@@ -530,7 +530,7 @@ mod tests {
 
         let snapshot2 = OrderbookSnapshotData {
             market_ticker: "TEST2".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[50, 200]]),
             yes_dollars: None,
             no: None,
@@ -555,7 +555,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // YES ask at 47
@@ -594,7 +594,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -620,7 +620,7 @@ mod tests {
         // Snapshot creates initial book
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
@@ -705,7 +705,7 @@ mod tests {
 
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: None,

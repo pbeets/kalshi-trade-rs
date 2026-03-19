@@ -238,9 +238,8 @@ pub type PriceLevelDollars = (String, i64);
 pub struct OrderbookSnapshotData {
     /// Market ticker identifier.
     pub market_ticker: String,
-    /// Market UUID identifier.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub market_id: Option<String>,
+    /// Market UUID identifier (spec-required).
+    pub market_id: String,
     /// Yes side price levels: [price_cents, contracts].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub yes: Option<Vec<PriceLevel>>,

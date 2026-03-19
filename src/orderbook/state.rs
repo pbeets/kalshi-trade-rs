@@ -215,7 +215,7 @@ mod tests {
     fn test_from_snapshot() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150], [56, 250]]),
@@ -405,7 +405,7 @@ mod tests {
     fn test_best_yes_bid() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200], [43, 50]]),
             yes_dollars: None,
             no: None,
@@ -424,7 +424,7 @@ mod tests {
     fn test_best_yes_ask() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: None,
             yes_dollars: None,
             no: Some(vec![[55, 150], [56, 250]]),
@@ -443,7 +443,7 @@ mod tests {
     fn test_spread() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]), // Best bid at 45
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // Best NO bid at 53 -> YES ask at 47
@@ -462,7 +462,7 @@ mod tests {
     fn test_midpoint() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]), // Best bid at 45
             yes_dollars: None,
             no: Some(vec![[53, 150]]), // Best NO bid at 53 -> YES ask at 47
@@ -481,7 +481,7 @@ mod tests {
     fn test_total_liquidity() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100], [44, 200]]),
             yes_dollars: None,
             no: Some(vec![[55, 150], [56, 250]]),
@@ -500,7 +500,7 @@ mod tests {
     fn test_clear() {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
-            market_id: None,
+            market_id: String::new(),
             yes: Some(vec![[45, 100]]),
             yes_dollars: None,
             no: Some(vec![[55, 150]]),
