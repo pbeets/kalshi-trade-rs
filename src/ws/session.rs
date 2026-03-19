@@ -894,7 +894,7 @@ impl KalshiStreamSession {
                 warn!("Unexpected response id {} type {}", id, msg_type);
             }
 
-            Ok(IncomingMessage::Update { msg_type, sid, msg, .. }) => {
+            Ok(IncomingMessage::Update { msg_type, sid, seq, msg }) => {
                 // Normalize API aliases to canonical channel names.
                 // The Kalshi API sends "user_order" (singular) for order updates,
                 // but the channel is subscribed as "user_orders" (plural).
@@ -910,7 +910,7 @@ impl KalshiStreamSession {
                     let update = StreamUpdate {
                         channel: msg_type,
                         sid,
-                        seq: None,
+                        seq,
                         msg: StreamMessage::Unsubscribed,
                     };
 
@@ -926,7 +926,7 @@ impl KalshiStreamSession {
                         let update = StreamUpdate {
                             channel: msg_type,
                             sid,
-                            seq: None,
+                            seq,
                             msg: stream_msg,
                         };
                         if let Err(e) = self.update_sender.send(update) {
