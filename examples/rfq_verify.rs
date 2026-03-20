@@ -95,10 +95,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 println!("   Found {} RFQ(s):", response.rfqs.len());
                 for rfq in &response.rfqs {
-                    // RFQs specify either contracts OR target_cost. When contracts=0 or None,
-                    // check target_cost. The API may return contracts=Some(0) when target_cost is used.
-                    let size = if rfq.contracts > 0 {
-                        format!("{} contracts", rfq.contracts)
+                    let size = if !rfq.contracts_fp.is_empty() && rfq.contracts_fp != "0" {
+                        format!("{} contracts", rfq.contracts_fp)
                     } else {
                         rfq.target_cost_dollars
                             .as_deref()
@@ -203,7 +201,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 .target_cost_dollars
                                 .as_deref()
                                 .map(|d| format!("${}", d))
-                                .or_else(|| rfq.contracts.map(|c| format!("{} contracts", c)))
+                                .or_else(|| {
+                                    rfq.contracts_fp
+                                        .as_deref()
+                                        .map(|c| format!("{} contracts", c))
+                                })
                                 .unwrap_or_else(|| "?".to_string());
                             println!(
                                 "   [RFQ CREATED] {} | {} | {}",

@@ -135,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let status = format!("{:?}", market.status);
                 println!(
                     "  {} | {} | vol: {} | oi: {}",
-                    market.ticker, status, market.volume, market.open_interest
+                    market.ticker, status, market.volume_fp, market.open_interest_fp
                 );
 
                 // Show pricing

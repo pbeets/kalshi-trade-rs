@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for pos in &positions.market_positions {
         println!(
             "  {}: {} contracts, exposure: {} cents",
-            pos.ticker, pos.position, pos.market_exposure
+            pos.ticker, pos.position_fp, pos.market_exposure_dollars
         );
     }
 

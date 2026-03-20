@@ -13,7 +13,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use kalshi_trade_rs::{
     Action, AmendOrderRequest, CreateOrderRequest, DecreaseOrderRequest, GetMarketsParams,
     GetOrdersParams, GetQueuePositionsParams, KalshiClient, KalshiConfig, MarketFilterStatus,
-    OrderStatus, Side, TimeInForce, cents_to_dollars,
+    OrderStatus, Side, TimeInForce,
 };
 
 #[tokio::main]
@@ -78,11 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Side: {:?}", create_request.side);
     println!("  Action: {:?}", create_request.action);
     println!("  Count: {}", create_request.count);
-    println!(
-        "  YES Price: {} cents (${:.2})",
-        safe_price,
-        cents_to_dollars(safe_price)
-    );
+    println!("  YES Price: {} cents", safe_price);
     println!("  Client Order ID: {}", client_order_id);
     println!("  Post Only: true");
 
@@ -92,8 +88,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nOrder created:");
     println!("  Order ID: {}", order.order_id);
     println!("  Status: {:?}", order.status);
-    println!("  Fill Count: {}", order.fill_count);
-    println!("  Remaining: {}", order.remaining_count);
+    println!("  Fill Count: {}", order.fill_count_fp);
+    println!("  Remaining: {}", order.remaining_count_fp);
 
     if let Some(created) = &order.created_time {
         println!("  Created: {}", created);
@@ -151,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(decreased) => {
             println!("Order decreased:");
             println!("  Order ID: {}", decreased.order.order_id);
-            println!("  Remaining: {}", decreased.order.remaining_count);
+            println!("  Remaining: {}", decreased.order.remaining_count_fp);
             println!("  Status: {:?}", decreased.order.status);
         }
         Err(e) => {
@@ -194,8 +190,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  New order ID: {}", amend_response.order.order_id);
     println!("  New order status: {:?}", amend_response.order.status);
     println!(
-        "  New order price: {} cents",
-        amend_response.order.yes_price
+        "  New order price: ${}",
+        amend_response.order.yes_price_dollars
     );
     println!();
 
@@ -259,14 +255,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         for order in &resting_orders.orders {
             println!(
-                "  {} | {:?} {:?} {} @ ${:.2} | {}/{}",
+                "  {} | {:?} {:?} {} @ ${} | {}/{}",
                 order.ticker,
                 order.action,
                 order.side,
-                order.remaining_count,
-                cents_to_dollars(order.yes_price),
-                order.fill_count,
-                order.initial_count
+                order.remaining_count_fp,
+                order.yes_price_dollars,
+                order.fill_count_fp,
+                order.initial_count_fp
             );
         }
     }

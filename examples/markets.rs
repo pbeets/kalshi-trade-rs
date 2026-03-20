@@ -7,7 +7,7 @@
 
 use kalshi_trade_rs::{
     GetMarketsParams, GetOrderbookParams, GetTradesParams, KalshiClient, KalshiConfig,
-    MarketFilterStatus, cents_to_dollars,
+    MarketFilterStatus,
 };
 
 #[tokio::main]
@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for market in &open_markets.markets {
         println!(
             "  {} | {} | Vol: {}",
-            market.ticker, market.title, market.volume
+            market.ticker, market.title, market.volume_fp
         );
         print!(
             "    YES bid/ask: ${} / ${}",
@@ -106,58 +106,67 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Type: {:?}", market.market_type);
         println!("Status: {:?}", market.status);
         println!("Title: {}", market.title);
-        println!("Total Volume: {} contracts", market.volume);
-        println!("Open Interest: {} contracts", market.open_interest);
+        println!("Total Volume: {} contracts", market.volume_fp);
+        println!("Open Interest: {} contracts", market.open_interest_fp);
         println!();
 
         // 5. Get Orderbook
         println!("=== Get Orderbook ===");
         let orderbook_response = client.get_orderbook(ticker).await?;
-        let orderbook = &orderbook_response.orderbook;
 
-        println!("YES levels: {}", orderbook.yes.len());
-        for (i, level) in orderbook.yes.iter().take(3).enumerate() {
-            if level.len() >= 2 {
-                println!(
-                    "  Level {}: {} @ ${:.2}",
-                    i + 1,
-                    level[1],
-                    cents_to_dollars(level[0])
-                );
+        // Prefer orderbook_fp (v2 spec), fall back to orderbook.yes_dollars
+        if let Some(ref fp) = orderbook_response.orderbook_fp {
+            let yes = fp.yes_dollars.as_deref().unwrap_or(&[]);
+            let no = fp.no_dollars.as_deref().unwrap_or(&[]);
+            println!("YES levels: {}", yes.len());
+            for (i, level) in yes.iter().take(3).enumerate() {
+                println!("  Level {}: {} @ ${}", i + 1, level.quantity, level.price);
             }
-        }
-        if orderbook.yes.len() > 3 {
-            println!("  ... and {} more levels", orderbook.yes.len() - 3);
-        }
-
-        println!("NO levels: {}", orderbook.no.len());
-        for (i, level) in orderbook.no.iter().take(3).enumerate() {
-            if level.len() >= 2 {
-                println!(
-                    "  Level {}: {} @ ${:.2}",
-                    i + 1,
-                    level[1],
-                    cents_to_dollars(level[0])
-                );
+            if yes.len() > 3 {
+                println!("  ... and {} more levels", yes.len() - 3);
             }
-        }
-        if orderbook.no.len() > 3 {
-            println!("  ... and {} more levels", orderbook.no.len() - 3);
+            println!("NO levels: {}", no.len());
+            for (i, level) in no.iter().take(3).enumerate() {
+                println!("  Level {}: {} @ ${}", i + 1, level.quantity, level.price);
+            }
+            if no.len() > 3 {
+                println!("  ... and {} more levels", no.len() - 3);
+            }
+        } else {
+            let orderbook = &orderbook_response.orderbook;
+            let yes = orderbook.yes_dollars.as_deref().unwrap_or(&[]);
+            let no = orderbook.no_dollars.as_deref().unwrap_or(&[]);
+            println!("YES levels: {}", yes.len());
+            for (i, level) in yes.iter().take(3).enumerate() {
+                println!("  Level {}: {} @ ${}", i + 1, level.quantity, level.price);
+            }
+            println!("NO levels: {}", no.len());
+            for (i, level) in no.iter().take(3).enumerate() {
+                println!("  Level {}: {} @ ${}", i + 1, level.quantity, level.price);
+            }
         }
         println!();
 
         // 6. Get Orderbook with depth limit
         println!("=== Get Orderbook (depth=3) ===");
         let params = GetOrderbookParams::new().depth(3);
-        let limited_orderbook = client.get_orderbook_with_params(ticker, params).await?;
-        println!(
-            "YES levels (limited): {}",
-            limited_orderbook.orderbook.yes.len()
-        );
-        println!(
-            "NO levels (limited): {}",
-            limited_orderbook.orderbook.no.len()
-        );
+        let limited = client.get_orderbook_with_params(ticker, params).await?;
+        if let Some(ref fp) = limited.orderbook_fp {
+            let yes = fp.yes_dollars.as_deref().unwrap_or(&[]);
+            let no = fp.no_dollars.as_deref().unwrap_or(&[]);
+            println!("YES levels (limited): {}", yes.len());
+            println!("NO levels (limited): {}", no.len());
+        } else {
+            let ob = &limited.orderbook;
+            println!(
+                "YES levels (limited): {}",
+                ob.yes_dollars.as_deref().unwrap_or(&[]).len()
+            );
+            println!(
+                "NO levels (limited): {}",
+                ob.no_dollars.as_deref().unwrap_or(&[]).len()
+            );
+        }
         println!();
     }
 

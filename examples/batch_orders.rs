@@ -12,7 +12,7 @@
 use kalshi_trade_rs::{
     Action, BatchCancelOrderItem, BatchCancelOrdersRequest, BatchCreateOrdersRequest,
     CreateOrderRequest, GetMarketsParams, KalshiClient, KalshiConfig, MarketFilterStatus, Side,
-    TimeInForce, cents_to_dollars,
+    TimeInForce,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -145,11 +145,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for result in &succeeded {
         if let Some(order) = &result.order {
             println!(
-                "  {} | {} {:?} @ ${:.2}",
-                order.order_id,
-                order.ticker,
-                order.side,
-                cents_to_dollars(order.yes_price)
+                "  {} | {} {:?} @ ${}",
+                order.order_id, order.ticker, order.side, order.yes_price_dollars
             );
         }
     }

@@ -35,10 +35,7 @@ pub use api_key::{
     GenerateApiKeyResponse,
 };
 pub use balance::{BalanceResponse, GetBalanceParams};
-pub use common::{
-    Action, ExchangeInstance, OrderStatus, OrderType, SelfTradePreventionType, Side,
-    cents_to_dollars,
-};
+pub use common::{Action, ExchangeInstance, OrderStatus, OrderType, SelfTradePreventionType, Side};
 pub use communications::{
     AcceptQuoteRequest, CommunicationsIdResponse, CreateQuoteRequest, CreateRfqRequest,
     GetQuoteResponse, GetRfqResponse, ListQuotesParams, ListQuotesResponse, ListRfqsParams,

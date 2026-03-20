@@ -121,8 +121,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 StreamMessage::MarketPosition(pos) => {
                     println!(
-                        "[POSITION] {} | position={:?} | cost={} | pnl={}",
-                        pos.market_ticker, pos.position, pos.position_cost, pos.realized_pnl
+                        "[POSITION] {} | position={} | cost={} | pnl={}",
+                        pos.market_ticker,
+                        pos.position_fp,
+                        pos.position_cost_dollars,
+                        pos.realized_pnl_dollars
                     );
                 }
                 _ => {

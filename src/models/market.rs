@@ -151,7 +151,6 @@ pub struct MveSelectedLeg {
 }
 
 /// A market on the Kalshi exchange.
-#[allow(deprecated)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Market {
     pub ticker: String,
@@ -179,75 +178,40 @@ pub struct Market {
 
     /// Units for price fields (e.g., "usd_cent").
     pub response_price_units: String,
-    /// Risk limit in cents.
-    #[serde(default)]
-    pub risk_limit_cents: Option<i64>,
-    /// Minimum price movement in cents.
-    pub tick_size: i64,
 
-    /// Best YES bid price in cents.
-    pub yes_bid: i64,
     /// Best YES bid price in dollars.
     pub yes_bid_dollars: String,
     /// Size at best YES bid (fixed-point decimal string).
     #[serde(default)]
     pub yes_bid_size_fp: Option<String>,
-    /// Best YES ask price in cents.
-    pub yes_ask: i64,
     /// Best YES ask price in dollars.
     pub yes_ask_dollars: String,
     /// Size at best YES ask (fixed-point decimal string).
     #[serde(default)]
     pub yes_ask_size_fp: Option<String>,
-    /// Best NO bid price in cents.
-    pub no_bid: i64,
     /// Best NO bid price in dollars.
     pub no_bid_dollars: String,
-    /// Best NO ask price in cents.
-    pub no_ask: i64,
     /// Best NO ask price in dollars.
     pub no_ask_dollars: String,
-    /// Last trade price in cents.
-    pub last_price: i64,
     /// Last trade price in dollars.
     pub last_price_dollars: String,
 
-    /// Previous YES bid (24h ago) in cents.
-    pub previous_yes_bid: i64,
     /// Previous YES bid (24h ago) in dollars.
     pub previous_yes_bid_dollars: String,
-    /// Previous YES ask (24h ago) in cents.
-    pub previous_yes_ask: i64,
     /// Previous YES ask (24h ago) in dollars.
     pub previous_yes_ask_dollars: String,
-    /// Previous price (24h ago) in cents.
-    pub previous_price: i64,
     /// Previous price (24h ago) in dollars.
     pub previous_price_dollars: String,
 
-    /// Total contracts traded.
-    pub volume: i64,
     /// Total contracts traded (fixed-point decimal string).
     pub volume_fp: String,
-    /// 24-hour trading volume.
-    pub volume_24h: i64,
     /// 24-hour trading volume (fixed-point decimal string).
     pub volume_24h_fp: String,
-    /// Contracts outstanding.
-    pub open_interest: i64,
     /// Contracts outstanding (fixed-point decimal string).
     pub open_interest_fp: String,
 
-    /// Notional value per contract in cents.
-    pub notional_value: i64,
     /// Notional value per contract in dollars.
     pub notional_value_dollars: String,
-    /// Available order liquidity in cents.
-    #[deprecated(note = "Always returns 0. Use orderbook data instead.")]
-    pub liquidity: i64,
-    /// Available order liquidity in dollars.
-    #[deprecated(note = "Always returns '0.0000'. Use orderbook data instead.")]
-    pub liquidity_dollars: String,
 
     pub result: MarketResult,
     pub can_close_early: bool,
@@ -548,17 +512,9 @@ mod orderbook_serde {
     }
 }
 
-use super::common::null_as_empty_vec;
-
 /// An orderbook for a market.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Orderbook {
-    /// YES price levels as [price_cents, quantity] pairs.
-    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
-    pub yes: Vec<Vec<i64>>,
-    /// NO price levels as [price_cents, quantity] pairs.
-    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
-    pub no: Vec<Vec<i64>>,
     /// YES price levels with dollar pricing.
     #[serde(default, with = "price_level_serde")]
     pub yes_dollars: Option<Vec<PriceLevelDollars>>,
@@ -638,10 +594,10 @@ pub struct OrderbookCountFp {
 /// Response from GET /markets/{ticker}/orderbook.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderbookResponse {
-    /// The orderbook. Empty if the market has no orders (API returns null).
-    #[serde(deserialize_with = "orderbook_serde::deserialize")]
+    /// The orderbook (legacy, may be absent in v2).
+    #[serde(default, deserialize_with = "orderbook_serde::deserialize")]
     pub orderbook: Orderbook,
-    /// The orderbook with fixed-point counts.
+    /// The orderbook with fixed-point dollar pricing and counts (v2 spec).
     #[serde(default)]
     pub orderbook_fp: Option<OrderbookCountFp>,
 }
@@ -694,17 +650,11 @@ pub enum TakerSide {
 pub struct Trade {
     pub trade_id: String,
     pub ticker: String,
-    /// Deprecated: use `yes_price` or `no_price` instead.
+    /// Deprecated: use `yes_price_dollars` or `no_price_dollars` instead.
     #[serde(default)]
     pub price: Option<f64>,
-    /// Contract quantity.
-    pub count: i64,
     /// Contract quantity (fixed-point decimal string, e.g. `"10.00"`).
     pub count_fp: String,
-    /// Yes side price in cents.
-    pub yes_price: i64,
-    /// No side price in cents.
-    pub no_price: i64,
     /// Yes price in fixed-point dollars.
     pub yes_price_dollars: String,
     /// No price in fixed-point dollars.
@@ -809,20 +759,12 @@ impl CandlestickPeriod {
 /// OHLC (Open/High/Low/Close) candlestick data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OhlcData {
-    /// Open price in cents.
-    pub open: i64,
     /// Open price in dollars.
     pub open_dollars: String,
-    /// Low price in cents.
-    pub low: i64,
     /// Low price in dollars.
     pub low_dollars: String,
-    /// High price in cents.
-    pub high: i64,
     /// High price in dollars.
     pub high_dollars: String,
-    /// Close price in cents.
-    pub close: i64,
     /// Close price in dollars.
     pub close_dollars: String,
 }
@@ -830,51 +772,27 @@ pub struct OhlcData {
 /// Extended OHLC data with additional price fields for trade prices.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PriceOhlcData {
-    /// Open price in cents.
-    #[serde(default)]
-    pub open: Option<i64>,
     /// Open price in dollars.
     #[serde(default)]
     pub open_dollars: Option<String>,
-    /// Low price in cents.
-    #[serde(default)]
-    pub low: Option<i64>,
     /// Low price in dollars.
     #[serde(default)]
     pub low_dollars: Option<String>,
-    /// High price in cents.
-    #[serde(default)]
-    pub high: Option<i64>,
     /// High price in dollars.
     #[serde(default)]
     pub high_dollars: Option<String>,
-    /// Close price in cents.
-    #[serde(default)]
-    pub close: Option<i64>,
     /// Close price in dollars.
     #[serde(default)]
     pub close_dollars: Option<String>,
-    /// Mean price in cents.
-    #[serde(default)]
-    pub mean: Option<i64>,
     /// Mean price in dollars.
     #[serde(default)]
     pub mean_dollars: Option<String>,
-    /// Previous close price in cents.
-    #[serde(default)]
-    pub previous: Option<i64>,
     /// Previous close price in dollars.
     #[serde(default)]
     pub previous_dollars: Option<String>,
-    /// Min price in cents (alias for low).
-    #[serde(default)]
-    pub min: Option<i64>,
     /// Min price in dollars.
     #[serde(default)]
     pub min_dollars: Option<String>,
-    /// Max price in cents (alias for high).
-    #[serde(default)]
-    pub max: Option<i64>,
     /// Max price in dollars.
     #[serde(default)]
     pub max_dollars: Option<String>,
@@ -891,12 +809,8 @@ pub struct Candlestick {
     pub yes_ask: OhlcData,
     /// Trade price OHLC data.
     pub price: PriceOhlcData,
-    /// Trading volume during the period.
-    pub volume: i64,
     /// Trading volume during the period (fixed-point decimal string).
     pub volume_fp: String,
-    /// Open interest at end of period.
-    pub open_interest: i64,
     /// Open interest at end of period (fixed-point decimal string).
     pub open_interest_fp: String,
 }
@@ -1227,33 +1141,18 @@ mod tests {
             "latest_expiration_time": "2025-12-31T00:00:00Z",
             "settlement_timer_seconds": 3600,
             "response_price_units": "usd_cent",
-            "tick_size": 1,
-            "yes_bid": 50,
             "yes_bid_dollars": "0.50",
-            "yes_ask": 55,
             "yes_ask_dollars": "0.55",
-            "no_bid": 45,
             "no_bid_dollars": "0.45",
-            "no_ask": 50,
             "no_ask_dollars": "0.50",
-            "last_price": 52,
             "last_price_dollars": "0.52",
-            "previous_yes_bid": 48,
             "previous_yes_bid_dollars": "0.48",
-            "previous_yes_ask": 53,
             "previous_yes_ask_dollars": "0.53",
-            "previous_price": 50,
             "previous_price_dollars": "0.50",
-            "volume": 1000,
             "volume_fp": "1000.5",
-            "volume_24h": 500,
             "volume_24h_fp": "500.25",
-            "open_interest": 250,
             "open_interest_fp": "250.125",
-            "notional_value": 100,
             "notional_value_dollars": "1.00",
-            "liquidity": 0,
-            "liquidity_dollars": "0.0000",
             "result": "",
             "can_close_early": false,
             "fractional_trading_enabled": true,
@@ -1268,7 +1167,6 @@ mod tests {
         assert_eq!(market.ticker, "KXBTC-25JAN10-B50000");
         assert_eq!(market.market_type, MarketType::Binary);
         assert_eq!(market.status, MarketStatus::Active);
-        assert_eq!(market.volume, 1000);
         assert_eq!(market.volume_fp, "1000.5");
         assert_eq!(market.volume_24h_fp, "500.25");
         assert_eq!(market.open_interest_fp, "250.125");
@@ -1277,29 +1175,25 @@ mod tests {
     #[test]
     fn test_orderbook_deserialize() {
         let json = r#"{
-            "yes": [[50, 100], [55, 200]],
-            "no": [[45, 150]],
             "yes_dollars": [["0.50", 100], ["0.55", 200]],
             "no_dollars": [["0.45", 150]]
         }"#;
         let orderbook: Orderbook = serde_json::from_str(json).unwrap();
-        assert_eq!(orderbook.yes.len(), 2);
-        assert_eq!(orderbook.yes[0], vec![50, 100]);
-        assert_eq!(orderbook.no.len(), 1);
-
         let yes_dollars = orderbook.yes_dollars.unwrap();
         assert_eq!(yes_dollars.len(), 2);
         assert_eq!(yes_dollars[0].price, "0.50");
         assert_eq!(yes_dollars[0].quantity, 100);
+        let no_dollars = orderbook.no_dollars.unwrap();
+        assert_eq!(no_dollars.len(), 1);
+        assert_eq!(no_dollars[0].price, "0.45");
     }
 
     #[test]
     fn test_orderbook_deserialize_empty() {
-        let json = r#"{"yes": [], "no": []}"#;
+        let json = r#"{}"#;
         let orderbook: Orderbook = serde_json::from_str(json).unwrap();
-        assert!(orderbook.yes.is_empty());
-        assert!(orderbook.no.is_empty());
         assert!(orderbook.yes_dollars.is_none());
+        assert!(orderbook.no_dollars.is_none());
     }
 
     #[test]
@@ -1307,17 +1201,15 @@ mod tests {
         // API returns null for markets with no orders
         let json = r#"{"orderbook": null}"#;
         let response: OrderbookResponse = serde_json::from_str(json).unwrap();
-        assert!(response.orderbook.yes.is_empty());
-        assert!(response.orderbook.no.is_empty());
+        assert!(response.orderbook.yes_dollars.is_none());
     }
 
     #[test]
-    fn test_orderbook_null_fields() {
-        // API can return null for yes/no fields within orderbook
-        let json = r#"{"orderbook": {"yes": null, "no": null}}"#;
+    fn test_orderbook_response_fp_only() {
+        // v2 API returns only orderbook_fp
+        let json = r#"{"orderbook_fp":{"no_dollars":[],"yes_dollars":[]}}"#;
         let response: OrderbookResponse = serde_json::from_str(json).unwrap();
-        assert!(response.orderbook.yes.is_empty());
-        assert!(response.orderbook.no.is_empty());
+        assert!(response.orderbook_fp.is_some());
     }
 
     #[test]
@@ -1325,10 +1217,7 @@ mod tests {
         let json = r#"{
             "trade_id": "abc123",
             "ticker": "KXBTC-25JAN10-B50000",
-            "count": 10,
             "count_fp": "10.5",
-            "yes_price": 50,
-            "no_price": 50,
             "yes_price_dollars": "0.50",
             "no_price_dollars": "0.50",
             "taker_side": "yes",
@@ -1336,7 +1225,6 @@ mod tests {
         }"#;
         let trade: Trade = serde_json::from_str(json).unwrap();
         assert_eq!(trade.trade_id, "abc123");
-        assert_eq!(trade.count, 10);
         assert_eq!(trade.count_fp, "10.5");
         assert_eq!(trade.taker_side, TakerSide::Yes);
     }
@@ -1360,33 +1248,18 @@ mod tests {
                 "latest_expiration_time": "2025-12-31T00:00:00Z",
                 "settlement_timer_seconds": 3600,
                 "response_price_units": "usd_cent",
-                "tick_size": 1,
-                "yes_bid": 50,
                 "yes_bid_dollars": "0.50",
-                "yes_ask": 55,
                 "yes_ask_dollars": "0.55",
-                "no_bid": 45,
                 "no_bid_dollars": "0.45",
-                "no_ask": 50,
                 "no_ask_dollars": "0.50",
-                "last_price": 52,
                 "last_price_dollars": "0.52",
-                "previous_yes_bid": 48,
                 "previous_yes_bid_dollars": "0.48",
-                "previous_yes_ask": 53,
                 "previous_yes_ask_dollars": "0.53",
-                "previous_price": 50,
                 "previous_price_dollars": "0.50",
-                "volume": 1000,
                 "volume_fp": "1000.00",
-                "volume_24h": 100,
                 "volume_24h_fp": "100.00",
-                "open_interest": 500,
                 "open_interest_fp": "500.00",
-                "notional_value": 100,
                 "notional_value_dollars": "1.00",
-                "liquidity": 0,
-                "liquidity_dollars": "0.0000",
                 "result": "",
                 "can_close_early": false,
                 "fractional_trading_enabled": true,

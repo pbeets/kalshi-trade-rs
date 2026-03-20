@@ -7,7 +7,7 @@
 
 use kalshi_trade_rs::{
     GetBalanceParams, GetFillsParams, GetOrdersParams, GetPositionsParams, GetSettlementsParams,
-    KalshiClient, KalshiConfig, OrderStatus, UpdateSubaccountNettingRequest, cents_to_dollars,
+    KalshiClient, KalshiConfig, OrderStatus, UpdateSubaccountNettingRequest,
 };
 
 #[tokio::main]
@@ -26,12 +26,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let balance = client.get_balance().await?;
 
-    println!("Available: ${:.2}", cents_to_dollars(balance.balance));
+    println!("Available: {} cents", balance.balance);
 
-    println!(
-        "Portfolio Value: ${:.2}",
-        cents_to_dollars(balance.portfolio_value)
-    );
+    println!("Portfolio Value: {} cents", balance.portfolio_value);
 
     println!();
 
@@ -41,13 +38,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params = GetBalanceParams::new().subaccount(0);
     let primary_balance = client.get_balance_with_params(params).await?;
 
+    println!("Primary Available: {} cents", primary_balance.balance);
     println!(
-        "Primary Available: ${:.2}",
-        cents_to_dollars(primary_balance.balance)
-    );
-    println!(
-        "Primary Portfolio Value: ${:.2}",
-        cents_to_dollars(primary_balance.portfolio_value)
+        "Primary Portfolio Value: {} cents",
+        primary_balance.portfolio_value
     );
 
     println!();
@@ -91,15 +85,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     for pos in positions.market_positions.iter().take(5) {
-        let side = if pos.position > 0 { "YES" } else { "NO" };
-
         println!(
-            "  {} {} {} | exposure: ${:.2} | realized P&L: ${:.2}",
-            pos.ticker,
-            pos.position.abs(),
-            side,
-            cents_to_dollars(pos.market_exposure),
-            cents_to_dollars(pos.realized_pnl)
+            "  {} | position: {} | exposure: ${} | realized P&L: ${}",
+            pos.ticker, pos.position_fp, pos.market_exposure_dollars, pos.realized_pnl_dollars
         );
     }
 
@@ -182,14 +170,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for order in &resting_orders.orders {
             println!(
-                "  {} {} {} {} @ ${:.2} ({}/{})",
+                "  {} {} {} {} @ ${} ({}/{})",
                 order.ticker,
                 order.action,
-                order.remaining_count,
+                order.remaining_count_fp,
                 order.side,
-                cents_to_dollars(order.yes_price),
-                order.fill_count,
-                order.initial_count
+                order.yes_price_dollars,
+                order.fill_count_fp,
+                order.initial_count_fp
             );
         }
     }
@@ -209,10 +197,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let result = format!("{:?}", settlement.market_result);
 
         println!(
-            "  {} | result: {} | P&L: ${:.2} | fee: {} | yes: {} no: {}",
+            "  {} | result: {} | P&L: {} cents | fee: {} | yes: {} no: {}",
             ticker,
             result,
-            cents_to_dollars(settlement.revenue),
+            settlement.revenue,
             settlement.fee_cost,
             settlement.yes_count_fp,
             settlement.no_count_fp,

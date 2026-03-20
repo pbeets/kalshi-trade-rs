@@ -131,13 +131,6 @@ impl TransferBetweenSubaccountsRequest {
         self.client_transfer_id = id.into();
         self
     }
-
-    /// Returns the transfer amount in dollars.
-    #[inline]
-    #[must_use]
-    pub fn amount_dollars(&self) -> f64 {
-        self.amount_cents as f64 / 100.0
-    }
 }
 
 /// Response from POST /portfolio/subaccounts/transfer.
@@ -157,15 +150,6 @@ pub struct SubaccountTransfer {
     pub amount_cents: i64,
     /// Transfer timestamp (Unix seconds).
     pub created_ts: i64,
-}
-
-impl SubaccountTransfer {
-    /// Returns the transfer amount in dollars.
-    #[inline]
-    #[must_use]
-    pub fn amount_dollars(&self) -> f64 {
-        self.amount_cents as f64 / 100.0
-    }
 }
 
 /// Response from GET /portfolio/subaccounts/balances.
@@ -353,9 +337,9 @@ mod tests {
     }
 
     #[test]
-    fn test_amount_dollars() {
+    fn test_transfer_amount() {
         let request = TransferBetweenSubaccountsRequest::new(0, 1, 12345);
-        assert!((request.amount_dollars() - 123.45).abs() < f64::EPSILON);
+        assert_eq!(request.amount_cents, 12345);
     }
 
     #[test]

@@ -181,8 +181,8 @@ pub use message::{
     Action, CollateralReturnType, CommunicationData, EventLifecycleData, FillData,
     MarketLifecycleData, MarketLifecycleEventType, MarketPositionData, MultivariateLookupData,
     MveLeg, OrderGroupEventType, OrderGroupUpdateData, OrderbookDeltaData, OrderbookSnapshotData,
-    PriceLevel, QuoteAcceptedData, QuoteData, QuoteExecutedData, RfqData, RfqDeletedData, Side,
-    StreamMessage, StreamUpdate, TickerData, TradeData, UserOrderData, UserOrderEventType,
+    QuoteAcceptedData, QuoteData, QuoteExecutedData, RfqData, RfqDeletedData, Side, StreamMessage,
+    StreamUpdate, TickerData, TradeData, UserOrderData, UserOrderEventType,
 };
 
 /// Connection strategy for the WebSocket client.

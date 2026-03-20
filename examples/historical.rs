@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for market in &markets.markets {
         println!(
             "  {} | {:?} | result: {:?} | vol: {}",
-            market.ticker, market.status, market.result, market.volume
+            market.ticker, market.status, market.result, market.volume_fp
         );
     }
 
@@ -128,11 +128,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "  {} {} {} {} | {:?} | filled: {}/{}",
             order.ticker,
             order.action,
-            order.initial_count,
+            order.initial_count_fp,
             order.side,
             order.status,
-            order.fill_count,
-            order.initial_count,
+            order.fill_count_fp,
+            order.initial_count_fp,
         );
     }
 

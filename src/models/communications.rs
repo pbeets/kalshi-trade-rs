@@ -10,16 +10,9 @@ use super::market::MveSelectedLeg;
 pub struct CreateRfqRequest {
     /// The ticker of the market for which to create an RFQ.
     pub market_ticker: String,
-    /// The number of contracts for the RFQ.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub contracts: Option<i64>,
     /// The number of contracts (fixed-point decimal string).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contracts_fp: Option<String>,
-    /// The target cost for the RFQ in centi-cents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars. Deprecated: use `target_cost_dollars` instead.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target_cost_centi_cents: Option<i64>,
     /// Target cost as a fixed-point dollar string (e.g., "50.0000").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_cost_dollars: Option<String>,
@@ -58,9 +51,7 @@ impl CreateRfqRequest {
         }
         Ok(Self {
             market_ticker: market_ticker.into(),
-            contracts: Some(contracts),
-            contracts_fp: None,
-            target_cost_centi_cents: None,
+            contracts_fp: Some(format!("{}", contracts)),
             target_cost_dollars: None,
             rest_remainder,
             replace_existing: None,
@@ -92,57 +83,6 @@ impl CreateRfqRequest {
             .expect("invalid RFQ contracts")
     }
 
-    /// Create a new RFQ request with target cost, with validation.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if `target_cost_centi_cents` is not positive.
-    pub fn try_with_target_cost(
-        market_ticker: impl Into<String>,
-        target_cost_centi_cents: i64,
-        rest_remainder: bool,
-    ) -> crate::error::Result<Self> {
-        if target_cost_centi_cents <= 0 {
-            return Err(crate::error::Error::InvalidTargetCost(
-                target_cost_centi_cents,
-            ));
-        }
-        Ok(Self {
-            market_ticker: market_ticker.into(),
-            contracts: None,
-            contracts_fp: None,
-            target_cost_centi_cents: Some(target_cost_centi_cents),
-            target_cost_dollars: None,
-            rest_remainder,
-            replace_existing: None,
-            subtrader_id: None,
-            side: None,
-            expires_in_seconds: None,
-            subaccount: None,
-        })
-    }
-
-    /// Create a new RFQ request with target cost.
-    ///
-    /// # Arguments
-    ///
-    /// * `market_ticker` - The market ticker
-    /// * `target_cost_centi_cents` - Target cost in centi-cents (1/100th of a cent)
-    /// * `rest_remainder` - Whether to rest the remainder after execution
-    ///
-    /// # Panics
-    ///
-    /// Panics if `target_cost_centi_cents` is not positive.
-    #[must_use]
-    pub fn with_target_cost(
-        market_ticker: impl Into<String>,
-        target_cost_centi_cents: i64,
-        rest_remainder: bool,
-    ) -> Self {
-        Self::try_with_target_cost(market_ticker, target_cost_centi_cents, rest_remainder)
-            .expect("invalid RFQ target cost")
-    }
-
     /// Create a new RFQ request with target cost in dollars, with validation.
     ///
     /// Sends the dollar amount as a fixed-point string via the `target_cost_dollars` field.
@@ -162,9 +102,7 @@ impl CreateRfqRequest {
         }
         Ok(Self {
             market_ticker: market_ticker.into(),
-            contracts: None,
             contracts_fp: None,
-            target_cost_centi_cents: None,
             target_cost_dollars: Some(format!("{:.4}", target_cost_dollars)),
             rest_remainder,
             replace_existing: None,
@@ -622,14 +560,8 @@ pub struct Rfq {
     pub creator_id: String,
     /// The ticker of the market this RFQ is for.
     pub market_ticker: String,
-    /// Number of contracts requested in the RFQ.
-    pub contracts: i64,
     /// Number of contracts (fixed-point decimal string).
     pub contracts_fp: String,
-    /// Total value of the RFQ in centi-cents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars. Deprecated: use `target_cost_dollars`.
-    #[serde(default)]
-    pub target_cost_centi_cents: Option<i64>,
     /// Target cost as a fixed-point dollar string.
     #[serde(default)]
     pub target_cost_dollars: Option<String>,
@@ -666,20 +598,6 @@ pub struct Rfq {
     pub expires_ts: Option<String>,
 }
 
-impl Rfq {
-    /// Returns the target cost in dollars computed from centi-cents, if available.
-    ///
-    /// Prefer using the `target_cost_dollars` field directly when available.
-    #[must_use]
-    #[deprecated(
-        since = "0.3.0",
-        note = "Use the `target_cost_dollars` field directly."
-    )]
-    pub fn target_cost_as_dollars(&self) -> Option<f64> {
-        self.target_cost_centi_cents.map(|cc| cc as f64 / 10000.0)
-    }
-}
-
 /// Quote details.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Quote {
@@ -693,12 +611,6 @@ pub struct Quote {
     pub rfq_creator_id: String,
     /// The ticker of the market this quote is for.
     pub market_ticker: String,
-    /// Number of contracts in the quote.
-    pub contracts: i64,
-    /// Bid price for YES contracts, in cents.
-    pub yes_bid: i64,
-    /// Bid price for NO contracts, in cents.
-    pub no_bid: i64,
     /// YES bid price in dollars (fixed-point string with 4 decimal places).
     pub yes_bid_dollars: String,
     /// NO bid price in dollars (fixed-point string with 4 decimal places).
@@ -736,10 +648,6 @@ pub struct Quote {
     /// User ID of RFQ creator (private field).
     #[serde(default)]
     pub rfq_creator_user_id: Option<String>,
-    /// Total value requested in RFQ in centi-cents (1/100th of a cent).
-    /// Divide by 10,000 to get dollars. Deprecated: use `rfq_target_cost_dollars`.
-    #[serde(default)]
-    pub rfq_target_cost_centi_cents: Option<i64>,
     /// RFQ target cost as a fixed-point dollar string.
     #[serde(default)]
     pub rfq_target_cost_dollars: Option<String>,
@@ -757,21 +665,6 @@ pub struct Quote {
     /// Timestamp when the quote expires.
     #[serde(default)]
     pub expires_ts: Option<String>,
-}
-
-impl Quote {
-    /// Returns the RFQ target cost in dollars computed from centi-cents, if available.
-    ///
-    /// Prefer using the `rfq_target_cost_dollars` field directly when available.
-    #[must_use]
-    #[deprecated(
-        since = "0.3.0",
-        note = "Use the `rfq_target_cost_dollars` field directly."
-    )]
-    pub fn rfq_target_cost_as_dollars(&self) -> Option<f64> {
-        self.rfq_target_cost_centi_cents
-            .map(|cc| cc as f64 / 10000.0)
-    }
 }
 
 /// Response for getting a single RFQ.
@@ -819,25 +712,15 @@ mod tests {
     fn test_create_rfq_with_contracts() {
         let rfq = CreateRfqRequest::with_contracts("TICKER", 10, true);
         assert_eq!(rfq.market_ticker, "TICKER");
-        assert_eq!(rfq.contracts, Some(10));
-        assert!(rfq.target_cost_centi_cents.is_none());
+        assert_eq!(rfq.contracts_fp, Some("10".to_string()));
+        assert!(rfq.target_cost_dollars.is_none());
         assert!(rfq.rest_remainder);
-    }
-
-    #[test]
-    fn test_create_rfq_with_target_cost() {
-        let rfq = CreateRfqRequest::with_target_cost("TICKER", 500000, false);
-        assert_eq!(rfq.market_ticker, "TICKER");
-        assert!(rfq.contracts.is_none());
-        assert_eq!(rfq.target_cost_centi_cents, Some(500000));
-        assert!(!rfq.rest_remainder);
     }
 
     #[test]
     fn test_create_rfq_with_target_cost_dollars() {
         let rfq = CreateRfqRequest::with_target_cost_dollars("TICKER", 50.0, true);
         assert_eq!(rfq.market_ticker, "TICKER");
-        assert!(rfq.target_cost_centi_cents.is_none());
         assert_eq!(rfq.target_cost_dollars.as_deref(), Some("50.0000"));
     }
 
@@ -888,16 +771,13 @@ mod tests {
     }
 
     #[test]
-    #[allow(deprecated)]
-    fn test_rfq_target_cost_as_dollars() {
+    fn test_rfq_target_cost_dollars() {
         let rfq = Rfq {
             id: "rfq123".to_string(),
             creator_id: "creator123".to_string(),
             market_ticker: "TICKER".to_string(),
-            contracts: 0,
             contracts_fp: String::new(),
-            target_cost_centi_cents: Some(500000), // $50
-            target_cost_dollars: None,
+            target_cost_dollars: Some("50.0000".to_string()),
             status: "open".to_string(),
             created_ts: "2024-01-01T00:00:00Z".to_string(),
             updated_ts: None,
@@ -910,21 +790,17 @@ mod tests {
             side: None,
             expires_ts: None,
         };
-        assert!((rfq.target_cost_as_dollars().unwrap() - 50.0).abs() < f64::EPSILON);
+        assert_eq!(rfq.target_cost_dollars.as_deref(), Some("50.0000"));
     }
 
     #[test]
-    #[allow(deprecated)]
-    fn test_quote_rfq_target_cost_as_dollars() {
+    fn test_quote_rfq_target_cost_dollars() {
         let quote = Quote {
             id: "quote123".to_string(),
             rfq_id: "rfq123".to_string(),
             creator_id: "creator123".to_string(),
             rfq_creator_id: "rfq_creator123".to_string(),
             market_ticker: "TICKER".to_string(),
-            contracts: 10,
-            yes_bid: 56,
-            no_bid: 44,
             yes_bid_dollars: "0.5600".to_string(),
             no_bid_dollars: "0.4400".to_string(),
             created_ts: "2024-01-01T00:00:00Z".to_string(),
@@ -939,15 +815,14 @@ mod tests {
             cancellation_reason: None,
             creator_user_id: None,
             rfq_creator_user_id: None,
-            rfq_target_cost_centi_cents: Some(500000), // $50
-            rfq_target_cost_dollars: None,
+            rfq_target_cost_dollars: Some("50.0000".to_string()),
             rfq_creator_order_id: None,
             contracts_fp: "10".to_string(),
             creator_order_id: None,
             side: None,
             expires_ts: None,
         };
-        assert!((quote.rfq_target_cost_as_dollars().unwrap() - 50.0).abs() < f64::EPSILON);
+        assert_eq!(quote.rfq_target_cost_dollars.as_deref(), Some("50.0000"));
     }
 
     #[test]

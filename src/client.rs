@@ -100,7 +100,7 @@ impl Environment {
 /// // Get positions
 /// let positions = client.get_positions().await?;
 /// for pos in positions.market_positions {
-///     println!("{}: {} contracts", pos.ticker, pos.position);
+///     println!("{}: {} contracts", pos.ticker, pos.position_fp);
 /// }
 /// ```
 #[derive(Debug, Clone)]
@@ -186,7 +186,7 @@ impl KalshiClient {
     /// ```ignore
     /// let positions = client.get_positions().await?;
     /// for pos in positions.market_positions {
-    ///     println!("{}: {} contracts", pos.ticker, pos.position);
+    ///     println!("{}: {} contracts", pos.ticker, pos.position_fp);
     /// }
     /// ```
     pub async fn get_positions(&self) -> Result<PositionsResponse> {
@@ -224,7 +224,7 @@ impl KalshiClient {
     /// ```ignore
     /// let fills = client.get_fills().await?;
     /// for fill in fills.fills {
-    ///     println!("Fill {}: {} @ {} cents", fill.fill_id, fill.count, fill.yes_price);
+    ///     println!("Fill {}: {} @ ${}", fill.fill_id, fill.count_fp, fill.yes_price_fixed);
     /// }
     /// ```
     pub async fn get_fills(&self) -> Result<FillsResponse> {
@@ -442,9 +442,11 @@ impl KalshiClient {
     /// # Example
     ///
     /// ```ignore
-    /// let orderbook = client.get_orderbook("KXBTC-25JAN10-B50000").await?;
-    /// for level in &orderbook.orderbook.yes {
-    ///     println!("YES: {} @ {} cents", level[1], level[0]);
+    /// let response = client.get_orderbook("KXBTC-25JAN10-B50000").await?;
+    /// if let Some(ref fp) = response.orderbook_fp {
+    ///     for level in fp.yes_dollars.as_deref().unwrap_or(&[]) {
+    ///         println!("YES: {} @ ${}", level.quantity, level.price);
+    ///     }
     /// }
     /// ```
     pub async fn get_orderbook(&self, ticker: &str) -> Result<OrderbookResponse> {
@@ -483,7 +485,7 @@ impl KalshiClient {
     /// let trades = client.get_trades().await?;
     /// for trade in trades.trades {
     ///     println!("{}: {} contracts @ {} cents ({:?})",
-    ///         trade.ticker, trade.count, trade.yes_price, trade.taker_side);
+    ///         trade.ticker, trade.count_fp, trade.yes_price_dollars, trade.taker_side);
     /// }
     /// ```
     pub async fn get_trades(&self) -> Result<TradesResponse> {
@@ -861,7 +863,7 @@ impl KalshiClient {
     /// // Reduce by 5 contracts
     /// let request = DecreaseOrderRequest::reduce_by(5);
     /// let response = client.decrease_order("abc123", request).await?;
-    /// println!("Remaining: {} contracts", response.order.remaining_count);
+    /// println!("Remaining: {} contracts", response.order.remaining_count_fp);
     /// ```
     pub async fn decrease_order(
         &self,
@@ -2450,7 +2452,7 @@ impl KalshiClient {
     ///     .limit(100);
     /// let response = client.get_fcm_positions(params).await?;
     /// for pos in response.market_positions {
-    ///     println!("{}: {} contracts", pos.ticker, pos.position);
+    ///     println!("{}: {} contracts", pos.ticker, pos.position_fp);
     /// }
     /// ```
     pub async fn get_fcm_positions(
@@ -2554,7 +2556,7 @@ impl KalshiClient {
     /// let params = GetHistoricalCandlesticksParams::new(1000000, 2000000, CandlestickPeriod::OneHour);
     /// let candles = client.get_historical_candlesticks("KXBTC-25JAN10-B50000", params).await?;
     /// for candle in candles.candlesticks {
-    ///     println!("Volume: {}", candle.volume);
+    ///     println!("Volume: {}", candle.volume_fp);
     /// }
     /// ```
     pub async fn get_historical_candlesticks(
@@ -2574,7 +2576,7 @@ impl KalshiClient {
     /// ```ignore
     /// let fills = client.get_historical_fills().await?;
     /// for fill in fills.fills {
-    ///     println!("{}: {} @ {} cents", fill.ticker, fill.count, fill.yes_price);
+    ///     println!("{}: {} @ ${}", fill.ticker, fill.count_fp, fill.yes_price_fixed);
     /// }
     /// ```
     pub async fn get_historical_fills(&self) -> Result<FillsResponse> {

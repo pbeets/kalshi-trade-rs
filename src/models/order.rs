@@ -29,31 +29,16 @@ pub struct Order {
     #[serde(rename = "type")]
     pub order_type: OrderType,
     pub status: OrderStatus,
-    /// Price in cents.
-    pub yes_price: i64,
-    /// Price in cents.
-    pub no_price: i64,
     /// Price in fixed-point dollars.
     pub yes_price_dollars: String,
     /// Price in fixed-point dollars.
     pub no_price_dollars: String,
-    pub fill_count: i64,
     /// Fill count (fixed-point decimal string).
     pub fill_count_fp: String,
-    pub remaining_count: i64,
     /// Remaining count (fixed-point decimal string).
     pub remaining_count_fp: String,
-    pub initial_count: i64,
     /// Initial count (fixed-point decimal string).
     pub initial_count_fp: String,
-    /// Fees in cents.
-    pub taker_fees: i64,
-    /// Fees in cents.
-    pub maker_fees: i64,
-    /// Cost in cents.
-    pub taker_fill_cost: i64,
-    /// Cost in cents.
-    pub maker_fill_cost: i64,
     pub taker_fill_cost_dollars: String,
     pub maker_fill_cost_dollars: String,
     #[serde(default)]

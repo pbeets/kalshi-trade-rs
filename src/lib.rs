@@ -6,7 +6,7 @@
 //! # Quick Start
 //!
 //! ```ignore
-//! use kalshi_trade_rs::{cents_to_dollars, KalshiClient, KalshiConfig};
+//! use kalshi_trade_rs::{KalshiClient, KalshiConfig};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,12 +18,12 @@
 //!
 //!     // Get account balance
 //!     let balance = client.get_balance().await?;
-//!     println!("Balance: ${:.2}", cents_to_dollars(balance.balance));
+//!     println!("Balance: {}", balance.balance);
 //!
 //!     // Get positions
 //!     let positions = client.get_positions().await?;
 //!     for pos in positions.market_positions {
-//!         println!("{}: {} contracts", pos.ticker, pos.position);
+//!         println!("{}: {} contracts", pos.ticker, pos.position_fp);
 //!     }
 //!
 //!     Ok(())
@@ -87,7 +87,6 @@ pub use models::{
     StructuredTargetsResponse, SubaccountNettingConfig, SubaccountNettingResponse,
     TagsByCategoriesResponse, TakerSide, TimeInForce, Trade, TradesResponse, TradingSession,
     UpdateOrderGroupLimitRequest, UpdateSubaccountNettingRequest, UserDataTimestampResponse,
-    cents_to_dollars,
 };
 
 // Re-export WebSocket types for convenience

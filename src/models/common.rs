@@ -90,26 +90,6 @@ pub enum ExchangeInstance {
     Unknown,
 }
 
-/// Convert cents to dollars.
-///
-/// All Kalshi API monetary values are in cents. This helper converts to dollars
-/// for display purposes.
-///
-/// # Example
-///
-/// ```
-/// use kalshi_trade_rs::cents_to_dollars;
-///
-/// let balance_cents = 12345_i64;
-/// println!("Balance: ${:.2}", cents_to_dollars(balance_cents));
-/// // Output: Balance: $123.45
-/// ```
-#[inline]
-#[must_use]
-pub fn cents_to_dollars(cents: i64) -> f64 {
-    cents as f64 / 100.0
-}
-
 /// Custom deserializer that treats `null` as an empty `Vec`.
 ///
 /// The Kalshi API sometimes returns `null` instead of `[]` for empty arrays.

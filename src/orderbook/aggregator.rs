@@ -280,13 +280,15 @@ impl OrderbookAggregator {
         };
 
         if let Some(summary) = self.summary(&ticker) {
+            let price = (delta.price_dollars.parse::<f64>().unwrap_or(0.0) * 100.0).round() as i64;
+            let quantity_change = delta.delta_fp.parse::<f64>().unwrap_or(0.0).round() as i64;
             let _ = self.update_sender.send(OrderbookUpdate {
                 ticker,
                 summary,
                 delta: Some(OrderbookDelta {
                     side: delta.side,
-                    price: delta.price_cents(),
-                    quantity_change: delta.delta_quantity(),
+                    price,
+                    quantity_change,
                     new_quantity: new_qty,
                 }),
             });
@@ -438,10 +440,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100], [44, 200]]),
-            yes_dollars: None,
-            no: Some(vec![[55, 150]]),
-            no_dollars: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
+            no_dollars: Some(vec![("0.55".to_string(), 150)]),
             yes_dollars_fp: None,
             no_dollars_fp: None,
         };
@@ -461,10 +461,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100]]),
-            yes_dollars: None,
-            no: Some(vec![[55, 150]]),
-            no_dollars: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
+            no_dollars: Some(vec![("0.55".to_string(), 150)]),
             yes_dollars_fp: None,
             no_dollars_fp: None,
         };
@@ -474,11 +472,9 @@ mod tests {
         let delta = OrderbookDeltaData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            price: Some(46),
-            delta: Some(50),
             side: Side::Yes,
-            price_dollars: String::new(),
-            delta_fp: String::new(),
+            price_dollars: "0.46".to_string(),
+            delta_fp: "50".to_string(),
             client_order_id: None,
             subaccount: None,
             ts: None,
@@ -496,9 +492,7 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100]]),
-            yes_dollars: None,
-            no: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
             no_dollars: None,
             yes_dollars_fp: None,
             no_dollars_fp: None,
@@ -519,9 +513,7 @@ mod tests {
         let snapshot1 = OrderbookSnapshotData {
             market_ticker: "TEST1".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100]]),
-            yes_dollars: None,
-            no: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
             no_dollars: None,
             yes_dollars_fp: None,
             no_dollars_fp: None,
@@ -531,9 +523,7 @@ mod tests {
         let snapshot2 = OrderbookSnapshotData {
             market_ticker: "TEST2".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[50, 200]]),
-            yes_dollars: None,
-            no: None,
+            yes_dollars: Some(vec![("0.50".to_string(), 200)]),
             no_dollars: None,
             yes_dollars_fp: None,
             no_dollars_fp: None,
@@ -556,10 +546,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100], [44, 200]]),
-            yes_dollars: None,
-            no: Some(vec![[53, 150]]), // YES ask at 47
-            no_dollars: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
+            no_dollars: Some(vec![("0.53".to_string(), 150)]), // YES ask at 47
             yes_dollars_fp: None,
             no_dollars_fp: None,
         };
@@ -595,10 +583,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100], [44, 200]]),
-            yes_dollars: None,
-            no: Some(vec![[55, 150]]),
-            no_dollars: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
+            no_dollars: Some(vec![("0.55".to_string(), 150)]),
             yes_dollars_fp: None,
             no_dollars_fp: None,
         };
@@ -621,10 +607,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100], [44, 200]]),
-            yes_dollars: None,
-            no: Some(vec![[55, 150]]),
-            no_dollars: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
+            no_dollars: Some(vec![("0.55".to_string(), 150)]),
             yes_dollars_fp: None,
             no_dollars_fp: None,
         };
@@ -635,11 +619,9 @@ mod tests {
             &OrderbookDeltaData {
                 market_ticker: "TEST".to_string(),
                 market_id: String::new(),
-                price: Some(46),
-                delta: Some(75),
                 side: Side::Yes,
-                price_dollars: String::new(),
-                delta_fp: String::new(),
+                price_dollars: "0.46".to_string(),
+                delta_fp: "75".to_string(),
                 client_order_id: None,
                 subaccount: None,
                 ts: None,
@@ -650,11 +632,9 @@ mod tests {
             &OrderbookDeltaData {
                 market_ticker: "TEST".to_string(),
                 market_id: String::new(),
-                price: Some(44),
-                delta: Some(-200),
                 side: Side::Yes,
-                price_dollars: String::new(),
-                delta_fp: String::new(),
+                price_dollars: "0.44".to_string(),
+                delta_fp: "-200".to_string(),
                 client_order_id: None,
                 subaccount: None,
                 ts: None,
@@ -681,11 +661,9 @@ mod tests {
             &OrderbookDeltaData {
                 market_ticker: "TEST".to_string(),
                 market_id: String::new(),
-                price: Some(45),
-                delta: Some(100),
                 side: Side::Yes,
-                price_dollars: String::new(),
-                delta_fp: String::new(),
+                price_dollars: "0.45".to_string(),
+                delta_fp: "100".to_string(),
                 client_order_id: None,
                 subaccount: None,
                 ts: None,
@@ -706,9 +684,7 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes: Some(vec![[45, 100]]),
-            yes_dollars: None,
-            no: None,
+            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
             no_dollars: None,
             yes_dollars_fp: None,
             no_dollars_fp: None,

@@ -8,57 +8,33 @@ use super::query::QueryBuilder;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketPosition {
     pub ticker: String,
-    /// In cents.
-    pub total_traded: i64,
     pub total_traded_dollars: String,
-    /// Negative = NO position, positive = YES position.
-    pub position: i64,
     /// Position (fixed-point decimal string).
     pub position_fp: String,
-    /// Position cost in cents.
-    pub market_exposure: i64,
     pub market_exposure_dollars: String,
-    /// In cents.
-    pub realized_pnl: i64,
     pub realized_pnl_dollars: String,
-    /// Deprecated: aggregate size of resting orders in contract units.
-    pub resting_orders_count: i64,
     /// Resting orders count (fixed-point decimal string).
     #[serde(default)]
     pub resting_orders_count_fp: Option<String>,
-    /// In cents.
-    pub fees_paid: i64,
     pub fees_paid_dollars: String,
     #[serde(default)]
     pub last_updated_ts: Option<String>,
     /// Settlement result for this market position.
     #[serde(default)]
     pub market_result: Option<String>,
-    /// Total cost in cents.
-    #[serde(default)]
-    pub total_cost: Option<i64>,
 }
 
 /// A position aggregated at the event level.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventPosition {
     pub event_ticker: String,
-    /// In cents.
-    pub total_cost: i64,
     pub total_cost_dollars: String,
-    pub total_cost_shares: i64,
     /// Total cost shares (fixed-point decimal string).
     pub total_cost_shares_fp: String,
-    /// In cents.
-    pub event_exposure: i64,
     pub event_exposure_dollars: String,
-    /// In cents.
-    pub realized_pnl: i64,
     pub realized_pnl_dollars: String,
     /// Deprecated: aggregate size of resting orders.
     pub resting_orders_count: i64,
-    /// In cents.
-    pub fees_paid: i64,
     pub fees_paid_dollars: String,
 }
 

@@ -10,7 +10,7 @@
 
 use kalshi_trade_rs::{
     CandlestickPeriod, GetBatchCandlesticksParams, GetCandlesticksParams, GetMarketsParams,
-    KalshiClient, KalshiConfig, MarketFilterStatus, cents_to_dollars,
+    KalshiClient, KalshiConfig, MarketFilterStatus,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -40,18 +40,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let market = markets
         .markets
         .iter()
-        .find(|m| m.volume > 0)
+        .find(|m| m.volume_fp != "0" && m.volume_fp != "0.00")
         .unwrap_or(&markets.markets[0]);
 
     let ticker = &market.ticker;
     let series_ticker = &market.event_ticker;
-    let volume = market.volume;
+    let volume_fp = &market.volume_fp;
 
     println!("Selected market: {}", ticker);
     println!("Series: {}", series_ticker);
-    println!("Volume: {}", volume);
+    println!("Volume: {}", volume_fp);
 
-    if volume == 0 {
+    if volume_fp == "0" || volume_fp == "0.00" {
         println!("\nNote: This market has no trading activity.");
         println!("Candlestick data requires trades to generate OHLCV data.");
         println!("Demo environment markets typically have zero volume.");
@@ -93,10 +93,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or_else(|| candle.end_period_ts.to_string());
 
             let price = &candle.price;
-            let open = price.open.map(|p| format!("${:.2}", cents_to_dollars(p)));
-            let high = price.high.map(|p| format!("${:.2}", cents_to_dollars(p)));
-            let low = price.low.map(|p| format!("${:.2}", cents_to_dollars(p)));
-            let close = price.close.map(|p| format!("${:.2}", cents_to_dollars(p)));
+            let open = price.open_dollars.as_deref().map(|p| format!("${}", p));
+            let high = price.high_dollars.as_deref().map(|p| format!("${}", p));
+            let low = price.low_dollars.as_deref().map(|p| format!("${}", p));
+            let close = price.close_dollars.as_deref().map(|p| format!("${}", p));
 
             println!(
                 "{:<20} {:>8} {:>8} {:>8} {:>8} {:>8}",
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 high.as_deref().unwrap_or("-"),
                 low.as_deref().unwrap_or("-"),
                 close.as_deref().unwrap_or("-"),
-                candle.volume
+                candle.volume_fp
             );
         }
 
@@ -135,8 +135,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|dt| dt.format("%H:%M:%S").to_string())
                 .unwrap_or_else(|| candle.end_period_ts.to_string());
 
-            let yes_bid = format!("${:.2}", cents_to_dollars(candle.yes_bid.close));
-            let yes_ask = format!("${:.2}", cents_to_dollars(candle.yes_ask.close));
+            let yes_bid = format!("${}", candle.yes_bid.close_dollars);
+            let yes_ask = format!("${}", candle.yes_ask.close_dollars);
 
             println!("{:<20} {:>12} {:>12}", timestamp, yes_bid, yes_ask);
         }
@@ -159,10 +159,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|dt| dt.format("%Y-%m-%d").to_string())
             .unwrap_or_else(|| candle.end_period_ts.to_string());
 
-        let vol = candle.volume;
-        let oi = candle.open_interest;
-
-        println!("  {} | Volume: {} | Open Interest: {}", date, vol, oi);
+        println!(
+            "  {} | Volume: {} | Open Interest: {}",
+            date, candle.volume_fp, candle.open_interest_fp
+        );
     }
     println!();
 

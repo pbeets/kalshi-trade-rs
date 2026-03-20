@@ -17,13 +17,8 @@ pub struct Fill {
     pub market_ticker: String,
     pub side: Side,
     pub action: Action,
-    pub count: i64,
     /// Count (fixed-point decimal string, e.g. `"10.00"`).
     pub count_fp: String,
-    /// Price in cents.
-    pub yes_price: i64,
-    /// Price in cents.
-    pub no_price: i64,
     /// Price in fixed-point dollars.
     pub yes_price_fixed: String,
     /// Price in fixed-point dollars.
@@ -37,7 +32,7 @@ pub struct Fill {
     /// Deprecated: legacy Unix timestamp field.
     #[serde(default)]
     pub ts: Option<i64>,
-    /// Deprecated: use `yes_price` or `no_price` instead.
+    /// Deprecated: use `yes_price_fixed` or `no_price_fixed` instead.
     pub price: f64,
     /// Exchange fee cost as a fixed-point dollar string.
     pub fee_cost: String,
