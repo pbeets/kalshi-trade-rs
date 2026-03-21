@@ -731,7 +731,7 @@ impl AggregatedCancelResponse {
 
     /// Returns the total number of contracts canceled.
     pub fn total_reduced(&self) -> i64 {
-        self.orders.iter().map(|r| r.reduced_by).sum()
+        self.orders.iter().map(|r| r.reduced_by.unwrap_or(0)).sum()
     }
 
     /// Returns the total number of orders processed.
@@ -849,22 +849,22 @@ mod tests {
             orders: vec![
                 BatchCancelOrderResult {
                     order_id: "order1".to_string(),
-                    reduced_by: 5,
-                    reduced_by_fp: "5".to_string(),
+                    reduced_by: Some(5),
+                    reduced_by_fp: Some("5".to_string()),
                     order: Some(make_order("order1")),
                     error: None,
                 },
                 BatchCancelOrderResult {
                     order_id: "order2".to_string(),
-                    reduced_by: 10,
-                    reduced_by_fp: "10".to_string(),
+                    reduced_by: Some(10),
+                    reduced_by_fp: Some("10".to_string()),
                     order: Some(make_order("order2")),
                     error: None,
                 },
                 BatchCancelOrderResult {
                     order_id: "order3".to_string(),
-                    reduced_by: 0,
-                    reduced_by_fp: "0".to_string(),
+                    reduced_by: Some(0),
+                    reduced_by_fp: Some("0".to_string()),
                     order: None,
                     error: Some(BatchOrderError {
                         code: "NOT_FOUND".to_string(),

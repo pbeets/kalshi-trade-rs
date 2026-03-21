@@ -442,9 +442,11 @@ impl CreateOrderRequest {
 pub struct CancelOrderResponse {
     pub order: Order,
     /// Number of contracts that were canceled.
-    pub reduced_by: i64,
+    #[serde(default)]
+    pub reduced_by: Option<i64>,
     /// Number of contracts that were canceled (fixed-point decimal string).
-    pub reduced_by_fp: String,
+    #[serde(default)]
+    pub reduced_by_fp: Option<String>,
 }
 
 /// Request body for POST /portfolio/orders/{order_id}/amend.
@@ -858,10 +860,12 @@ pub struct BatchCancelOrderResult {
     pub order_id: String,
 
     /// Number of contracts canceled.
-    pub reduced_by: i64,
+    #[serde(default)]
+    pub reduced_by: Option<i64>,
 
     /// Number of contracts canceled (fixed-point decimal string).
-    pub reduced_by_fp: String,
+    #[serde(default)]
+    pub reduced_by_fp: Option<String>,
 
     /// Order details after cancellation.
     #[serde(default)]
@@ -886,7 +890,8 @@ pub struct QueuePosition {
     /// Market ticker.
     pub market_ticker: String,
     /// Queue position - number of contracts ahead in the queue.
-    pub queue_position: i64,
+    #[serde(default)]
+    pub queue_position: Option<i64>,
     /// Queue position (fixed-point decimal string).
     #[serde(default)]
     pub queue_position_fp: Option<String>,
@@ -904,7 +909,8 @@ pub struct QueuePositionsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderQueuePositionResponse {
     /// Queue position - number of contracts ahead in the queue.
-    pub queue_position: i64,
+    #[serde(default)]
+    pub queue_position: Option<i64>,
     /// Queue position (fixed-point decimal string).
     #[serde(default)]
     pub queue_position_fp: Option<String>,

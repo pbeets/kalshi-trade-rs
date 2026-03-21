@@ -33,7 +33,8 @@ pub struct Fill {
     #[serde(default)]
     pub ts: Option<i64>,
     /// Deprecated: use `yes_price_fixed` or `no_price_fixed` instead.
-    pub price: f64,
+    #[serde(default)]
+    pub price: Option<f64>,
     /// Exchange fee cost as a fixed-point dollar string.
     pub fee_cost: String,
     /// Subaccount number this fill belongs to (0 for primary, 1-32 for subaccounts).
