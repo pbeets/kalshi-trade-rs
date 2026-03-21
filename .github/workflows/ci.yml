@@ -40,6 +40,25 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test
 
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    # Only run if secrets are available (skip on forks)
+    if: github.repository == 'pbeets/kalshi-trade-rs'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Write private key to file
+        run: echo "$KALSHI_PRIVATE_KEY_PEM" > /tmp/kalshi_private_key.pem
+        env:
+          KALSHI_PRIVATE_KEY_PEM: ${{ secrets.KALSHI_PRIVATE_KEY_PEM }}
+      - run: cargo test --test api_integration -- --ignored
+        env:
+          KALSHI_ENV: demo
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY_PATH: /tmp/kalshi_private_key.pem
+
   msrv:
     name: MSRV (1.92)
     runs-on: ubuntu-latest
