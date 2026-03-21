@@ -78,7 +78,11 @@ impl GetBatchLiveDataParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchLiveDataResponse {
     /// List of live data entries.
-    #[serde(rename = "live_data")]
+    #[serde(
+        default,
+        rename = "live_datas",
+        deserialize_with = "super::common::null_as_empty_vec::deserialize"
+    )]
     pub live_datas: Vec<LiveData>,
 }
 

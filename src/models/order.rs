@@ -46,6 +46,7 @@ pub struct Order {
     #[serde(default)]
     pub maker_fees_dollars: Option<String>,
     /// Deprecated: always returns 0. Use the `get_order_queue_position` endpoint instead.
+    #[serde(default)]
     pub queue_position: i64,
     #[serde(default)]
     pub expiration_time: Option<String>,

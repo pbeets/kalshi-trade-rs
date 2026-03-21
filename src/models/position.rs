@@ -34,6 +34,7 @@ pub struct EventPosition {
     pub event_exposure_dollars: String,
     pub realized_pnl_dollars: String,
     /// Deprecated: aggregate size of resting orders.
+    #[serde(default)]
     pub resting_orders_count: i64,
     pub fees_paid_dollars: String,
 }

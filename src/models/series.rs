@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::common::null_as_empty_vec;
 use super::query::QueryBuilder;
 
 // ============================================================================
@@ -106,10 +107,10 @@ pub struct Series {
     #[serde(default)]
     pub status: Option<String>,
     /// Tags associated with this series.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
     pub tags: Vec<String>,
     /// Settlement sources for this series.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
     pub settlement_sources: Vec<super::event::SettlementSource>,
     /// URL to the contract for this series.
     #[serde(default)]
@@ -127,7 +128,7 @@ pub struct Series {
     #[serde(default)]
     pub fee_multiplier: f64,
     /// Additional trading prohibitions.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec::deserialize")]
     pub additional_prohibitions: Vec<String>,
     /// Total contracts traded across all events in this series.
     /// Only present when `include_volume=true` in the request.
