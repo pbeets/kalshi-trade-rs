@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -50,7 +51,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Write private key to file
-        run: echo "$KALSHI_PRIVATE_KEY_PEM" > /tmp/kalshi_private_key.pem
+        run: printf '%s\n' "$KALSHI_PRIVATE_KEY_PEM" > /tmp/kalshi_private_key.pem
         env:
           KALSHI_PRIVATE_KEY_PEM: ${{ secrets.KALSHI_PRIVATE_KEY_PEM }}
       - run: cargo test --test api_integration -- --ignored
