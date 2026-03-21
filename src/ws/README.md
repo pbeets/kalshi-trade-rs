@@ -83,16 +83,16 @@ All message types are defined in `src/ws/message.rs`:
 |------|-------------|------------|
 | `StreamUpdate` | Wrapper for all updates | `channel`, `sid`, `seq`, `msg` |
 | `StreamMessage` | Enum of all message variants | See below |
-| `OrderbookSnapshotData` | Full orderbook state | `market_ticker`, `yes`, `no` |
-| `OrderbookDeltaData` | Incremental orderbook update | `market_ticker`, `price`, `delta`, `side` |
-| `TickerData` | Market ticker data | `market_ticker`, `price`, `yes_bid`, `yes_ask`, `volume`, `open_interest` |
-| `TradeData` | Public trade info | `market_ticker`, `yes_price`, `no_price`, `count`, `taker_side`, `ts` |
-| `FillData` | User fill notification | `trade_id`, `order_id`, `market_ticker`, `is_taker`, `side`, `yes_price`, `count` |
-| `MarketPositionData` | Position update | `user_id`, `market_ticker`, `position`, `position_cost`, `realized_pnl` |
+| `OrderbookSnapshotData` | Full orderbook state | `market_ticker`, `yes_dollars_fp`, `no_dollars_fp` |
+| `OrderbookDeltaData` | Incremental orderbook update | `market_ticker`, `price_dollars`, `delta_fp`, `side` |
+| `TickerData` | Market ticker data | `market_ticker`, `price_dollars`, `yes_bid_dollars`, `yes_ask_dollars`, `volume_fp`, `open_interest_fp`, `dollar_volume`, `dollar_open_interest`, `ts` |
+| `TradeData` | Public trade info | `market_ticker`, `yes_price_dollars`, `no_price_dollars`, `count_fp`, `taker_side`, `ts` |
+| `FillData` | User fill notification | `trade_id`, `order_id`, `market_ticker`, `is_taker`, `side`, `yes_price_dollars`, `count_fp` |
+| `MarketPositionData` | Position update | `user_id`, `market_ticker`, `position_fp`, `position_cost_dollars`, `realized_pnl_dollars` |
 | `MarketLifecycleData` | Lifecycle event | `event_type`, `market_ticker`, timestamps, `result` |
-| `CommunicationData` | RFQ/Quote events | Tagged enum: `RfqCreated`, `RfqDeleted`, `QuoteCreated`, `QuoteAccepted` |
+| `CommunicationData` | RFQ/Quote events | Tagged enum: `RfqCreated`, `RfqDeleted`, `QuoteCreated`, `QuoteAccepted`, `QuoteExecuted` |
 | `OrderGroupUpdateData` | Order group events | `order_group_id`, `event_type`, `contracts_limit_fp` |
-| `UserOrderData` | User order updates | `order_id`, `ticker`, `event_type`, `status`, `side`, `yes_price`, `fill_count`, `remaining_count` |
+| `UserOrderData` | User order updates | `order_id`, `ticker`, `event_type`, `status`, `side`, `yes_price_dollars`, `fill_count_fp`, `remaining_count_fp` |
 
 ### System Messages
 
@@ -261,11 +261,11 @@ handle.unsubscribe_all(Channel::OrderbookDelta).await?;
     "seq": 42,
     "msg": {
         "market_ticker": "INXD-25JAN17-B5955",
-        "price": 65,
-        "yes_bid": 64,
-        "yes_ask": 66,
-        "volume": 1000,
-        "open_interest": 500,
+        "price_dollars": "0.65",
+        "yes_bid_dollars": "0.64",
+        "yes_ask_dollars": "0.66",
+        "volume_fp": "1000.00",
+        "open_interest_fp": "500.00",
         "dollar_volume": 65000,
         "dollar_open_interest": 32500,
         "ts": 1704067200

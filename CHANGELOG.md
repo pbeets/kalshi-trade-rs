@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-21
+
+### Added
+
+- `TickerData` fields: `dollar_volume`, `dollar_open_interest`, `ts` (unix
+  timestamp in seconds). All use `#[serde(default)]` for defensive
+  deserialization.
+- `MarketPositionData` centi-cent integer fields: `position_cost`,
+  `realized_pnl`, `fees_paid`, `position_fee_cost` (current v2 spec fields,
+  complementing the `_dollars` string variants).
+- `IncomingMessage::Response` now exposes top-level `sid` and `seq` fields from
+  the wire protocol, in addition to the existing `msg` payload.
+- `send_initial_snapshot` support for `UpdateSubscription` commands.
+- `seq` field now propagated from wire protocol to `StreamUpdate`.
+
+### Fixed
+
+- **Kalshi fixed-point migration (Mar 12 2026)**: All WebSocket message structs
+  now use v2 fixed-point fields exclusively. Deserialization no longer fails when
+  Kalshi omits the removed integer/cent-based fields. Resolves #35.
+- `Order.queue_position` now uses `#[serde(default)]` — the API no longer
+  returns this deprecated field.
+- `EventPosition.resting_orders_count` now uses `#[serde(default)]` — the API
+  no longer returns this deprecated field.
+- `Series` Vec fields (`tags`, `settlement_sources`, `additional_prohibitions`)
+  now handle `null` from the API via `null_as_empty_vec` deserializer.
+- `BatchLiveDataResponse` serde rename corrected from `"live_data"` to
+  `"live_datas"` to match the actual API response key, with `null` handling.
+
+### Changed
+
+- **Breaking:** Removed all legacy cents-based fields from WebSocket message
+  types. `OrderbookSnapshotData` no longer has `yes_dollars`/`no_dollars`
+  (use `yes_dollars_fp`/`no_dollars_fp`). `OrderbookDeltaData` no longer has
+  `price`/`delta` (use `price_dollars`/`delta_fp`). `TickerData` no longer has
+  `price`/`yes_bid`/`yes_ask`/`volume`/`open_interest` (use `_dollars`/`_fp`
+  variants). `TradeData`, `FillData`, `MarketPositionData` similarly updated.
+- **Breaking:** Removed `Channel::EventLifecycle` variant — not a subscribable
+  channel per the asyncapi.yaml v2 spec.
+- **Breaking:** Removed `PriceLevelDollars` type alias from `ws::message`
+  (the `models::market::PriceLevelDollars` struct is unchanged).
+- **Breaking:** `ChannelError.code` changed from `String` to `i64` to match the
+  spec's numeric error codes (1-22).
+- **Breaking:** `IncomingMessage::Error.code` changed from `String` to `i64`.
+- Orderbook state and aggregator modules migrated to use `_fp`/`_dollars` fields
+  exclusively.
+
 ## [0.3.0] - 2026-02-28
 
 ### Added

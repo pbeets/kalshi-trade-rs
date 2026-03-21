@@ -10,7 +10,7 @@ An unofficial Rust client library for the [Kalshi](https://kalshi.com) predictio
 ## Key Features
 
 - **REST Client**: Full coverage of 86 Kalshi API endpoints including portfolio management, order operations, market data, exchange status, historical data, and RFQ (Request for Quote) communications
-- **WebSocket Streaming**: 11 real-time channels — ticker, trade, orderbook, fill, order updates, position, RFQ/quote, order groups, market lifecycle, multivariate, and event lifecycle
+- **WebSocket Streaming**: 10 real-time channels — ticker, trade, orderbook, fill, order updates, position, RFQ/quote, order groups, market lifecycle, and multivariate
 - **Batch Operations**: Rate-limited `BatchManager` with automatic chunking, retry, and per-order subaccount support
 - **Orderbook Aggregation**: Live orderbook state from WebSocket delta streams with gap detection
 - **Subaccount Support**: Full subaccount filtering on orders, fills, positions, settlements, and balance queries
@@ -22,7 +22,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kalshi-trade-rs = "0.3.0"
+kalshi-trade-rs = "0.4.0"
 ```
 
 Configure environment variables:
@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get positions
     let positions = client.get_positions().await?;
     for pos in positions.market_positions {
-        println!("{}: {} contracts", pos.ticker, pos.position);
+        println!("{}: {} contracts", pos.ticker, pos.position_fp);
     }
 
     Ok(())
