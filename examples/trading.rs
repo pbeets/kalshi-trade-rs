@@ -207,7 +207,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Order ID: {}", cancel_response.order.order_id);
     println!("  Status: {:?}", cancel_response.order.status);
 
-    println!("  Reduced by: {} contracts", cancel_response.reduced_by.unwrap_or(0));
+    println!(
+        "  Reduced by: {} contracts",
+        cancel_response.reduced_by.unwrap_or(0)
+    );
 
     println!();
 
@@ -283,7 +286,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             for qp in response.queue_positions.iter().take(5) {
                 println!(
                     "  {} | {} contracts ahead",
-                    qp.market_ticker, qp.queue_position.unwrap_or(0)
+                    qp.market_ticker,
+                    qp.queue_position.unwrap_or(0)
                 );
             }
             if response.queue_positions.is_empty() {
