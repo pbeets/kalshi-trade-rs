@@ -204,7 +204,11 @@ fn dollars_levels_to_btree(levels: &[(String, String)]) -> BTreeMap<i64, i64> {
         .filter_map(|(price_str, qty_str)| {
             let price_cents = (price_str.parse::<f64>().ok()? * 100.0).round() as i64;
             let qty = qty_str.parse::<f64>().ok()?.round() as i64;
-            if qty > 0 { Some((price_cents, qty)) } else { None }
+            if qty > 0 {
+                Some((price_cents, qty))
+            } else {
+                None
+            }
         })
         .collect()
 }
@@ -218,8 +222,14 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
-            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string()), ("0.56".to_string(), "250.00".to_string())]),
+            yes_dollars_fp: Some(vec![
+                ("0.45".to_string(), "100.00".to_string()),
+                ("0.44".to_string(), "200.00".to_string()),
+            ]),
+            no_dollars_fp: Some(vec![
+                ("0.55".to_string(), "150.00".to_string()),
+                ("0.56".to_string(), "250.00".to_string()),
+            ]),
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -406,7 +416,10 @@ mod tests {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
             yes_dollars_fp: None,
-            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string()), ("0.56".to_string(), "250.00".to_string())]),
+            no_dollars_fp: Some(vec![
+                ("0.55".to_string(), "150.00".to_string()),
+                ("0.56".to_string(), "250.00".to_string()),
+            ]),
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -450,8 +463,14 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
-            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string()), ("0.56".to_string(), "250.00".to_string())]),
+            yes_dollars_fp: Some(vec![
+                ("0.45".to_string(), "100.00".to_string()),
+                ("0.44".to_string(), "200.00".to_string()),
+            ]),
+            no_dollars_fp: Some(vec![
+                ("0.55".to_string(), "150.00".to_string()),
+                ("0.56".to_string(), "250.00".to_string()),
+            ]),
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);

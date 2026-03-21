@@ -250,10 +250,7 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
         && let Some(msg_obj) = msg_val.as_object()
         && msg_obj.contains_key("code")
     {
-        let code = msg_obj
-            .get("code")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0);
+        let code = msg_obj.get("code").and_then(|v| v.as_i64()).unwrap_or(0);
         let message = msg_obj
             .get("msg")
             .and_then(|v| v.as_str())
@@ -591,7 +588,9 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Response { id, msg_type, msg, .. } => {
+            IncomingMessage::Response {
+                id, msg_type, msg, ..
+            } => {
                 assert_eq!(id, 1);
                 assert_eq!(msg_type, "subscribed");
                 assert_eq!(msg["sid"], 42);
@@ -619,8 +618,7 @@ mod tests {
 
     #[test]
     fn test_parse_error_with_nested_error() {
-        let json =
-            r#"{"id": 1, "error": {"code": 11, "message": "Invalid market ticker"}}"#;
+        let json = r#"{"id": 1, "error": {"code": 11, "message": "Invalid market ticker"}}"#;
         let result = parse_incoming(json).unwrap();
 
         match result {
@@ -749,7 +747,9 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Response { id, msg_type, msg, .. } => {
+            IncomingMessage::Response {
+                id, msg_type, msg, ..
+            } => {
                 assert_eq!(id, 10);
                 assert_eq!(msg_type, "ack");
                 assert_eq!(msg, JsonValue::Null);
@@ -809,7 +809,13 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Response { id, msg_type, sid, seq, msg } => {
+            IncomingMessage::Response {
+                id,
+                msg_type,
+                sid,
+                seq,
+                msg,
+            } => {
                 assert_eq!(id, 2);
                 assert_eq!(msg_type, "unsubscribed");
                 // Top-level sid and seq are now captured directly
@@ -908,7 +914,9 @@ mod tests {
         let json = r#"{"type":"subscribed","sid":5}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Response { id, msg_type, msg, .. } => {
+            IncomingMessage::Response {
+                id, msg_type, msg, ..
+            } => {
                 assert_eq!(id, 0);
                 assert_eq!(msg_type, "subscribed");
                 assert_eq!(msg["sid"], 5);
@@ -922,7 +930,13 @@ mod tests {
         let json = r#"{"type":"unsubscribed","sid":3,"seq":100}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Response { id, msg_type, sid, seq, .. } => {
+            IncomingMessage::Response {
+                id,
+                msg_type,
+                sid,
+                seq,
+                ..
+            } => {
                 assert_eq!(id, 0);
                 assert_eq!(msg_type, "unsubscribed");
                 assert_eq!(sid, Some(3));
@@ -950,7 +964,9 @@ mod tests {
         let json = r#"{"type":"list_subscriptions","msg":{"subs":[]}}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Response { id, msg_type, msg, .. } => {
+            IncomingMessage::Response {
+                id, msg_type, msg, ..
+            } => {
                 assert_eq!(id, 0);
                 assert_eq!(msg_type, "list_subscriptions");
                 assert!(msg["subs"].is_array());
