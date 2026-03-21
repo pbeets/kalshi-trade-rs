@@ -440,10 +440,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string())]),
         };
 
         agg.handle_snapshot(&snapshot);
@@ -461,10 +459,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string())]),
         };
         agg.handle_snapshot(&snapshot);
 
@@ -492,9 +488,7 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
-            no_dollars: None,
-            yes_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]),
             no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot);
@@ -513,9 +507,7 @@ mod tests {
         let snapshot1 = OrderbookSnapshotData {
             market_ticker: "TEST1".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
-            no_dollars: None,
-            yes_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]),
             no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot1);
@@ -523,9 +515,7 @@ mod tests {
         let snapshot2 = OrderbookSnapshotData {
             market_ticker: "TEST2".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.50".to_string(), 200)]),
-            no_dollars: None,
-            yes_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.50".to_string(), "200.00".to_string())]),
             no_dollars_fp: None,
         };
         agg.handle_snapshot(&snapshot2);
@@ -546,10 +536,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
-            no_dollars: Some(vec![("0.53".to_string(), 150)]), // YES ask at 47
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.53".to_string(), "150.00".to_string())]), // YES ask at 47
         };
         agg.handle_snapshot(&snapshot);
 
@@ -583,10 +571,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string())]),
         };
         agg.handle_snapshot(&snapshot);
 
@@ -607,10 +593,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string())]),
         };
         agg.handle_snapshot(&snapshot);
 
@@ -684,9 +668,7 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
-            no_dollars: None,
-            yes_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]),
             no_dollars_fp: None,
         };
         agg1.handle_snapshot(&snapshot);

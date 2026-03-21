@@ -98,7 +98,7 @@ impl SubscribeCollector {
 
     /// Add a failed subscription response.
     /// Returns `true` if all expected responses have been received.
-    fn add_error(&mut self, channel: Option<String>, code: String, message: String) -> bool {
+    fn add_error(&mut self, channel: Option<String>, code: i64, message: String) -> bool {
         self.failed.push(ChannelError {
             channel,
             code,
@@ -544,7 +544,6 @@ impl KalshiStreamSession {
                         "order_group_updates" => Some(Channel::OrderGroupUpdates),
                         "user_orders" => Some(Channel::UserOrders),
                         "multivariate" => Some(Channel::Multivariate),
-                        "event_lifecycle" => Some(Channel::EventLifecycle),
                         _ => {
                             warn!("Unknown channel: {}", s);
                             None
@@ -781,7 +780,13 @@ impl KalshiStreamSession {
         debug!("Received message: {}", text);
 
         match protocol::parse_incoming(text) {
-            Ok(IncomingMessage::Response { id, msg_type, msg }) => {
+            Ok(IncomingMessage::Response {
+                id,
+                msg_type,
+                sid: top_sid,
+                seq: top_seq,
+                msg,
+            }) => {
                 debug!("Response for request {}: type={}", id, msg_type);
 
                 // Check if this is a response to a pending multi-channel subscription
@@ -812,13 +817,13 @@ impl KalshiStreamSession {
                 }
 
                 if msg_type == "unsubscribed" {
-                    // Also broadcast this as an update to let the client know the stream is closed
-                    let sid = msg.get("sid").and_then(|s| s.as_i64());
+                    // Use top-level sid/seq (per spec), fall back to msg.sid for compat
+                    let sid = top_sid.or_else(|| msg.get("sid").and_then(|s| s.as_i64()));
                     if let Some(sid) = sid {
                         let update = StreamUpdate {
                             channel: msg_type.clone(),
                             sid,
-                            seq: None,
+                            seq: top_seq,
                             msg: StreamMessage::Unsubscribed,
                         };
 

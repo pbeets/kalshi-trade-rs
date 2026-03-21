@@ -28,8 +28,8 @@ pub struct ChannelSubscription {
 pub struct ChannelError {
     /// The channel that failed to subscribe.
     pub channel: Option<String>,
-    /// Error code from the server.
-    pub code: String,
+    /// Numeric error code from the server (1-22 per spec).
+    pub code: i64,
     /// Error message from the server.
     pub message: String,
 }

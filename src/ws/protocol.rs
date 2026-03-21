@@ -189,6 +189,10 @@ pub enum IncomingMessage {
     Response {
         id: u64,
         msg_type: String,
+        /// Top-level subscription ID (present on unsubscribed/ok responses).
+        sid: Option<i64>,
+        /// Top-level sequence number (present on unsubscribed/ok responses).
+        seq: Option<i64>,
         msg: JsonValue,
     },
     /// Subscription update (orderbook, trade, etc.)
@@ -201,7 +205,8 @@ pub enum IncomingMessage {
     /// Error response
     Error {
         id: Option<u64>,
-        code: String,
+        /// Numeric error code (1-22 per spec).
+        code: i64,
         message: String,
         market_ticker: Option<String>,
         market_id: Option<String>,
@@ -218,14 +223,14 @@ struct RawMessage {
     seq: Option<i64>,
     msg: Option<JsonValue>,
     // Error fields
-    code: Option<String>,
+    code: Option<i64>,
     message: Option<String>,
     error: Option<ErrorPayload>,
 }
 
 #[derive(Debug, Deserialize)]
 struct ErrorPayload {
-    code: Option<String>,
+    code: Option<i64>,
     message: Option<String>,
 }
 
@@ -247,15 +252,8 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
     {
         let code = msg_obj
             .get("code")
-            .and_then(|v| v.as_u64())
-            .map(|n| n.to_string())
-            .or_else(|| {
-                msg_obj
-                    .get("code")
-                    .and_then(|v| v.as_str())
-                    .map(String::from)
-            })
-            .unwrap_or_default();
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
         let message = msg_obj
             .get("msg")
             .and_then(|v| v.as_str())
@@ -282,7 +280,7 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
     if let Some(error) = raw.error {
         return Ok(IncomingMessage::Error {
             id: raw.id,
-            code: error.code.unwrap_or_default(),
+            code: error.code.unwrap_or(0),
             message: error.message.unwrap_or_default(),
             market_ticker: None,
             market_id: None,
@@ -295,7 +293,7 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
     {
         return Ok(IncomingMessage::Error {
             id: raw.id,
-            code: raw.code.unwrap_or_default(),
+            code: raw.code.unwrap_or(0),
             message: raw.message.unwrap_or_default(),
             market_ticker: None,
             market_id: None,
@@ -324,6 +322,8 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
         return Ok(IncomingMessage::Response {
             id,
             msg_type: raw.msg_type.unwrap_or_default(),
+            sid: raw.sid,
+            seq: raw.seq,
             msg,
         });
     }
@@ -342,6 +342,8 @@ pub fn parse_incoming(text: &str) -> Result<IncomingMessage, serde_json::Error> 
     Ok(IncomingMessage::Response {
         id: 0,
         msg_type: raw.msg_type.unwrap_or_default(),
+        sid: None,
+        seq: None,
         msg: raw.msg.unwrap_or(JsonValue::Null),
     })
 }
@@ -589,7 +591,7 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Response { id, msg_type, msg } => {
+            IncomingMessage::Response { id, msg_type, msg, .. } => {
                 assert_eq!(id, 1);
                 assert_eq!(msg_type, "subscribed");
                 assert_eq!(msg["sid"], 42);
@@ -618,7 +620,7 @@ mod tests {
     #[test]
     fn test_parse_error_with_nested_error() {
         let json =
-            r#"{"id": 1, "error": {"code": "invalid_params", "message": "Invalid market ticker"}}"#;
+            r#"{"id": 1, "error": {"code": 11, "message": "Invalid market ticker"}}"#;
         let result = parse_incoming(json).unwrap();
 
         match result {
@@ -630,7 +632,7 @@ mod tests {
                 market_id,
             } => {
                 assert_eq!(id, Some(1));
-                assert_eq!(code, "invalid_params");
+                assert_eq!(code, 11);
                 assert_eq!(message, "Invalid market ticker");
                 assert_eq!(market_ticker, None);
                 assert_eq!(market_id, None);
@@ -641,7 +643,7 @@ mod tests {
 
     #[test]
     fn test_parse_error_with_top_level_fields() {
-        let json = r#"{"id": 2, "type": "error", "code": "auth_failed", "message": "Authentication required"}"#;
+        let json = r#"{"id": 2, "type": "error", "code": 9, "message": "Authentication required"}"#;
         let result = parse_incoming(json).unwrap();
 
         match result {
@@ -653,7 +655,7 @@ mod tests {
                 market_id,
             } => {
                 assert_eq!(id, Some(2));
-                assert_eq!(code, "auth_failed");
+                assert_eq!(code, 9);
                 assert_eq!(message, "Authentication required");
                 assert_eq!(market_ticker, None);
                 assert_eq!(market_id, None);
@@ -664,7 +666,7 @@ mod tests {
 
     #[test]
     fn test_parse_error_without_id() {
-        let json = r#"{"code": "connection_error", "message": "Connection lost"}"#;
+        let json = r#"{"code": 17, "message": "Connection lost"}"#;
         let result = parse_incoming(json).unwrap();
 
         match result {
@@ -676,7 +678,7 @@ mod tests {
                 market_id,
             } => {
                 assert_eq!(id, None);
-                assert_eq!(code, "connection_error");
+                assert_eq!(code, 17);
                 assert_eq!(message, "Connection lost");
                 assert_eq!(market_ticker, None);
                 assert_eq!(market_id, None);
@@ -699,7 +701,7 @@ mod tests {
                 market_id,
             } => {
                 assert_eq!(id, Some(127));
-                assert_eq!(code, "16");
+                assert_eq!(code, 16);
                 assert_eq!(message, "Market not found");
                 assert_eq!(market_ticker, Some("INVALID-MARKET".to_string()));
                 assert_eq!(market_id, None);
@@ -722,7 +724,7 @@ mod tests {
                 market_id,
             } => {
                 assert_eq!(id, None);
-                assert_eq!(code, "5");
+                assert_eq!(code, 5);
                 assert_eq!(message, "Access denied");
                 assert_eq!(market_ticker, None);
                 assert_eq!(market_id, Some("abc-123".to_string()));
@@ -747,7 +749,7 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Response { id, msg_type, msg } => {
+            IncomingMessage::Response { id, msg_type, msg, .. } => {
                 assert_eq!(id, 10);
                 assert_eq!(msg_type, "ack");
                 assert_eq!(msg, JsonValue::Null);
@@ -807,10 +809,13 @@ mod tests {
         let result = parse_incoming(json).unwrap();
 
         match result {
-            IncomingMessage::Response { id, msg_type, msg } => {
+            IncomingMessage::Response { id, msg_type, sid, seq, msg } => {
                 assert_eq!(id, 2);
                 assert_eq!(msg_type, "unsubscribed");
-                // The parser should synthesize a msg object with sid if msg is null
+                // Top-level sid and seq are now captured directly
+                assert_eq!(sid, Some(2));
+                assert_eq!(seq, Some(707));
+                // The parser should still synthesize a msg object with sid for compat
                 assert_eq!(msg["sid"], 2);
             }
             _ => panic!("Expected Response variant"),
@@ -903,7 +908,7 @@ mod tests {
         let json = r#"{"type":"subscribed","sid":5}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Response { id, msg_type, msg } => {
+            IncomingMessage::Response { id, msg_type, msg, .. } => {
                 assert_eq!(id, 0);
                 assert_eq!(msg_type, "subscribed");
                 assert_eq!(msg["sid"], 5);
@@ -917,10 +922,11 @@ mod tests {
         let json = r#"{"type":"unsubscribed","sid":3,"seq":100}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Response { id, msg_type, msg } => {
+            IncomingMessage::Response { id, msg_type, sid, seq, .. } => {
                 assert_eq!(id, 0);
                 assert_eq!(msg_type, "unsubscribed");
-                assert_eq!(msg["sid"], 3);
+                assert_eq!(sid, Some(3));
+                assert_eq!(seq, Some(100));
             }
             _ => panic!("Expected Response variant, got {:?}", result),
         }
@@ -944,7 +950,7 @@ mod tests {
         let json = r#"{"type":"list_subscriptions","msg":{"subs":[]}}"#;
         let result = parse_incoming(json).unwrap();
         match result {
-            IncomingMessage::Response { id, msg_type, msg } => {
+            IncomingMessage::Response { id, msg_type, msg, .. } => {
                 assert_eq!(id, 0);
                 assert_eq!(msg_type, "list_subscriptions");
                 assert!(msg["subs"].is_array());

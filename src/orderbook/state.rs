@@ -30,13 +30,13 @@ impl OrderbookState {
     /// Initialize from a snapshot.
     pub fn from_snapshot(snapshot: &OrderbookSnapshotData) -> Self {
         let yes_levels = snapshot
-            .yes_dollars
+            .yes_dollars_fp
             .as_ref()
             .map(|levels| dollars_levels_to_btree(levels))
             .unwrap_or_default();
 
         let no_levels = snapshot
-            .no_dollars
+            .no_dollars_fp
             .as_ref()
             .map(|levels| dollars_levels_to_btree(levels))
             .unwrap_or_default();
@@ -198,13 +198,13 @@ impl OrderbookState {
 }
 
 /// Convert dollar-format price levels to BTreeMap (price_cents -> quantity).
-fn dollars_levels_to_btree(levels: &[(String, i64)]) -> BTreeMap<i64, i64> {
+fn dollars_levels_to_btree(levels: &[(String, String)]) -> BTreeMap<i64, i64> {
     levels
         .iter()
-        .filter(|(_, qty)| *qty > 0)
-        .map(|(price_str, qty)| {
-            let price_cents = (price_str.parse::<f64>().unwrap_or(0.0) * 100.0).round() as i64;
-            (price_cents, *qty)
+        .filter_map(|(price_str, qty_str)| {
+            let price_cents = (price_str.parse::<f64>().ok()? * 100.0).round() as i64;
+            let qty = qty_str.parse::<f64>().ok()?.round() as i64;
+            if qty > 0 { Some((price_cents, qty)) } else { None }
         })
         .collect()
 }
@@ -218,10 +218,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150), ("0.56".to_string(), 250)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string()), ("0.56".to_string(), "250.00".to_string())]),
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -388,13 +386,11 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![
-                ("0.45".to_string(), 100),
-                ("0.44".to_string(), 200),
-                ("0.43".to_string(), 50),
+            yes_dollars_fp: Some(vec![
+                ("0.45".to_string(), "100.00".to_string()),
+                ("0.44".to_string(), "200.00".to_string()),
+                ("0.43".to_string(), "50.00".to_string()),
             ]),
-            no_dollars: None,
-            yes_dollars_fp: None,
             no_dollars_fp: None,
         };
 
@@ -409,10 +405,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: None,
-            no_dollars: Some(vec![("0.55".to_string(), 150), ("0.56".to_string(), 250)]),
             yes_dollars_fp: None,
-            no_dollars_fp: None,
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string()), ("0.56".to_string(), "250.00".to_string())]),
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -426,10 +420,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]), // Best bid at 45
-            no_dollars: Some(vec![("0.53".to_string(), 150)]), // Best NO bid at 53 -> YES ask at 47
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]), // Best bid at 45
+            no_dollars_fp: Some(vec![("0.53".to_string(), "150.00".to_string())]), // Best NO bid at 53 -> YES ask at 47
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -443,10 +435,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]), // Best bid at 45
-            no_dollars: Some(vec![("0.53".to_string(), 150)]), // Best NO bid at 53 -> YES ask at 47
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]), // Best bid at 45
+            no_dollars_fp: Some(vec![("0.53".to_string(), "150.00".to_string())]), // Best NO bid at 53 -> YES ask at 47
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -460,10 +450,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100), ("0.44".to_string(), 200)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150), ("0.56".to_string(), 250)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string()), ("0.44".to_string(), "200.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string()), ("0.56".to_string(), "250.00".to_string())]),
         };
 
         let state = OrderbookState::from_snapshot(&snapshot);
@@ -477,10 +465,8 @@ mod tests {
         let snapshot = OrderbookSnapshotData {
             market_ticker: "TEST".to_string(),
             market_id: String::new(),
-            yes_dollars: Some(vec![("0.45".to_string(), 100)]),
-            no_dollars: Some(vec![("0.55".to_string(), 150)]),
-            yes_dollars_fp: None,
-            no_dollars_fp: None,
+            yes_dollars_fp: Some(vec![("0.45".to_string(), "100.00".to_string())]),
+            no_dollars_fp: Some(vec![("0.55".to_string(), "150.00".to_string())]),
         };
 
         let mut state = OrderbookState::from_snapshot(&snapshot);

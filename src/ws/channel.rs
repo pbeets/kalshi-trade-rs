@@ -27,8 +27,6 @@ pub enum Channel {
     UserOrders,
     /// Multivariate collection lookup notifications
     Multivariate,
-    /// Event creation and lifecycle notifications (requires authentication)
-    EventLifecycle,
 }
 
 impl Channel {
@@ -41,7 +39,6 @@ impl Channel {
                 | Self::Communications
                 | Self::OrderGroupUpdates
                 | Self::UserOrders
-                | Self::EventLifecycle
         )
     }
 
@@ -52,7 +49,7 @@ impl Channel {
     /// `Multivariate`) support subscribing with an empty ticker list to
     /// receive updates for all markets. User-scoped channels (`Fill`,
     /// `MarketPositions`, `Communications`, `OrderGroupUpdates`,
-    /// `UserOrders`, `EventLifecycle`) never require tickers.
+    /// `UserOrders`) never require tickers.
     pub fn requires_market_ticker(&self) -> bool {
         matches!(self, Self::OrderbookDelta)
     }
@@ -70,7 +67,6 @@ impl Channel {
             Self::OrderGroupUpdates => "order_group_updates",
             Self::UserOrders => "user_orders",
             Self::Multivariate => "multivariate",
-            Self::EventLifecycle => "event_lifecycle",
         }
     }
 }

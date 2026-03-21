@@ -200,9 +200,6 @@ pub enum StreamMessage {
     Unsubscribed,
 }
 
-/// A price level with dollar representation: [price_dollars, contracts].
-pub type PriceLevelDollars = (String, i64);
-
 /// Orderbook snapshot data containing the full orderbook state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderbookSnapshotData {
@@ -210,17 +207,11 @@ pub struct OrderbookSnapshotData {
     pub market_ticker: String,
     /// Market UUID identifier (spec-required).
     pub market_id: String,
-    /// Yes side price levels in dollars: [price_dollars, contracts].
+    /// Yes side price levels in dollars: [[price_dollars, count_fp], ...]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub yes_dollars: Option<Vec<PriceLevelDollars>>,
-    /// No side price levels in dollars: [price_dollars, contracts].
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub no_dollars: Option<Vec<PriceLevelDollars>>,
-    /// Yes side price levels in dollars (spec format): [[price_dollars, count_fp], ...]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub yes_dollars_fp: Option<Vec<(String, String)>>,
-    /// No side price levels in dollars (spec format): [[price_dollars, count_fp], ...]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// No side price levels in dollars: [[price_dollars, count_fp], ...]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub no_dollars_fp: Option<Vec<(String, String)>>,
 }
 
@@ -265,6 +256,15 @@ pub struct TickerData {
     pub volume_fp: String,
     /// Open interest (fixed-point decimal string, spec-required).
     pub open_interest_fp: String,
+    /// Number of dollars traded in the market so far.
+    #[serde(default)]
+    pub dollar_volume: i64,
+    /// Number of dollars positioned in the market currently.
+    #[serde(default)]
+    pub dollar_open_interest: i64,
+    /// Unix timestamp for when the update happened (in seconds).
+    #[serde(default)]
+    pub ts: i64,
     /// High-precision timestamp (ISO 8601, spec-required).
     pub time: String,
     /// No bid in dollars.
@@ -350,22 +350,28 @@ pub struct MarketPositionData {
     pub market_ticker: String,
     /// Position (fixed-point decimal string, spec-required).
     pub position_fp: String,
+    /// Position cost in centi-cents (1/10,000th of a dollar).
+    #[serde(default)]
+    pub position_cost: i64,
     /// Position cost in fixed-point dollars (spec-required).
     pub position_cost_dollars: String,
+    /// Realized profit/loss in centi-cents.
+    #[serde(default)]
+    pub realized_pnl: i64,
     /// Realized PnL in fixed-point dollars (spec-required).
     pub realized_pnl_dollars: String,
+    /// Total fees paid in centi-cents.
+    #[serde(default)]
+    pub fees_paid: i64,
     /// Fees paid in fixed-point dollars (spec-required).
     pub fees_paid_dollars: String,
+    /// Position fee cost in centi-cents.
+    #[serde(default)]
+    pub position_fee_cost: i64,
     /// Position fee cost in fixed-point dollars (spec-required).
     pub position_fee_cost_dollars: String,
     /// Volume (fixed-point decimal string, spec-required).
     pub volume_fp: String,
-    /// Net position in contracts (legacy, not in v2 spec).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub position: Option<i64>,
-    /// Total volume traded (legacy, not in v2 spec).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub volume: Option<i64>,
     /// Subaccount number for the position.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subaccount: Option<i32>,
@@ -771,6 +777,9 @@ mod tests {
             "yes_ask_dollars": "0.46",
             "volume_fp": "1000.00",
             "open_interest_fp": "500.00",
+            "dollar_volume": 25000,
+            "dollar_open_interest": 12000,
+            "ts": 1704067200,
             "time": "2024-01-01T00:00:00Z"
         }"#;
         let ticker: TickerData = serde_json::from_str(json).unwrap();
@@ -778,6 +787,9 @@ mod tests {
         assert_eq!(ticker.price_dollars, "0.45");
         assert_eq!(ticker.yes_bid_dollars, "0.44");
         assert_eq!(ticker.yes_ask_dollars, "0.46");
+        assert_eq!(ticker.dollar_volume, 25000);
+        assert_eq!(ticker.dollar_open_interest, 12000);
+        assert_eq!(ticker.ts, 1704067200);
     }
 
     #[test]

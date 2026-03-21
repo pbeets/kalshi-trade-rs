@@ -1226,7 +1226,7 @@ mod tests {
                     successful: vec![],
                     failed: vec![super::super::command::ChannelError {
                         channel: Some("ticker".to_string()),
-                        code: "invalid_ticker".to_string(),
+                        code: 16,
                         message: "Market not found".to_string(),
                     }],
                 }));
@@ -1424,6 +1424,9 @@ mod tests {
                 yes_ask_dollars: "0.51".to_string(),
                 volume_fp: "100.00".to_string(),
                 open_interest_fp: "50.00".to_string(),
+                dollar_volume: 0,
+                dollar_open_interest: 0,
+                ts: 0,
                 time: "2009-02-13T23:31:30Z".to_string(),
                 no_bid_dollars: None,
                 yes_bid_size_fp: None,

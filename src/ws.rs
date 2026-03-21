@@ -136,7 +136,6 @@
 //! - [`Channel::Communications`] - RFQ/quote updates
 //! - [`Channel::OrderGroupUpdates`] - Order group lifecycle events
 //! - [`Channel::UserOrders`] - Real-time order updates (created, updated, canceled, executed)
-//! - [`Channel::EventLifecycle`] - Event creation and lifecycle notifications
 //!
 //! # Subscription Management
 //!
