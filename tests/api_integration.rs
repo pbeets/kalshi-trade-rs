@@ -1295,6 +1295,9 @@ async fn test_order_group_lifecycle() {
     );
     let group_id = create_result.unwrap().order_group_id;
 
+    // Brief pause to allow the order group to propagate
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
     // Get
     let get_result = client.get_order_group(&group_id).await;
     assert!(
@@ -2083,6 +2086,9 @@ async fn test_order_group_subaccount_variants() {
         create_result.err()
     );
     let group_id = create_result.unwrap().order_group_id;
+
+    // Brief pause to allow the order group to propagate
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
     // get_order_group_for_subaccount
     let get_result = client.get_order_group_for_subaccount(&group_id, 0).await;
