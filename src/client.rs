@@ -793,7 +793,7 @@ impl KalshiClient {
     ///
     /// ```ignore
     /// let response = client.cancel_order("abc123").await?;
-    /// println!("Canceled {} contracts", response.reduced_by.unwrap_or(0));
+    /// println!("Canceled {} contracts", response.reduced_by_fp);
     /// ```
     pub async fn cancel_order(&self, order_id: &str) -> Result<CancelOrderResponse> {
         orders::cancel_order(&self.http, order_id, None).await
@@ -950,7 +950,7 @@ impl KalshiClient {
     /// let positions = client.get_queue_positions().await?;
     /// for pos in positions.queue_positions {
     ///     println!("Order {} on {}: {} contracts ahead",
-    ///         pos.order_id, pos.market_ticker, pos.queue_position);
+    ///         pos.order_id, pos.market_ticker, pos.queue_position_fp);
     /// }
     /// ```
     pub async fn get_queue_positions(&self) -> Result<QueuePositionsResponse> {
@@ -990,7 +990,7 @@ impl KalshiClient {
     ///
     /// ```ignore
     /// let response = client.get_order_queue_position("abc123").await?;
-    /// println!("Contracts ahead: {}", response.queue_position);
+    /// println!("Contracts ahead: {}", response.queue_position_fp);
     /// ```
     pub async fn get_order_queue_position(
         &self,

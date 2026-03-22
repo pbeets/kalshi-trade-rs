@@ -441,12 +441,8 @@ impl CreateOrderRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CancelOrderResponse {
     pub order: Order,
-    /// Number of contracts that were canceled.
-    #[serde(default)]
-    pub reduced_by: Option<i64>,
     /// Number of contracts that were canceled (fixed-point decimal string).
-    #[serde(default)]
-    pub reduced_by_fp: Option<String>,
+    pub reduced_by_fp: String,
 }
 
 /// Request body for POST /portfolio/orders/{order_id}/amend.
@@ -859,13 +855,8 @@ pub struct BatchCancelOrderResult {
     /// Order ID.
     pub order_id: String,
 
-    /// Number of contracts canceled.
-    #[serde(default)]
-    pub reduced_by: Option<i64>,
-
     /// Number of contracts canceled (fixed-point decimal string).
-    #[serde(default)]
-    pub reduced_by_fp: Option<String>,
+    pub reduced_by_fp: String,
 
     /// Order details after cancellation.
     #[serde(default)]
@@ -889,12 +880,8 @@ pub struct QueuePosition {
     pub order_id: String,
     /// Market ticker.
     pub market_ticker: String,
-    /// Queue position - number of contracts ahead in the queue.
-    #[serde(default)]
-    pub queue_position: Option<i64>,
-    /// Queue position (fixed-point decimal string).
-    #[serde(default)]
-    pub queue_position_fp: Option<String>,
+    /// Queue position (fixed-point decimal string) — number of contracts ahead in the queue.
+    pub queue_position_fp: String,
 }
 
 /// Response from GET /portfolio/orders/queue_positions.
@@ -908,12 +895,8 @@ pub struct QueuePositionsResponse {
 /// Response from GET /portfolio/orders/{order_id}/queue_position.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderQueuePositionResponse {
-    /// Queue position - number of contracts ahead in the queue.
-    #[serde(default)]
-    pub queue_position: Option<i64>,
-    /// Queue position (fixed-point decimal string).
-    #[serde(default)]
-    pub queue_position_fp: Option<String>,
+    /// Queue position (fixed-point decimal string) — number of contracts ahead in the queue.
+    pub queue_position_fp: String,
 }
 
 /// Query parameters for GET /portfolio/orders/queue_positions.

@@ -19,9 +19,13 @@ pub struct Fill {
     pub action: Action,
     /// Count (fixed-point decimal string, e.g. `"10.00"`).
     pub count_fp: String,
-    /// Price in fixed-point dollars.
+    /// Fill price for the yes side in fixed-point dollars.
+    pub yes_price_dollars: String,
+    /// Fill price for the no side in fixed-point dollars.
+    pub no_price_dollars: String,
+    /// Deprecated: use `yes_price_dollars` instead.
     pub yes_price_fixed: String,
-    /// Price in fixed-point dollars.
+    /// Deprecated: use `no_price_dollars` instead.
     pub no_price_fixed: String,
     /// Whether this fill removed liquidity.
     pub is_taker: bool,
@@ -32,9 +36,6 @@ pub struct Fill {
     /// Deprecated: legacy Unix timestamp field.
     #[serde(default)]
     pub ts: Option<i64>,
-    /// Deprecated: use `yes_price_fixed` or `no_price_fixed` instead.
-    #[serde(default)]
-    pub price: Option<f64>,
     /// Exchange fee cost as a fixed-point dollar string.
     pub fee_cost: String,
     /// Subaccount number this fill belongs to (0 for primary, 1-32 for subaccounts).
