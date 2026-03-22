@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-03-21
+
+### Added
+
+- 99 integration tests covering every `KalshiClient` endpoint against the
+  Kalshi demo API. Tests verify URL paths, HTTP methods, request serialization,
+  response deserialization, and authentication. Run with
+  `cargo test --test api_integration -- --ignored`.
+- CI job for integration tests using GitHub Actions secrets.
+- `Fill.yes_price_dollars` and `Fill.no_price_dollars` fields (required per the
+  official OpenAPI spec).
+
+### Fixed
+
+- **Spec alignment:** Removed legacy fields that no longer exist in the official
+  Kalshi OpenAPI v2 specification:
+  - `Fill.price` (removed — was never in the spec)
+  - `CancelOrderResponse.reduced_by` (removed — not in spec)
+  - `BatchCancelOrderResult.reduced_by` (removed — not in spec)
+  - `QueuePosition.queue_position` (removed — not in spec)
+  - `OrderQueuePositionResponse.queue_position` (removed — not in spec)
+
+### Changed
+
+- **Breaking:** `CancelOrderResponse.reduced_by_fp` changed from
+  `Option<String>` to `String` (required per spec). The `reduced_by` integer
+  field has been removed — use `reduced_by_fp` instead.
+- **Breaking:** `BatchCancelOrderResult.reduced_by_fp` changed from
+  `Option<String>` to `String` (required per spec). The `reduced_by` integer
+  field has been removed.
+- **Breaking:** `QueuePosition.queue_position_fp` changed from `Option<String>`
+  to `String` (required per spec). The `queue_position` integer field has been
+  removed.
+- **Breaking:** `OrderQueuePositionResponse.queue_position_fp` changed from
+  `Option<String>` to `String` (required per spec). The `queue_position` integer
+  field has been removed.
+- **Breaking:** `AggregatedCancelResponse::total_reduced()` return type changed
+  from `i64` to `f64` (now parses fixed-point strings).
+- **Breaking:** `Fill.price` field removed (not in spec). Use
+  `yes_price_dollars` / `no_price_dollars` instead.
+
 ## [0.4.0] - 2026-03-21
 
 ### Added
