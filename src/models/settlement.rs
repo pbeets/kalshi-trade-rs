@@ -16,12 +16,22 @@ pub struct Settlement {
     pub market_result: MarketResult,
     /// Number of YES contracts (fixed-point decimal string, e.g. `"10.00"`).
     pub yes_count_fp: String,
-    /// Total cost of YES contracts in cents.
+    /// Deprecated: use `yes_total_cost_dollars` instead. Absent in current
+    /// API responses; defaults to 0 when missing.
+    #[serde(default)]
     pub yes_total_cost: i64,
+    /// Total cost of YES contracts as a fixed-point dollar string
+    /// (e.g. `"0.000000"`).
+    pub yes_total_cost_dollars: String,
     /// Number of NO contracts (fixed-point decimal string, e.g. `"10.00"`).
     pub no_count_fp: String,
-    /// Total cost of NO contracts in cents.
+    /// Deprecated: use `no_total_cost_dollars` instead. Absent in current
+    /// API responses; defaults to 0 when missing.
+    #[serde(default)]
     pub no_total_cost: i64,
+    /// Total cost of NO contracts as a fixed-point dollar string
+    /// (e.g. `"0.000000"`).
+    pub no_total_cost_dollars: String,
     /// Revenue from settlement in cents.
     pub revenue: i64,
     /// Settlement timestamp.
@@ -181,6 +191,33 @@ mod tests {
 
         let params = GetSettlementsParams::new().limit(0);
         assert_eq!(params.limit, Some(1));
+    }
+
+    #[test]
+    fn test_settlement_deserialize_with_dollar_total_cost() {
+        // Kalshi /portfolio/settlements now returns yes_total_cost_dollars
+        // and no_total_cost_dollars; the old i64 fields are absent. Must
+        // deserialize with legacy fields defaulted to 0.
+        let json = r#"{
+            "event_ticker": "KXQUICKSETTLE-26JAN11H2110",
+            "fee_cost": "0.000000",
+            "market_result": "yes",
+            "no_count_fp": "0.00",
+            "no_total_cost_dollars": "0.000000",
+            "revenue": 0,
+            "settled_time": "2026-01-12T02:21:44.718095Z",
+            "ticker": "KXQUICKSETTLE-26JAN11H2110-2",
+            "value": 100,
+            "yes_count_fp": "0.00",
+            "yes_total_cost_dollars": "0.000000"
+        }"#;
+        let settlement: Settlement = serde_json::from_str(json)
+            .expect("Settlement must deserialize without legacy yes_total_cost/no_total_cost");
+        assert_eq!(settlement.yes_total_cost_dollars, "0.000000");
+        assert_eq!(settlement.no_total_cost_dollars, "0.000000");
+        assert_eq!(settlement.yes_total_cost, 0);
+        assert_eq!(settlement.no_total_cost, 0);
+        assert_eq!(settlement.value, Some(100));
     }
 
     #[test]
