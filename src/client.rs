@@ -224,7 +224,7 @@ impl KalshiClient {
     /// ```ignore
     /// let fills = client.get_fills().await?;
     /// for fill in fills.fills {
-    ///     println!("Fill {}: {} @ ${}", fill.fill_id, fill.count_fp, fill.yes_price_fixed);
+    ///     println!("Fill {}: {} @ ${}", fill.fill_id, fill.count_fp, fill.yes_price_dollars);
     /// }
     /// ```
     pub async fn get_fills(&self) -> Result<FillsResponse> {
@@ -2576,7 +2576,7 @@ impl KalshiClient {
     /// ```ignore
     /// let fills = client.get_historical_fills().await?;
     /// for fill in fills.fills {
-    ///     println!("{}: {} @ ${}", fill.ticker, fill.count_fp, fill.yes_price_fixed);
+    ///     println!("{}: {} @ ${}", fill.ticker, fill.count_fp, fill.yes_price_dollars);
     /// }
     /// ```
     pub async fn get_historical_fills(&self) -> Result<FillsResponse> {

@@ -23,14 +23,6 @@ pub struct Fill {
     pub yes_price_dollars: String,
     /// Fill price for the no side in fixed-point dollars.
     pub no_price_dollars: String,
-    /// Deprecated: use `yes_price_dollars` instead. Absent in current API
-    /// responses; defaults to empty string when missing.
-    #[serde(default)]
-    pub yes_price_fixed: String,
-    /// Deprecated: use `no_price_dollars` instead. Absent in current API
-    /// responses; defaults to empty string when missing.
-    #[serde(default)]
-    pub no_price_fixed: String,
     /// Whether this fill removed liquidity.
     pub is_taker: bool,
     #[serde(default)]
@@ -168,10 +160,10 @@ mod tests {
     }
 
     #[test]
-    fn test_fill_deserialize_missing_deprecated_price_fields() {
-        // Kalshi /portfolio/fills no longer returns yes_price_fixed or
-        // no_price_fixed (superseded by yes_price_dollars/no_price_dollars).
-        // Deserialization must succeed with the legacy fields defaulted to "".
+    fn test_fill_deserialize_current_shape() {
+        // Current Kalshi /portfolio/fills shape: only yes_price_dollars /
+        // no_price_dollars. Ignores any legacy yes_price_fixed / no_price_fixed
+        // keys if the server still sends them.
         let json = r#"{
             "action": "buy",
             "count_fp": "1.00",
@@ -189,10 +181,8 @@ mod tests {
             "ts": 1774107248,
             "yes_price_dollars": "0.0500"
         }"#;
-        let fill: Fill = serde_json::from_str(json)
-            .expect("Fill must deserialize without yes_price_fixed/no_price_fixed");
-        assert_eq!(fill.yes_price_fixed, "");
-        assert_eq!(fill.no_price_fixed, "");
+        let fill: Fill = serde_json::from_str(json).expect("Fill must deserialize");
         assert_eq!(fill.yes_price_dollars, "0.0500");
+        assert_eq!(fill.no_price_dollars, "0.9500");
     }
 }

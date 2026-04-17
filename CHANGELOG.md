@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- **Breaking:** `Fill::yes_price_fixed` and `Fill::no_price_fixed` — absent
+  from the current Kalshi API. Use `yes_price_dollars` / `no_price_dollars`.
+- **Breaking:** `Settlement::yes_total_cost` and `Settlement::no_total_cost`
+  (i64 cents) — absent from the current Kalshi API. Use
+  `yes_total_cost_dollars` / `no_total_cost_dollars`.
+
 ## [0.5.0] - 2026-03-21
 
 ### Added

@@ -16,19 +16,11 @@ pub struct Settlement {
     pub market_result: MarketResult,
     /// Number of YES contracts (fixed-point decimal string, e.g. `"10.00"`).
     pub yes_count_fp: String,
-    /// Deprecated: use `yes_total_cost_dollars` instead. Absent in current
-    /// API responses; defaults to 0 when missing.
-    #[serde(default)]
-    pub yes_total_cost: i64,
     /// Total cost of YES contracts as a fixed-point dollar string
     /// (e.g. `"0.000000"`).
     pub yes_total_cost_dollars: String,
     /// Number of NO contracts (fixed-point decimal string, e.g. `"10.00"`).
     pub no_count_fp: String,
-    /// Deprecated: use `no_total_cost_dollars` instead. Absent in current
-    /// API responses; defaults to 0 when missing.
-    #[serde(default)]
-    pub no_total_cost: i64,
     /// Total cost of NO contracts as a fixed-point dollar string
     /// (e.g. `"0.000000"`).
     pub no_total_cost_dollars: String,
@@ -195,9 +187,8 @@ mod tests {
 
     #[test]
     fn test_settlement_deserialize_with_dollar_total_cost() {
-        // Kalshi /portfolio/settlements now returns yes_total_cost_dollars
-        // and no_total_cost_dollars; the old i64 fields are absent. Must
-        // deserialize with legacy fields defaulted to 0.
+        // Kalshi /portfolio/settlements returns yes_total_cost_dollars and
+        // no_total_cost_dollars; the legacy i64 fields are not in our struct.
         let json = r#"{
             "event_ticker": "KXQUICKSETTLE-26JAN11H2110",
             "fee_cost": "0.000000",
@@ -211,12 +202,10 @@ mod tests {
             "yes_count_fp": "0.00",
             "yes_total_cost_dollars": "0.000000"
         }"#;
-        let settlement: Settlement = serde_json::from_str(json)
-            .expect("Settlement must deserialize without legacy yes_total_cost/no_total_cost");
+        let settlement: Settlement =
+            serde_json::from_str(json).expect("Settlement must deserialize");
         assert_eq!(settlement.yes_total_cost_dollars, "0.000000");
         assert_eq!(settlement.no_total_cost_dollars, "0.000000");
-        assert_eq!(settlement.yes_total_cost, 0);
-        assert_eq!(settlement.no_total_cost, 0);
         assert_eq!(settlement.value, Some(100));
     }
 
