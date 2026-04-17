@@ -1709,6 +1709,12 @@ async fn test_quote_lifecycle() {
             eprintln!("SKIP: create_rfq not available for this account: {}", msg);
             return;
         }
+        Err(kalshi_trade_rs::Error::Api(msg))
+            if msg.contains("409") || msg.contains("already_exists") =>
+        {
+            eprintln!("SKIP: demo env has leftover RFQ from prior run: {}", msg);
+            return;
+        }
         Err(e) => panic!("create_rfq failed unexpectedly: {:?}", e),
     };
 
