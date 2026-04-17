@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             fill.action,
             fill.count_fp,
             fill.side,
-            fill.yes_price_fixed,
+            fill.yes_price_dollars,
             if fill.is_taker { "taker" } else { "maker" },
             fill.fee_cost,
         );

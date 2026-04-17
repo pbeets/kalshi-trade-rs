@@ -23,10 +23,6 @@ pub struct Fill {
     pub yes_price_dollars: String,
     /// Fill price for the no side in fixed-point dollars.
     pub no_price_dollars: String,
-    /// Deprecated: use `yes_price_dollars` instead.
-    pub yes_price_fixed: String,
-    /// Deprecated: use `no_price_dollars` instead.
-    pub no_price_fixed: String,
     /// Whether this fill removed liquidity.
     pub is_taker: bool,
     #[serde(default)]
@@ -161,5 +157,32 @@ mod tests {
     fn test_query_string_multiple_params() {
         let params = GetFillsParams::new().ticker("AAPL").limit(50);
         assert_eq!(params.to_query_string(), "?ticker=AAPL&limit=50");
+    }
+
+    #[test]
+    fn test_fill_deserialize_current_shape() {
+        // Current Kalshi /portfolio/fills shape: only yes_price_dollars /
+        // no_price_dollars. Ignores any legacy yes_price_fixed / no_price_fixed
+        // keys if the server still sends them.
+        let json = r#"{
+            "action": "buy",
+            "count_fp": "1.00",
+            "created_time": "2026-03-21T15:34:08.771917Z",
+            "fee_cost": "0.000000",
+            "fill_id": "b855cb66-b3fa-757e-dc84-6abdb31c80ec",
+            "is_taker": false,
+            "market_ticker": "KXEPLGOAL-26MAR21BRILFC-LFCRNGUMO73-1",
+            "no_price_dollars": "0.9500",
+            "order_id": "fced73b6-9f6f-4024-83a1-af8904190140",
+            "side": "yes",
+            "subaccount_number": 0,
+            "ticker": "KXEPLGOAL-26MAR21BRILFC-LFCRNGUMO73-1",
+            "trade_id": "b855cb66-b3fa-757e-dc84-6abdb31c80ec",
+            "ts": 1774107248,
+            "yes_price_dollars": "0.0500"
+        }"#;
+        let fill: Fill = serde_json::from_str(json).expect("Fill must deserialize");
+        assert_eq!(fill.yes_price_dollars, "0.0500");
+        assert_eq!(fill.no_price_dollars, "0.9500");
     }
 }

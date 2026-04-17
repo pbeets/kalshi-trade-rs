@@ -158,8 +158,11 @@ pub struct Market {
     pub market_type: MarketType,
 
     pub title: String,
+    #[serde(default)]
     pub subtitle: String,
+    #[serde(default)]
     pub yes_sub_title: String,
+    #[serde(default)]
     pub no_sub_title: String,
     /// Market category.
     #[serde(default)]
@@ -1170,6 +1173,54 @@ mod tests {
         assert_eq!(market.volume_fp, "1000.5");
         assert_eq!(market.volume_24h_fp, "500.25");
         assert_eq!(market.open_interest_fp, "250.125");
+    }
+
+    #[test]
+    fn test_market_deserialize_missing_subtitle_fields() {
+        // Kalshi's GET /markets occasionally omits subtitle, yes_sub_title,
+        // and no_sub_title (observed in prod with series_ticker=KXBTC15M).
+        // These fields must default to empty String rather than failing the
+        // whole page. See issue #36.
+        let json = r#"{
+            "ticker": "KXBTC15M-25JAN10-B50000",
+            "event_ticker": "KXBTC15M-25JAN10",
+            "market_type": "binary",
+            "status": "active",
+            "title": "Will Bitcoin reach $50,000?",
+            "created_time": "2025-01-01T00:00:00Z",
+            "open_time": "2025-01-01T00:00:00Z",
+            "close_time": "2025-12-31T00:00:00Z",
+            "expiration_time": "2025-12-31T00:00:00Z",
+            "latest_expiration_time": "2025-12-31T00:00:00Z",
+            "settlement_timer_seconds": 3600,
+            "response_price_units": "usd_cent",
+            "yes_bid_dollars": "0.50",
+            "yes_ask_dollars": "0.55",
+            "no_bid_dollars": "0.45",
+            "no_ask_dollars": "0.50",
+            "last_price_dollars": "0.52",
+            "previous_yes_bid_dollars": "0.48",
+            "previous_yes_ask_dollars": "0.53",
+            "previous_price_dollars": "0.50",
+            "volume_fp": "1000.5",
+            "volume_24h_fp": "500.25",
+            "open_interest_fp": "250.125",
+            "notional_value_dollars": "1.00",
+            "result": "",
+            "can_close_early": false,
+            "fractional_trading_enabled": true,
+            "expiration_value": "",
+            "rules_primary": "rules",
+            "rules_secondary": "",
+            "price_level_structure": "standard",
+            "price_ranges": [],
+            "updated_time": "2025-01-01T00:00:00Z"
+        }"#;
+        let market: Market = serde_json::from_str(json)
+            .expect("Market must deserialize when subtitle/yes_sub_title/no_sub_title are absent");
+        assert_eq!(market.subtitle, "");
+        assert_eq!(market.yes_sub_title, "");
+        assert_eq!(market.no_sub_title, "");
     }
 
     #[test]
