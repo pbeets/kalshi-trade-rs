@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-17
+
 ### Removed
 
 - **Breaking:** `Fill::yes_price_fixed` and `Fill::no_price_fixed` — absent
@@ -14,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `Settlement::yes_total_cost` and `Settlement::no_total_cost`
   (i64 cents) — absent from the current Kalshi API. Use
   `yes_total_cost_dollars` / `no_total_cost_dollars`.
+
+### Fixed
+
+- Tolerate Fill/Settlement field drift in current Kalshi API — `Fill` now
+  accepts `yes_price_fixed`/`no_price_fixed` as optional; `Settlement` now
+  accepts `yes_total_cost`/`no_total_cost` (i64 cents) as optional. This
+  prevents deserialization errors if Kalshi re-enables these fields or if
+  responses vary between endpoints.
+- Default Market `subtitle`/`subtitle_si`/`subtitle_source` fields when the
+  API omits them, preventing deserialization failures on certain markets.
 
 ## [0.5.0] - 2026-03-21
 
