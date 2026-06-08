@@ -60,15 +60,15 @@ pub enum Environment {
 impl Environment {
     pub fn base_url(&self) -> &'static str {
         match self {
-            Environment::Demo => "https://demo-api.kalshi.co/trade-api/v2",
-            Environment::Prod => "https://api.elections.kalshi.com/trade-api/v2",
+            Environment::Demo => "https://external-api.demo.kalshi.co/trade-api/v2",
+            Environment::Prod => "https://external-api.kalshi.com/trade-api/v2",
         }
     }
 
     pub fn ws_url(&self) -> &'static str {
         match self {
-            Environment::Demo => "wss://demo-api.kalshi.co/trade-api/ws/v2",
-            Environment::Prod => "wss://api.elections.kalshi.com/trade-api/ws/v2",
+            Environment::Demo => "wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2",
+            Environment::Prod => "wss://external-api-ws.kalshi.com/trade-api/ws/v2",
         }
     }
 
